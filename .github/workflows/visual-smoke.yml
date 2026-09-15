@@ -6,6 +6,9 @@ on:
       - feat/bad-idea-machine-game
     paths:
       - .github/workflows/visual-smoke.yml
+      - sdk/casino-sdk/examples/bad-idea-machine/src/**
+      - sdk/casino-sdk/examples/bad-idea-machine/public/**
+      - sdk/casino-sdk/examples/bad-idea-machine/index.html
 
 permissions:
   contents: read

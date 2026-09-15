@@ -124,17 +124,17 @@ npm run build:bad-idea
 npm --prefix examples/bad-idea-machine run verify-build
 ```
 
-CI additionally launches the full local casino + real bundled VRF node and runs `npm run simulate:bad-idea`, which opens and settles a wager in **all three risk modes** and verifies the emitted tier/payout relationship.
+CI additionally launches the full local casino + bundled Verify Network VRF node and runs `npm run simulate:bad-idea`. The default soak settles **105 real local-VRF wagers (35 per risk mode)** and independently recomputes every contract tier from its stored VRF word before verifying the payout.
 
 ## Performance and presentation
 
 The game deliberately avoids a 3D engine, background video, large sprite sheets, and a runtime backend. The machine is rendered with React/CSS primitives and procedural WebAudio. CI enforces production bundle guardrails and verifies that the static output still includes both `game.manifest.json` and the Chain Jam widget.
 
-The UI is responsive: desktop uses a wide 5×2 machine rail; mobile reflows it into a compact serpentine 2×5 route while keeping the wager controls touch-friendly.
+The UI is responsive: desktop uses a wide 5×2 machine rail; mobile reflows it into a compact serpentine 2×5 route while keeping the wager controls touch-friendly. A Chromium visual smoke check covers desktop ready/danger/result states and a 390×844 mobile viewport with browser-console error detection.
 
 ## Chain Jam requirements
 
-See [`ELIGIBILITY.md`](./ELIGIBILITY.md) for the reproducible eligibility checklist and evidence paths.
+See [`ELIGIBILITY.md`](./ELIGIBILITY.md) for the reproducible eligibility checklist and evidence paths. Submission-specific notes live in [`sdk/casino-sdk/examples/bad-idea-machine/SUBMISSION.md`](./sdk/casino-sdk/examples/bad-idea-machine/SUBMISSION.md).
 
 ## License
 

@@ -1,1 +1,16 @@
 @import './styles/bad-idea.css';
+
+/* Desktop stations 6–10 belong to the second half of the serpentine rail.
+   Explicitly pin the row so CSS grid auto-placement cannot create extra rows. */
+@media (min-width: 821px) {
+  .machine__station-wrap:nth-child(n+6) { grid-row: 2; }
+}
+
+@media (max-width: 480px) {
+  .game-header__network {
+    flex: 0 1 100px;
+    min-width: 0;
+    max-width: 100px;
+    padding-inline: 8px;
+  }
+}

@@ -8,7 +8,7 @@ This file maps the submission requirements to reproducible evidence in the repos
 | Uses Chain guest bridge | PASS | `sdk/casino-sdk/examples/bad-idea-machine/src/lib/useCasinoHost.ts` connects through `@chain/casino-sdk/guest`; `App.tsx` calls host `openSession` / `revealOutcome` and consumes pushed session snapshots. |
 | Valid game manifest | PASS | `sdk/casino-sdk/examples/bad-idea-machine/public/game.manifest.json`; `src/lib/manifest.test.ts` validates it with `validateCasinoGameManifest` and asserts canonical ID `badideamachine`. |
 | Runs in local simulator | PASS | CI compiles and auto-deploys `BadIdeaMachineGame`, starts the bundled local casino + Verify Network VRF node, and runs `npm run simulate:bad-idea`. |
-| Real local VRF lifecycle | PASS | `scripts/simulate-flows.mjs` opens one wager in each risk mode, waits for `CasinoSessionSettled`, requires non-zero VRF randomness, decodes `gameState`, and verifies payout from the settled tier. |
+| Real local VRF lifecycle | PASS | `scripts/simulate-flows.mjs` settles 105 wagers (35 per risk mode), requires non-zero VRF randomness, independently recomputes every tier from the emitted randomness, and verifies the payout. |
 | RTP between 93–98% | PASS | Exact RTP is 96.00% in all modes. `badIdea.test.ts` exhaustively enumerates every 0–9,999 roll and checks exact bucket counts and weighted RTP. |
 | Declared math matches paytable | PASS | Contract `tierFromRoll`/`multiplierBps`; frontend mirror `badIdea.ts`; exhaustive tests lock approved thresholds. |
 | Unbiased outcome mapping | PASS | Contract and frontend use 16-bit rejection sampling with accept limit 60,000 before `% 10_000`. |
@@ -18,7 +18,7 @@ This file maps the submission requirements to reproducible evidence in the repos
 | Jam widget included | PASS | `index.html` loads `https://jam.chain.wtf/widget.js`; `verify-build.mjs` fails if the production HTML loses it. |
 | Static frontend | PASS | Vite build emits deployable static `dist/`; production audit verifies `index.html` and same-origin `game.manifest.json`. |
 | Loads lightweight | PASS | No runtime backend, video, 3D engine, or sprite sheets; procedural CSS/DOM machine and WebAudio. `verify-build.mjs` enforces total/single-asset size guardrails. |
-| Mobile support | PASS | `bad-idea.css` reflows desktop 5×2 machine into a touch-friendly 2×5 route and compact control panel. |
+| Mobile support | PASS | `bad-idea.css` reflows desktop 5×2 machine into a touch-friendly 2×5 route and compact control panel. Chromium visual smoke covers desktop and 390×844 mobile. |
 | Sound / mute | PASS | `audio.ts` provides procedural per-station sound and result stings; control panel exposes mute. |
 | Source accessible | PASS | Public GitHub repository: `Ay-obami/bad-idea-machine`. |
 | Minimum eight meaningful commits | PASS | Game work is split across SDK foundation, math tests, contract, routing, sound, UI components, lifecycle integration, responsive styling, manifest/widget, production checks, integration simulation, and docs. |
@@ -63,7 +63,7 @@ cd sdk/casino-sdk
 npm run simulate:bad-idea
 ```
 
-The integration script must report `PASS` for modes `0`, `1`, and `2`, followed by the all-modes settlement confirmation.
+The default simulation must finish with `PASS 105 real local-VRF settlements independently recomputed from stored randomness`.
 
 ## Submission-only items
 

@@ -5,7 +5,10 @@ import {
   decodeAbiParameters,
   defineChain,
   encodeAbiParameters,
+  encodePacked,
+  hexToBytes,
   http,
+  keccak256,
   parseEther,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -14,6 +17,11 @@ const RPC_URL = process.env.RPC_URL ?? 'http://127.0.0.1:8545';
 const PLAYER_PRIVATE_KEY = process.env.PLAYER_PRIVATE_KEY ??
   '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 const DEPLOYED_URL = new URL('../../../simulator/local-node/deployed.json', import.meta.url);
+const SOAK_ROUNDS_PER_MODE = Number.parseInt(process.env.SOAK_ROUNDS_PER_MODE ?? '35', 10);
+
+if (!Number.isInteger(SOAK_ROUNDS_PER_MODE) || SOAK_ROUNDS_PER_MODE < 1) {
+  throw new Error(`SOAK_ROUNDS_PER_MODE must be a positive integer; got ${process.env.SOAK_ROUNDS_PER_MODE}`);
+}
 
 const TOKEN_ABI = [
   {
@@ -131,6 +139,12 @@ const MULTIPLIER_BPS = {
   2: [0n, 20_000n, 50_000n, 100_000n, 160_000n],
 };
 
+const THRESHOLDS = {
+  0: [4_500, 8_000, 9_500, 9_900, 10_000],
+  1: [6_500, 8_500, 9_500, 9_900, 10_000],
+  2: [8_000, 9_000, 9_600, 9_900, 10_000],
+};
+
 const BOUNDARY_CASES = {
   0: [
     [0, 0], [4_499, 0], [4_500, 1], [7_999, 1], [8_000, 2],
@@ -147,7 +161,31 @@ const BOUNDARY_CASES = {
 };
 
 const TOP_TIER_PROBABILITY_WAD = 10_000_000_000_000_000n;
+const PAYOUT_DOMAIN = 'BAD_IDEA_PAYOUT';
+const ACCEPTED_16BIT_RANGE = 60_000;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function uniformRoll10k(seed) {
+  let current = seed;
+  while (true) {
+    const bytes = hexToBytes(current);
+    for (let index = 0; index + 1 < bytes.length; index += 2) {
+      const sample = (bytes[index] << 8) | bytes[index + 1];
+      if (sample < ACCEPTED_16BIT_RANGE) return sample % 10_000;
+    }
+    current = keccak256(current);
+  }
+}
+
+function recomputeTier(mode, randomness) {
+  const payoutSeed = keccak256(
+    encodePacked(['bytes32', 'string'], [randomness, PAYOUT_DOMAIN]),
+  );
+  const roll = uniformRoll10k(payoutSeed);
+  const tier = THRESHOLDS[mode].findIndex(maxExclusive => roll < maxExclusive);
+  if (tier < 0) throw new Error(`Mode ${mode}: local tier mapping failed for roll ${roll}`);
+  return { tier, roll };
+}
 
 async function waitForSettlement(publicClient, host, sessionId, fromBlock) {
   const deadline = Date.now() + 30_000;
@@ -161,7 +199,7 @@ async function waitForSettlement(publicClient, host, sessionId, fromBlock) {
     });
     const match = logs.find(log => log.args.sessionId === sessionId);
     if (match) return match;
-    await sleep(250);
+    await sleep(100);
   }
   throw new Error(`Timed out waiting for session ${sessionId} to settle through VRF`);
 }
@@ -178,9 +216,7 @@ async function verifyContractMath(publicClient, gameAddress, wager) {
       functionName: 'quoteCaps',
       args: [wager, gameData],
     });
-    if (maxEscrowStake !== wager) {
-      throw new Error(`Mode ${mode}: quoteCaps escrow mismatch`);
-    }
+    if (maxEscrowStake !== wager) throw new Error(`Mode ${mode}: quoteCaps escrow mismatch`);
     if (maxReservedProfit !== maxPayout - wager) {
       throw new Error(`Mode ${mode}: quoteCaps reserved-profit mismatch`);
     }
@@ -200,9 +236,7 @@ async function verifyContractMath(publicClient, gameAddress, wager) {
     if (expectedPayout !== (wager * 9_600n) / 10_000n) {
       throw new Error(`Mode ${mode}: expected payout is not 96% of wager`);
     }
-    if (variance !== 0n) {
-      throw new Error(`Mode ${mode}: unexpected sub-jackpot variance`);
-    }
+    if (variance !== 0n) throw new Error(`Mode ${mode}: unexpected sub-jackpot variance`);
 
     for (let tier = 0; tier <= 4; tier += 1) {
       const actual = await publicClient.readContract({
@@ -232,6 +266,62 @@ async function verifyContractMath(publicClient, gameAddress, wager) {
   }
 }
 
+async function settleAndVerifyRound({ publicClient, walletClient, deployment, game, wager, mode }) {
+  const beforeId = await publicClient.readContract({
+    address: deployment.host,
+    abi: HOST_ABI,
+    functionName: 'currentSessionId',
+  });
+  const gameData = encodeAbiParameters([{ type: 'uint8' }], [mode]);
+  const openHash = await walletClient.writeContract({
+    address: deployment.host,
+    abi: HOST_ABI,
+    functionName: 'openSession',
+    args: [game.address, deployment.vault, wager, gameData],
+  });
+  const openReceipt = await publicClient.waitForTransactionReceipt({ hash: openHash });
+  const sessionId = beforeId + 1n;
+  const settled = await waitForSettlement(publicClient, deployment.host, sessionId, openReceipt.blockNumber);
+
+  if (settled.args.phase !== 3) {
+    throw new Error(`Mode ${mode}: expected SETTLED phase 3, got ${settled.args.phase}`);
+  }
+  if (!settled.args.randomness || /^0x0+$/.test(settled.args.randomness)) {
+    throw new Error(`Mode ${mode}: settlement contained no VRF randomness`);
+  }
+
+  const [stateMode, tier, stateRandomness] = decodeAbiParameters(
+    [{ type: 'uint8' }, { type: 'uint8' }, { type: 'bytes32' }],
+    settled.args.gameState,
+  );
+  if (Number(stateMode) !== mode) {
+    throw new Error(`Mode ${mode}: contract state reported mode ${stateMode}`);
+  }
+  if (stateRandomness.toLowerCase() !== settled.args.randomness.toLowerCase()) {
+    throw new Error(`Mode ${mode}: gameState randomness differs from settlement randomness`);
+  }
+  if (Number(tier) < 0 || Number(tier) > 4) {
+    throw new Error(`Mode ${mode}: invalid tier ${tier}`);
+  }
+
+  const independentlyComputed = recomputeTier(mode, settled.args.randomness);
+  if (Number(tier) !== independentlyComputed.tier) {
+    throw new Error(
+      `Mode ${mode}: VRF tier mismatch at roll ${independentlyComputed.roll}; ` +
+        `contract=${tier} client=${independentlyComputed.tier}`,
+    );
+  }
+
+  const expectedPayout = (wager * MULTIPLIER_BPS[mode][Number(tier)]) / 10_000n;
+  if (settled.args.payout !== expectedPayout) {
+    throw new Error(
+      `Mode ${mode}: payout mismatch for tier ${tier}; expected ${expectedPayout}, got ${settled.args.payout}`,
+    );
+  }
+
+  return { sessionId, tier: Number(tier), roll: independentlyComputed.roll };
+}
+
 async function main() {
   const deployment = JSON.parse(readFileSync(DEPLOYED_URL, 'utf8'));
   const game = deployment.games.find(entry => entry.name === 'BadIdeaMachineGame');
@@ -244,7 +334,7 @@ async function main() {
     rpcUrls: { default: { http: [RPC_URL] } },
   });
   const player = privateKeyToAccount(PLAYER_PRIVATE_KEY);
-  const publicClient = createPublicClient({ chain, transport: http(RPC_URL), pollingInterval: 150 });
+  const publicClient = createPublicClient({ chain, transport: http(RPC_URL), pollingInterval: 100 });
   const walletClient = createWalletClient({ account: player, chain, transport: http(RPC_URL) });
 
   const approval = await walletClient.writeContract({
@@ -265,54 +355,33 @@ async function main() {
     args: [player.address],
   });
 
+  const tierCounts = {
+    0: [0, 0, 0, 0, 0],
+    1: [0, 0, 0, 0, 0],
+    2: [0, 0, 0, 0, 0],
+  };
+  let verifiedRounds = 0;
+
   for (const mode of [0, 1, 2]) {
-    const beforeId = await publicClient.readContract({
-      address: deployment.host,
-      abi: HOST_ABI,
-      functionName: 'currentSessionId',
-    });
-    const gameData = encodeAbiParameters([{ type: 'uint8' }], [mode]);
-    const openHash = await walletClient.writeContract({
-      address: deployment.host,
-      abi: HOST_ABI,
-      functionName: 'openSession',
-      args: [game.address, deployment.vault, wager, gameData],
-    });
-    const openReceipt = await publicClient.waitForTransactionReceipt({ hash: openHash });
-    const sessionId = beforeId + 1n;
-    const settled = await waitForSettlement(publicClient, deployment.host, sessionId, openReceipt.blockNumber);
+    for (let round = 1; round <= SOAK_ROUNDS_PER_MODE; round += 1) {
+      const settled = await settleAndVerifyRound({
+        publicClient,
+        walletClient,
+        deployment,
+        game,
+        wager,
+        mode,
+      });
+      tierCounts[mode][settled.tier] += 1;
+      verifiedRounds += 1;
 
-    if (settled.args.phase !== 3) {
-      throw new Error(`Mode ${mode}: expected SETTLED phase 3, got ${settled.args.phase}`);
+      if (round === 1 || round % 10 === 0 || round === SOAK_ROUNDS_PER_MODE) {
+        console.log(
+          `PASS mode=${mode} soak=${round}/${SOAK_ROUNDS_PER_MODE} ` +
+            `session=${settled.sessionId} tier=${settled.tier} roll=${settled.roll}`,
+        );
+      }
     }
-    if (!settled.args.randomness || /^0x0+$/.test(settled.args.randomness)) {
-      throw new Error(`Mode ${mode}: settlement contained no VRF randomness`);
-    }
-
-    const [stateMode, tier, stateRandomness] = decodeAbiParameters(
-      [{ type: 'uint8' }, { type: 'uint8' }, { type: 'bytes32' }],
-      settled.args.gameState,
-    );
-    if (Number(stateMode) !== mode) {
-      throw new Error(`Mode ${mode}: contract state reported mode ${stateMode}`);
-    }
-    if (stateRandomness.toLowerCase() !== settled.args.randomness.toLowerCase()) {
-      throw new Error(`Mode ${mode}: gameState randomness differs from settlement randomness`);
-    }
-    if (Number(tier) < 0 || Number(tier) > 4) {
-      throw new Error(`Mode ${mode}: invalid tier ${tier}`);
-    }
-
-    const expectedPayout = (wager * MULTIPLIER_BPS[mode][Number(tier)]) / 10_000n;
-    if (settled.args.payout !== expectedPayout) {
-      throw new Error(
-        `Mode ${mode}: payout mismatch for tier ${tier}; expected ${expectedPayout}, got ${settled.args.payout}`,
-      );
-    }
-
-    console.log(
-      `PASS mode=${mode} session=${sessionId} tier=${tier} payout=${settled.args.payout} randomness=${settled.args.randomness.slice(0, 12)}…`,
-    );
   }
 
   const endBalance = await publicClient.readContract({
@@ -323,7 +392,13 @@ async function main() {
   });
   if (endBalance === undefined || startBalance === undefined) throw new Error('Could not read player balance');
 
-  console.log('PASS all three risk modes opened, received real local VRF, and settled against the host');
+  const expectedRounds = SOAK_ROUNDS_PER_MODE * 3;
+  if (verifiedRounds !== expectedRounds) {
+    throw new Error(`Expected ${expectedRounds} verified settlements, got ${verifiedRounds}`);
+  }
+
+  console.log(`PASS ${verifiedRounds} real local-VRF settlements independently recomputed from stored randomness`);
+  console.log(`Tier counts: ${JSON.stringify(tierCounts)}`);
 }
 
 main().catch(error => {

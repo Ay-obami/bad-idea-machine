@@ -37,7 +37,7 @@ describe('Bad Idea Machine manifest', () => {
       openSession: true,
       submitAction: false,
       forfeitExpiredSession: false,
-      cancelStuckRandomness: true,
+      cancelStuckRandomness: false,
       resize: true,
     });
   });

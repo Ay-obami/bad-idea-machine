@@ -7,10 +7,14 @@
 }
 
 @media (max-width: 480px) {
+  .game-header { gap: 8px; }
+  .game-header__brand { gap: 8px; min-width: 0; }
+  .game-header__brand strong { white-space: nowrap; }
   .game-header__network {
-    flex: 0 1 100px;
+    flex: 0 0 82px;
     min-width: 0;
-    max-width: 100px;
-    padding-inline: 8px;
+    max-width: 82px;
+    gap: 5px;
+    padding-inline: 7px;
   }
 }

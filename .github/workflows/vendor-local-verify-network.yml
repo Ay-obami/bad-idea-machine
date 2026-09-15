@@ -1,0 +1,72 @@
+name: Vendor Chain Local Verify Network
+
+on:
+  push:
+    branches:
+      - feat/bad-idea-machine-game
+    paths:
+      - .github/workflows/vendor-local-verify-network.yml
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/bad-idea-machine-game
+          fetch-depth: 0
+
+      - name: Download current Chain SDK package
+        run: |
+          set -euo pipefail
+          curl -fsSL https://sdk.chain.wtf/sdk/casino-sdk.zip -o /tmp/casino-sdk.zip
+          rm -rf /tmp/chain-sdk
+          mkdir -p /tmp/chain-sdk
+          unzip -q /tmp/casino-sdk.zip -d /tmp/chain-sdk
+
+      - name: Vendor local Verify Network sibling workspace
+        run: |
+          python - <<'PY'
+          import json
+          import shutil
+          from pathlib import Path
+
+          root = Path('/tmp/chain-sdk')
+          candidates = []
+          for package in root.rglob('package.json'):
+              if package.parent.name != 'local-verify-network':
+                  continue
+              try:
+                  json.loads(package.read_text())
+              except Exception:
+                  continue
+              candidates.append(package.parent)
+
+          if len(candidates) != 1:
+              found = '\n'.join(str(path) for path in candidates) or '(none)'
+              raise SystemExit(f'Expected exactly one local-verify-network workspace, found {len(candidates)}:\n{found}')
+
+          source = candidates[0]
+          dest = Path('sdk/casino-sdk/local-verify-network')
+          if dest.exists():
+              shutil.rmtree(dest)
+          shutil.copytree(source, dest)
+          print(f'Vendored {source} -> {dest}')
+          PY
+
+      - name: Commit workspace
+        run: |
+          set -euo pipefail
+          git config user.name "Bad Idea Machine Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add sdk/casino-sdk/local-verify-network
+          if git diff --cached --quiet; then
+            echo "No local Verify Network changes to commit"
+            exit 0
+          fi
+          git commit -m "chore: vendor Chain local Verify Network"
+          git push origin HEAD:feat/bad-idea-machine-game

@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           git config user.name "Bad Idea Machine Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add sdk/casino-sdk/local-verify-network
+          git add -f sdk/casino-sdk/local-verify-network
           if git diff --cached --quiet; then
             echo "No local Verify Network changes to commit"
             exit 0

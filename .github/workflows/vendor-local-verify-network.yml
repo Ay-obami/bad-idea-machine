@@ -69,4 +69,6 @@ jobs:
             exit 0
           fi
           git commit -m "chore: vendor Chain local Verify Network"
+          git fetch origin feat/bad-idea-machine-game
+          git rebase origin/feat/bad-idea-machine-game
           git push origin HEAD:feat/bad-idea-machine-game

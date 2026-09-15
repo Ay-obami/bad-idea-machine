@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { bytesToHex, formatUnits, parseUnits, type Hex } from 'viem';
-import type { RandomnessVerificationV1 } from '@chain/casino-sdk/guest';
+import type { RandomnessVerificationV1 } from '@chain/casino-sdk';
 import { computeMaxWager } from '@chain/casino-sdk/guest';
 
 import { ControlPanel } from './components/ControlPanel';
@@ -100,6 +100,7 @@ export function App() {
     if (!snapshot) return undefined;
     return computeMaxWager(snapshot, { maxMultiplierX: maxMultiplierX(riskMode) });
   }, [snapshot, riskMode]);
+  const platformMaxWagerValue = platformMaxWager?.kind === 'limit' ? platformMaxWager.maxWager : undefined;
 
   const maxAllowedReservedProfit = useMemo(() => {
     const raw = snapshot?.casino?.maxAllowedReservedProfit;
@@ -108,6 +109,8 @@ export function App() {
 
   const roundInFlight = round !== null && round.status !== 'done';
   const insufficientBalance = wager !== null && balance !== undefined && wager > balance;
+  const exceedsPlatformMax =
+    liveHost && wager !== null && platformMaxWagerValue !== undefined && wager > platformMaxWagerValue;
   const exceedsRiskLimit =
     liveHost &&
     wager !== null &&
@@ -125,10 +128,13 @@ export function App() {
   const reason = error
     ?? walletReason
     ?? (insufficientBalance ? `Insufficient ${demoMode ? 'demo credits' : 'balance'}.` : null)
-    ?? (exceedsRiskLimit
-      ? platformMaxWager !== undefined
-        ? `House risk limit reached. Max wager: ${formatUnits(platformMaxWager, decimals)} ${symbol}.`
+    ?? (exceedsPlatformMax || exceedsRiskLimit
+      ? platformMaxWagerValue !== undefined
+        ? `House risk limit reached. Max wager: ${formatUnits(platformMaxWagerValue, decimals)} ${symbol}.`
         : 'House risk limit reached for this volatility.'
+      : null)
+    ?? (liveHost && platformMaxWager?.kind === 'unknown'
+      ? 'House limit data is still syncing; the Chain host remains authoritative.'
       : null);
 
   const canPlay =
@@ -136,6 +142,7 @@ export function App() {
     !roundInFlight &&
     wager !== null &&
     !insufficientBalance &&
+    !exceedsPlatformMax &&
     !exceedsRiskLimit &&
     (!liveHost || snapshot.wallet.status === 'ready');
 
@@ -196,23 +203,23 @@ export function App() {
 
     const visualSeed = visualSeedFromRandomness(randomness);
     const route = buildVisualRoute(tier, visualSeed);
-    setRound(current => current?.sessionKey === round.sessionKey
-      ? {
-          ...current,
-          status: 'revealing',
-          riskMode: settledMode,
-          sessionId: row.sessionId,
-          tier,
-          randomness,
-          visualSeed,
-          route,
-          multiplierBps: multiplierBpsForTier(settledMode, tier),
-          payout: chainPayout ?? payoutFor(round.wager, settledMode, tier),
-          requestId: row.raw.requestId,
-          settleTransactionHash: row.raw.settleTransactionHash,
-        }
-      : current,
-    );
+    setRound(current => {
+      if (!current || current.sessionKey !== round.sessionKey) return current;
+      return {
+        ...current,
+        status: 'revealing',
+        riskMode: settledMode,
+        sessionId: row.sessionId,
+        tier,
+        randomness,
+        visualSeed,
+        route,
+        multiplierBps: multiplierBpsForTier(settledMode, tier),
+        payout: chainPayout ?? payoutFor(round.wager, settledMode, tier),
+        requestId: row.raw.requestId,
+        settleTransactionHash: row.raw.settleTransactionHash,
+      };
+    });
   }, [liveHost, round, snapshot]);
 
   const hostApiRef = useRef(hostApi);
@@ -223,7 +230,10 @@ export function App() {
   useEffect(() => {
     if (!round || round.status !== 'revealing' || round.tier === undefined || round.payout === undefined) return;
     const timer = window.setTimeout(() => {
-      setRound(current => current && current.status === 'revealing' ? { ...current, status: 'done' } : current);
+      setRound(current => {
+        if (!current || current.status !== 'revealing') return current;
+        return { ...current, status: 'done' };
+      });
 
       if (round.source === 'demo') {
         setDemoBalance(current => current + round.payout!);
@@ -235,7 +245,10 @@ export function App() {
         if (hostApiRef.current?.getRandomnessVerification) {
           void hostApiRef.current.getRandomnessVerification({ sessionId: round.sessionId })
             .then(verification => {
-              setRound(current => current?.sessionId === round.sessionId ? { ...current, verification } : current);
+              setRound(current => {
+                if (!current || current.sessionId !== round.sessionId) return current;
+                return { ...current, verification };
+              });
             })
             .catch(() => {});
         }
@@ -262,7 +275,10 @@ export function App() {
         gameData: encodeGameData(mode),
         randomnessRequestData: EMPTY_HEX,
       });
-      setRound(current => current?.sessionKey === pendingKey ? { ...current, sessionKey, status: 'waiting' } : current);
+      setRound(current => {
+        if (!current || current.sessionKey !== pendingKey) return current;
+        return { ...current, sessionKey, status: 'waiting' };
+      });
     } catch (cause) {
       setRound(null);
       setError(cause instanceof Error ? cause.message : 'The machine failed to accept the wager.');
@@ -277,19 +293,19 @@ export function App() {
       const randomness = browserRandomness();
       const outcome = outcomeFromRandomness(mode, randomness);
       const route = buildVisualRoute(outcome.tier, outcome.visualSeed);
-      setRound(current => current?.source === 'demo' && current.status === 'opening'
-        ? {
-            ...current,
-            status: 'revealing',
-            tier: outcome.tier,
-            randomness,
-            visualSeed: outcome.visualSeed,
-            route,
-            multiplierBps: outcome.multiplierBps,
-            payout: payoutFor(amount, mode, outcome.tier),
-          }
-        : current,
-      );
+      setRound(current => {
+        if (!current || current.source !== 'demo' || current.status !== 'opening') return current;
+        return {
+          ...current,
+          status: 'revealing',
+          tier: outcome.tier,
+          randomness,
+          visualSeed: outcome.visualSeed,
+          route,
+          multiplierBps: outcome.multiplierBps,
+          payout: payoutFor(amount, mode, outcome.tier),
+        };
+      });
     }, 520);
   }, []);
 

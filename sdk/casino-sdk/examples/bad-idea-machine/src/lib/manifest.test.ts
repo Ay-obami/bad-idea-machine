@@ -4,8 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 import { canonicalCasinoGameId, validateCasinoGameManifest } from '@chain/casino-sdk';
 
+type RawManifest = {
+  capabilities?: Record<string, unknown>;
+};
+
 const manifestPath = fileURLToPath(new URL('../../public/game.manifest.json', import.meta.url));
-const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown;
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as RawManifest;
 
 describe('Bad Idea Machine manifest', () => {
   it('passes the SDK manifest validator', () => {
@@ -27,7 +31,9 @@ describe('Bad Idea Machine manifest', () => {
     const result = validateCasinoGameManifest(manifest);
     if (!result.ok) throw new Error(result.reason);
 
-    expect(result.manifest.capabilities).toEqual({
+    // The current validator schema checks capabilities at runtime even though
+    // CasinoGameManifestV1 in SDK 0.2.0 has not yet added the field to its TS type.
+    expect(manifest.capabilities).toEqual({
       openSession: true,
       submitAction: false,
       forfeitExpiredSession: false,

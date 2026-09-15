@@ -37,6 +37,10 @@ export function ControlPanel({
   onToggleMuted,
   onPlay,
 }: Props) {
+  // A bad wager should disable the launch button, not trap the player in their
+  // current risk selection. Lock configuration only while a round is active.
+  const controlsLocked = ctaLabel === 'BAD IDEA IN PROGRESS';
+
   return (
     <aside className="control-panel">
       <div className="control-panel__topline">
@@ -57,6 +61,7 @@ export function ControlPanel({
             value={wagerInput}
             onChange={event => onWagerInputChange(event.target.value)}
             aria-label="Wager amount"
+            disabled={controlsLocked}
           />
           <b>{symbol}</b>
         </div>
@@ -70,7 +75,7 @@ export function ControlPanel({
             type="button"
             className={`risk-card ${riskMode === option.mode ? 'risk-card--selected' : ''}`}
             onClick={() => onRiskModeChange(option.mode)}
-            disabled={disabled}
+            disabled={controlsLocked}
           >
             <span className="risk-card__indicator" />
             <span>

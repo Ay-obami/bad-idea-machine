@@ -44,6 +44,9 @@ jobs:
       - name: Build Bad Idea Machine
         run: npm run build:bad-idea
 
+      - name: Audit standalone production bundle
+        run: npm --prefix examples/bad-idea-machine run verify-build
+
       - name: Run real local VRF settlement flows
         shell: bash
         run: |

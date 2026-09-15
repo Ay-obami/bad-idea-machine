@@ -29,6 +29,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Compile simulator contracts
+        run: npm --prefix simulator run compile-contracts
+
       - name: Run SDK tests
         run: npm run test:sdk --if-present
 

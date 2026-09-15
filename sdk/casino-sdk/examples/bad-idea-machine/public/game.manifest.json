@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "gameId": "CoinflipGame",
+  "gameId": "BadIdeaMachineGame",
   "apiVersion": 1,
   "defaultLocale": "en",
   "locales": {
     "en": {
-      "name": "Coinflip",
-      "description": "Flip one or more coins and settle the round from host-provided on-chain state."
+      "name": "Bad Idea Machine",
+      "description": "Choose how reckless you feel, press the button, and watch a ridiculous machine try to reach your multiplier. 96% RTP across all three risk modes."
     }
   },
   "presentation": {
@@ -21,7 +21,7 @@
     "openSession": true,
     "submitAction": false,
     "forfeitExpiredSession": false,
-    "cancelStuckRandomness": false,
+    "cancelStuckRandomness": true,
     "resize": true
   }
 }

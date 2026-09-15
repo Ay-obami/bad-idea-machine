@@ -3,6 +3,7 @@ name: Bad Idea Machine CI
 on:
   push:
     branches:
+      - main
       - feat/bad-idea-machine-game
   pull_request:
     branches:

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "gameId": "BadIdeaMachineGame",
+  "apiVersion": 1,
+  "defaultLocale": "en",
+  "locales": {
+    "en": {
+      "name": "Bad Idea Machine",
+      "description": "Choose how reckless you feel, press the button, and watch a ridiculous machine try to reach your multiplier. 96% RTP across all three risk modes."
+    }
+  },
+  "presentation": {
+    "mode": "full-iframe",
+    "hostPanels": {
+      "openSession": false,
+      "history": false,
+      "status": false
+    }
+  },
+  "capabilities": {
+    "openSession": true,
+    "submitAction": false,
+    "forfeitExpiredSession": false,
+    "cancelStuckRandomness": false,
+    "resize": true
+  }
+}

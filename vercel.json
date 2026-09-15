@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd sdk/casino-sdk && npm install",
+  "buildCommand": "cd sdk/casino-sdk && npm run build:bad-idea && npm --prefix examples/bad-idea-machine run verify-build",
+  "outputDirectory": "sdk/casino-sdk/examples/bad-idea-machine/dist",
+  "headers": [
+    {
+      "source": "/game.manifest.json",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=60"
+        }
+      ]
+    }
+  ]
+}

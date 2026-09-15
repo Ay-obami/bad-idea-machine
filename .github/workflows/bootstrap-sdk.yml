@@ -1,0 +1,86 @@
+name: Bad Idea Machine CI
+
+on:
+  push:
+    branches:
+      - feat/bad-idea-machine-game
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: bad-idea-machine-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/casino-sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Compile simulator contracts
+        run: npm --prefix simulator run compile-contracts
+
+      - name: Run SDK tests
+        run: npm run test:sdk --if-present
+
+      - name: Run Bad Idea Machine tests
+        run: npm run test:bad-idea
+
+      - name: Typecheck Bad Idea Machine
+        run: npm --prefix examples/bad-idea-machine run check-types
+
+      - name: Build Bad Idea Machine
+        run: npm run build:bad-idea
+
+      - name: Audit standalone production bundle
+        run: npm --prefix examples/bad-idea-machine run verify-build
+
+      - name: Run real local VRF settlement flows
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f simulator/local-node/deployed.json
+          npm --prefix simulator run local-node > /tmp/bad-idea-local-node.log 2>&1 &
+          NODE_PID=$!
+          trap 'kill "$NODE_PID" 2>/dev/null || true' EXIT
+
+          READY=0
+          for _ in $(seq 1 120); do
+            if ! kill -0 "$NODE_PID" 2>/dev/null; then
+              echo "Local casino node exited before becoming ready"
+              cat /tmp/bad-idea-local-node.log
+              exit 1
+            fi
+            if [[ -f simulator/local-node/deployed.json ]] && grep -q 'BadIdeaMachineGame' simulator/local-node/deployed.json; then
+              READY=1
+              break
+            fi
+            sleep 0.5
+          done
+
+          if [[ "$READY" != "1" ]]; then
+            echo "Timed out waiting for BadIdeaMachineGame deployment"
+            cat /tmp/bad-idea-local-node.log
+            exit 1
+          fi
+
+          npm run simulate:bad-idea || {
+            cat /tmp/bad-idea-local-node.log
+            exit 1
+          }

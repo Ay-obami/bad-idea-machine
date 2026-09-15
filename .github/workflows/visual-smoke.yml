@@ -1,0 +1,101 @@
+name: Bad Idea Machine Visual Smoke
+
+on:
+  push:
+    branches:
+      - feat/bad-idea-machine-game
+    paths:
+      - .github/workflows/visual-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/casino-sdk
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace
+        run: npm install
+
+      - name: Install Playwright for visual smoke
+        shell: bash
+        run: |
+          cd examples/bad-idea-machine
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Build and serve standalone demo
+        shell: bash
+        run: |
+          npm run build:bad-idea
+          npm --prefix examples/bad-idea-machine run preview -- --host 127.0.0.1 > /tmp/bad-idea-preview.log 2>&1 &
+          echo $! > /tmp/bad-idea-preview.pid
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3100 >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat /tmp/bad-idea-preview.log
+          exit 1
+
+      - name: Capture desktop, danger mode, result and mobile
+        shell: bash
+        run: |
+          cd examples/bad-idea-machine
+          mkdir -p visual-smoke
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+          const consoleErrors = [];
+          page.on('console', message => {
+            if (message.type() === 'error') consoleErrors.push(message.text());
+          });
+          page.on('pageerror', error => consoleErrors.push(error.message));
+
+          await page.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
+          await page.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
+          await page.screenshot({ path: 'visual-smoke/desktop-ready.png', fullPage: true });
+
+          await page.getByRole('button', { name: /ABSOLUTELY NOT/i }).click();
+          await page.screenshot({ path: 'visual-smoke/desktop-danger.png', fullPage: true });
+
+          await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          await page.waitForTimeout(7600);
+          await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor();
+          await page.screenshot({ path: 'visual-smoke/desktop-result.png', fullPage: true });
+
+          const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+          mobile.on('console', message => {
+            if (message.type() === 'error') consoleErrors.push(`mobile: ${message.text()}`);
+          });
+          mobile.on('pageerror', error => consoleErrors.push(`mobile: ${error.message}`));
+          await mobile.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
+          await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
+          await mobile.screenshot({ path: 'visual-smoke/mobile-ready.png', fullPage: true });
+
+          if (consoleErrors.length > 0) {
+            throw new Error(`Browser errors:\n${consoleErrors.join('\n')}`);
+          }
+          await browser.close();
+          NODE
+
+      - name: Upload visual smoke screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad-idea-machine-visual-smoke
+          path: sdk/casino-sdk/examples/bad-idea-machine/visual-smoke/*.png
+          if-no-files-found: error

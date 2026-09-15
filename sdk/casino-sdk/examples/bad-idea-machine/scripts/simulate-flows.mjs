@@ -74,12 +74,79 @@ const HOST_ABI = [
   },
 ];
 
+const GAME_ABI = [
+  {
+    type: 'function',
+    name: 'quoteCaps',
+    stateMutability: 'pure',
+    inputs: [
+      { name: 'wager', type: 'uint256' },
+      { name: 'gameData', type: 'bytes' },
+    ],
+    outputs: [
+      { name: 'maxEscrowStake', type: 'uint256' },
+      { name: 'maxReservedProfit', type: 'uint256' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'quoteRiskParams',
+    stateMutability: 'pure',
+    inputs: [
+      { name: 'wager', type: 'uint256' },
+      { name: 'gameData', type: 'bytes' },
+    ],
+    outputs: [
+      { name: 'maxPayout', type: 'uint256' },
+      { name: 'probabilityWad', type: 'uint256' },
+      { name: 'expectedPayout', type: 'uint256' },
+      { name: 'subJackpotVarianceScaled', type: 'uint256' },
+    ],
+  },
+  {
+    type: 'function',
+    name: 'tierFromRoll',
+    stateMutability: 'pure',
+    inputs: [
+      { name: 'riskMode', type: 'uint8' },
+      { name: 'roll', type: 'uint256' },
+    ],
+    outputs: [{ name: '', type: 'uint8' }],
+  },
+  {
+    type: 'function',
+    name: 'multiplierBps',
+    stateMutability: 'pure',
+    inputs: [
+      { name: 'riskMode', type: 'uint8' },
+      { name: 'tier', type: 'uint8' },
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+  },
+];
+
 const MULTIPLIER_BPS = {
   0: [0n, 12_000n, 20_000n, 40_000n, 80_000n],
   1: [0n, 15_000n, 30_000n, 60_000n, 120_000n],
   2: [0n, 20_000n, 50_000n, 100_000n, 160_000n],
 };
 
+const BOUNDARY_CASES = {
+  0: [
+    [0, 0], [4_499, 0], [4_500, 1], [7_999, 1], [8_000, 2],
+    [9_499, 2], [9_500, 3], [9_899, 3], [9_900, 4], [9_999, 4],
+  ],
+  1: [
+    [0, 0], [6_499, 0], [6_500, 1], [8_499, 1], [8_500, 2],
+    [9_499, 2], [9_500, 3], [9_899, 3], [9_900, 4], [9_999, 4],
+  ],
+  2: [
+    [0, 0], [7_999, 0], [8_000, 1], [8_999, 1], [9_000, 2],
+    [9_599, 2], [9_600, 3], [9_899, 3], [9_900, 4], [9_999, 4],
+  ],
+};
+
+const TOP_TIER_PROBABILITY_WAD = 10_000_000_000_000_000n;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function waitForSettlement(publicClient, host, sessionId, fromBlock) {
@@ -97,6 +164,72 @@ async function waitForSettlement(publicClient, host, sessionId, fromBlock) {
     await sleep(250);
   }
   throw new Error(`Timed out waiting for session ${sessionId} to settle through VRF`);
+}
+
+async function verifyContractMath(publicClient, gameAddress, wager) {
+  for (const mode of [0, 1, 2]) {
+    const gameData = encodeAbiParameters([{ type: 'uint8' }], [mode]);
+    const topMultiplierBps = MULTIPLIER_BPS[mode][4];
+    const maxPayout = (wager * topMultiplierBps) / 10_000n;
+
+    const [maxEscrowStake, maxReservedProfit] = await publicClient.readContract({
+      address: gameAddress,
+      abi: GAME_ABI,
+      functionName: 'quoteCaps',
+      args: [wager, gameData],
+    });
+    if (maxEscrowStake !== wager) {
+      throw new Error(`Mode ${mode}: quoteCaps escrow mismatch`);
+    }
+    if (maxReservedProfit !== maxPayout - wager) {
+      throw new Error(`Mode ${mode}: quoteCaps reserved-profit mismatch`);
+    }
+
+    const [quotedMaxPayout, probabilityWad, expectedPayout, variance] = await publicClient.readContract({
+      address: gameAddress,
+      abi: GAME_ABI,
+      functionName: 'quoteRiskParams',
+      args: [wager, gameData],
+    });
+    if (quotedMaxPayout !== maxPayout) {
+      throw new Error(`Mode ${mode}: quoteRiskParams maxPayout mismatch`);
+    }
+    if (probabilityWad !== TOP_TIER_PROBABILITY_WAD) {
+      throw new Error(`Mode ${mode}: top-tier probability is not exactly 1% WAD`);
+    }
+    if (expectedPayout !== (wager * 9_600n) / 10_000n) {
+      throw new Error(`Mode ${mode}: expected payout is not 96% of wager`);
+    }
+    if (variance !== 0n) {
+      throw new Error(`Mode ${mode}: unexpected sub-jackpot variance`);
+    }
+
+    for (let tier = 0; tier <= 4; tier += 1) {
+      const actual = await publicClient.readContract({
+        address: gameAddress,
+        abi: GAME_ABI,
+        functionName: 'multiplierBps',
+        args: [mode, tier],
+      });
+      if (actual !== MULTIPLIER_BPS[mode][tier]) {
+        throw new Error(`Mode ${mode}: tier ${tier} multiplier mismatch`);
+      }
+    }
+
+    for (const [roll, expectedTier] of BOUNDARY_CASES[mode]) {
+      const actualTier = await publicClient.readContract({
+        address: gameAddress,
+        abi: GAME_ABI,
+        functionName: 'tierFromRoll',
+        args: [mode, BigInt(roll)],
+      });
+      if (Number(actualTier) !== expectedTier) {
+        throw new Error(`Mode ${mode}: roll ${roll} expected tier ${expectedTier}, got ${actualTier}`);
+      }
+    }
+
+    console.log(`PASS contract quotes + paytable boundaries mode=${mode}`);
+  }
 }
 
 async function main() {
@@ -123,6 +256,8 @@ async function main() {
   await publicClient.waitForTransactionReceipt({ hash: approval });
 
   const wager = parseEther('10');
+  await verifyContractMath(publicClient, game.address, wager);
+
   const startBalance = await publicClient.readContract({
     address: deployment.token,
     abi: TOKEN_ABI,

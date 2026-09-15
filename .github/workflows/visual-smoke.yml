@@ -3,6 +3,7 @@ name: Bad Idea Machine Visual Smoke
 on:
   push:
     branches:
+      - main
       - feat/bad-idea-machine-game
     paths:
       - .github/workflows/visual-smoke.yml

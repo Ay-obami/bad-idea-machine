@@ -1,185 +1,90 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { formatUnits, parseUnits } from 'viem';
-import type { CSSProperties } from 'react';
-
+import { bytesToHex, formatUnits, parseUnits, type Hex } from 'viem';
+import type { RandomnessVerificationV1 } from '@chain/casino-sdk/guest';
 import { computeMaxWager } from '@chain/casino-sdk/guest';
 
-import { useCasinoHost } from './lib/useCasinoHost';
+import { ControlPanel } from './components/ControlPanel';
+import { FairnessReceipt } from './components/FairnessReceipt';
+import { MachineStage, type MachinePhase } from './components/MachineStage';
 import {
+  EMPTY_HEX,
   PHASE_SETTLED,
+  decodeGameData,
   decodeGameState,
   encodeGameData,
   isTerminalPhase,
-  maxPayout,
+  maxMultiplierX,
   maxReservedProfit,
+  multiplierBpsForTier,
   outcomeFromRandomness,
-  outcomeFromResult,
-  payoutMultiplier,
-  type CoinflipBet,
-  type CoinflipOutcome,
-} from './lib/coinflip';
-import { BottomBar } from './components/BottomBar';
-import { CanvasHistoryStrip } from './components/CanvasHistoryStrip';
-import { CanvasStatsStrip } from './components/CanvasStatsStrip';
-import { CoinStage, type StagePhase } from './components/CoinStage';
-import { Sidebar } from './components/Sidebar';
-import { WinOverlay } from './components/WinOverlay';
-import backdrop from './assets/backdrop.webp';
-import backdropMobile from './assets/backdrop-mobile.webp';
+  payoutFor,
+  visualSeedFromRandomness,
+  type OutcomeTier,
+  type RiskMode,
+} from './lib/badIdea';
+import { isMachineMuted, primeAudio, setMachineMuted } from './lib/audio';
+import { buildVisualRoute, routeDurationMs, type RouteStep } from './lib/route';
+import { useCasinoHost } from './lib/useCasinoHost';
+
+const DEMO_DECIMALS = 2;
+const DEMO_STARTING_BALANCE = 250_000n; // 2,500.00 demo chUSD
+
+type RoundStatus = 'opening' | 'waiting' | 'revealing' | 'done';
 
 type Round = {
-  sessionKey: string;
-  bet: CoinflipBet;
+  source: 'host' | 'demo';
+  riskMode: RiskMode;
   wager: bigint;
-  status: 'opening' | 'waiting' | 'landing' | 'done';
+  status: RoundStatus;
+  sessionKey?: string;
   sessionId?: string;
-  outcome?: CoinflipOutcome;
+  tier?: OutcomeTier;
+  randomness?: Hex;
+  visualSeed?: Hex;
+  route: readonly RouteStep[];
+  multiplierBps?: number;
   payout?: bigint;
+  requestId?: string;
+  settleTransactionHash?: string;
+  verification?: RandomnessVerificationV1 | null;
 };
 
-/** Toss animation (1.35s) plus the per-coin stagger before the result shows. */
-function landingDurationMs(coinCount: number): number {
-  return 1350 + (coinCount - 1) * 110;
+function browserRandomness(): Hex {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return bytesToHex(bytes);
 }
 
-const FAST_MODE_STORAGE_KEY = 'coinflip.fast-mode';
-
-function loadFastMode(): boolean {
-  try {
-    return window.localStorage.getItem(FAST_MODE_STORAGE_KEY) === '1';
-  } catch {
-    return false;
+function inferTierFromPayout(wager: bigint, payout: bigint, riskMode: RiskMode): OutcomeTier | null {
+  for (let tier = 0; tier <= 4; tier += 1) {
+    if (payoutFor(wager, riskMode, tier as OutcomeTier) === payout) return tier as OutcomeTier;
   }
+  return null;
 }
 
 export function App() {
   const { hostApi, snapshot } = useCasinoHost();
+  const standalone = useMemo(() => typeof window !== 'undefined' && window.self === window.top, []);
 
-  const [form, setForm] = useState<CoinflipBet>({ pickHeads: true, coinCount: 1, minWins: 1 });
-  const [wagerInput, setWagerInput] = useState('1.00');
+  const [riskMode, setRiskMode] = useState<RiskMode>(1);
+  const [wagerInput, setWagerInput] = useState('10.00');
   const [round, setRound] = useState<Round | null>(null);
+  const [demoBalance, setDemoBalance] = useState(DEMO_STARTING_BALANCE);
   const [error, setError] = useState<string | null>(null);
-  const [winDismissed, setWinDismissed] = useState(false);
-  const [fastMode, setFastModeState] = useState(loadFastMode);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [muted, setMuted] = useState(isMachineMuted);
 
-  const setFastMode = useCallback((next: boolean) => {
-    setFastModeState(next);
-    try {
-      window.localStorage.setItem(FAST_MODE_STORAGE_KEY, next ? '1' : '0');
-    } catch {
-      // Storage can be unavailable in sandboxed iframes.
-    }
-  }, []);
+  const liveHost = hostApi !== null && snapshot !== null;
+  const demoMode = standalone && !liveHost;
+  const ready = liveHost || demoMode;
 
-  const decimals = snapshot?.token.decimals ?? 18;
-  const symbol = snapshot?.token.symbol ?? '';
-  const tokenIconUrl = snapshot?.token.iconUrl;
+  const decimals = liveHost ? snapshot.token.decimals ?? 18 : DEMO_DECIMALS;
+  const symbol = liveHost ? snapshot.token.symbol ?? 'chUSD' : 'demo chUSD';
   const balance = useMemo(() => {
+    if (demoMode) return demoBalance;
     const raw = snapshot?.balances.smartVaultBalance;
     return raw !== undefined ? BigInt(raw) : undefined;
-  }, [snapshot?.balances.smartVaultBalance]);
-
-  // Settle the active round from snapshot pushes: once the host's session list
-  // shows our sessionKey as terminal, decode the on-chain gameState and start
-  // the landing animation.
-  useEffect(() => {
-    if (!round || round.status !== 'waiting' || !snapshot) return;
-    const row = snapshot.sessions.items.find(item => item.sessionKey === round.sessionKey);
-    if (!row || !(row.isSettled || isTerminalPhase(row.phase))) return;
-
-    if (row.phase !== undefined && row.phase !== PHASE_SETTLED && !row.raw.gameState) {
-      setError('The round did not settle normally. Your wager handling follows on-chain rules.');
-      setRound(null);
-      return;
-    }
-
-    // Resolve the outcome from the richest source available: the settled
-    // gameState, else the raw VRF word, else the payout alone. A settled row
-    // must always resolve to faces eventually or the round would never leave
-    // the flipping state; only a row still missing its payout keeps waiting.
-    const rawRandomness = row.raw.randomness !== undefined ? BigInt(row.raw.randomness) : 0n;
-    const outcome =
-      (row.raw.gameState ? decodeGameState(row.raw.gameState) : null) ??
-      (rawRandomness !== 0n ? outcomeFromRandomness(round.bet, rawRandomness) : null) ??
-      (row.payout !== undefined ? outcomeFromResult(round.bet, BigInt(row.payout) > 0n) : null);
-    if (!outcome) return; // result not synced yet — wait for the next push
-
-    // A winning row can flip terminal one push before its payout is written, so
-    // compute the deterministic win payout locally when the row lags.
-    const rowPayout = row.payout !== undefined ? BigInt(row.payout) : 0n;
-    setRound(current =>
-      current && current.sessionKey === round.sessionKey
-        ? {
-            ...current,
-            status: fastMode ? 'done' : 'landing',
-            sessionId: row.sessionId,
-            outcome,
-            payout:
-              rowPayout > 0n
-                ? rowPayout
-                : outcome.won
-                  ? maxPayout(current.wager, outcome.coinCount, outcome.minWins)
-                  : 0n,
-          }
-        : current,
-    );
-  }, [snapshot, round, fastMode]);
-
-  // Drive landing → done, then reveal the outcome so the host releases the
-  // withheld payout into its balance displays (required guest lifecycle step).
-  const hostApiRef = useRef(hostApi);
-  hostApiRef.current = hostApi;
-  useEffect(() => {
-    if (!round || !round.outcome) return;
-    if (round.status !== 'landing' && round.status !== 'done') return;
-
-    const finish = () => {
-      setRound(current =>
-        current && current.sessionKey === round.sessionKey && current.status === 'landing'
-          ? { ...current, status: 'done' }
-          : current,
-      );
-      if (round.sessionId) {
-        void hostApiRef.current?.revealOutcome({ sessionId: round.sessionId }).catch(() => {
-          // Reveal is display-only on the host; settlement is already final.
-        });
-      }
-    };
-
-    if (round.status === 'done') {
-      if (round.sessionId) {
-        void hostApiRef.current?.revealOutcome({ sessionId: round.sessionId }).catch(() => {});
-      }
-      return;
-    }
-    const timer = setTimeout(finish, landingDurationMs(round.outcome.coinCount));
-    return () => clearTimeout(timer);
-  }, [round]);
-
-  const openRound = useCallback(
-    async (bet: CoinflipBet, wager: bigint) => {
-      if (!hostApi) return;
-      setError(null);
-      setWinDismissed(false);
-      const pendingKey = `pending:${Date.now()}`;
-      setRound({ sessionKey: pendingKey, bet, wager, status: 'opening' });
-      try {
-        const { sessionKey } = await hostApi.openSession({
-          wager: wager.toString(),
-          gameData: encodeGameData(bet),
-        });
-        setRound(current =>
-          current?.sessionKey === pendingKey
-            ? { ...current, sessionKey, status: 'waiting' }
-            : current,
-        );
-      } catch (cause) {
-        setRound(null);
-        setError(cause instanceof Error ? cause.message : 'Failed to open the round.');
-      }
-    },
-    [hostApi],
-  );
+  }, [demoMode, demoBalance, snapshot?.balances.smartVaultBalance]);
 
   const wager = useMemo(() => {
     if (!wagerInput.trim()) return null;
@@ -191,154 +96,309 @@ export function App() {
     }
   }, [wagerInput, decimals]);
 
+  const platformMaxWager = useMemo(() => {
+    if (!snapshot) return undefined;
+    return computeMaxWager(snapshot, { maxMultiplierX: maxMultiplierX(riskMode) });
+  }, [snapshot, riskMode]);
+
   const maxAllowedReservedProfit = useMemo(() => {
     const raw = snapshot?.casino?.maxAllowedReservedProfit;
     return raw !== undefined ? BigInt(raw) : undefined;
   }, [snapshot?.casino?.maxAllowedReservedProfit]);
 
-  // The largest bet the platform accepts for the current pick, so the UI can
-  // clamp instead of letting the transaction get rejected on-chain.
-  const platformMaxWager = useMemo(() => {
-    const result = computeMaxWager(snapshot, {
-      maxMultiplierX: payoutMultiplier(form.coinCount, form.minWins),
-    });
-    return result.kind === 'limit' ? result.maxWager : undefined;
-  }, [snapshot, form.coinCount, form.minWins]);
+  const roundInFlight = round !== null && round.status !== 'done';
+  const insufficientBalance = wager !== null && balance !== undefined && wager > balance;
+  const exceedsRiskLimit =
+    liveHost &&
+    wager !== null &&
+    maxAllowedReservedProfit !== undefined &&
+    maxReservedProfit(wager, riskMode) > maxAllowedReservedProfit;
 
-  if (!hostApi || !snapshot) {
+  const walletReason = liveHost && snapshot.wallet.status !== 'ready'
+    ? snapshot.wallet.status === 'disconnected'
+      ? 'Connect your wallet in the Chain host to operate the machine.'
+      : snapshot.wallet.status === 'setup-required'
+        ? 'Finish Smart Vault setup in the Chain host first.'
+        : 'Restore your Chain session key before betting.'
+    : null;
+
+  const reason = error
+    ?? walletReason
+    ?? (insufficientBalance ? `Insufficient ${demoMode ? 'demo credits' : 'balance'}.` : null)
+    ?? (exceedsRiskLimit
+      ? platformMaxWager !== undefined
+        ? `House risk limit reached. Max wager: ${formatUnits(platformMaxWager, decimals)} ${symbol}.`
+        : 'House risk limit reached for this volatility.'
+      : null);
+
+  const canPlay =
+    ready &&
+    !roundInFlight &&
+    wager !== null &&
+    !insufficientBalance &&
+    !exceedsRiskLimit &&
+    (!liveHost || snapshot.wallet.status === 'ready');
+
+  // Recover an in-flight Chain round after iframe refresh. The session snapshot
+  // remains authoritative; no localStorage copy of casino state is trusted.
+  useEffect(() => {
+    if (!liveHost || round || !snapshot) return;
+    const pending = [...snapshot.sessions.items]
+      .filter(item => item.gameAddress.toLowerCase() === snapshot.integration.gameAddress.toLowerCase())
+      .filter(item => item.phase === 1 || item.phaseName === 'WAITING_RANDOMNESS')
+      .sort((a, b) => b.lastEventTimestamp - a.lastEventTimestamp)[0];
+    if (!pending?.raw.gameData || pending.wager === undefined) return;
+    const recoveredMode = decodeGameData(pending.raw.gameData);
+    if (recoveredMode === null) return;
+
+    setRiskMode(recoveredMode);
+    setRound({
+      source: 'host',
+      riskMode: recoveredMode,
+      wager: BigInt(pending.wager),
+      status: 'waiting',
+      sessionKey: pending.sessionKey,
+      sessionId: pending.sessionId,
+      route: [],
+      requestId: pending.raw.requestId,
+      settleTransactionHash: pending.raw.settleTransactionHash,
+    });
+  }, [liveHost, round, snapshot]);
+
+  // Resolve a Chain round from the pushed session row. gameState is preferred;
+  // raw VRF is a safe fallback because the contract outcome is deterministic.
+  useEffect(() => {
+    if (!liveHost || !round || round.source !== 'host' || round.status !== 'waiting' || !snapshot) return;
+    const row = snapshot.sessions.items.find(item => item.sessionKey === round.sessionKey);
+    if (!row || !(row.isSettled || isTerminalPhase(row.phase))) return;
+
+    if (row.phase !== undefined && row.phase !== PHASE_SETTLED) {
+      setError(row.phaseName === 'CANCELLED' ? 'Randomness stalled. Chain cancelled and handled the round.' : 'The round did not settle normally.');
+      setRound(null);
+      return;
+    }
+
+    const decoded = row.raw.gameState ? decodeGameState(row.raw.gameState) : null;
+    const rawRandomness = row.raw.randomness as Hex | undefined;
+    const randomness = decoded?.randomness ?? rawRandomness;
+    const settledMode = decoded?.riskMode ?? round.riskMode;
+    let tier = decoded?.tier;
+
+    if (tier === undefined && randomness) {
+      tier = outcomeFromRandomness(settledMode, randomness).tier;
+    }
+
+    const chainPayout = row.payout !== undefined ? BigInt(row.payout) : undefined;
+    if (tier === undefined && chainPayout !== undefined) {
+      tier = inferTierFromPayout(round.wager, chainPayout, settledMode) ?? undefined;
+    }
+    if (tier === undefined || !randomness) return;
+
+    const visualSeed = visualSeedFromRandomness(randomness);
+    const route = buildVisualRoute(tier, visualSeed);
+    setRound(current => current?.sessionKey === round.sessionKey
+      ? {
+          ...current,
+          status: 'revealing',
+          riskMode: settledMode,
+          sessionId: row.sessionId,
+          tier,
+          randomness,
+          visualSeed,
+          route,
+          multiplierBps: multiplierBpsForTier(settledMode, tier),
+          payout: chainPayout ?? payoutFor(round.wager, settledMode, tier),
+          requestId: row.raw.requestId,
+          settleTransactionHash: row.raw.settleTransactionHash,
+        }
+      : current,
+    );
+  }, [liveHost, round, snapshot]);
+
+  const hostApiRef = useRef(hostApi);
+  hostApiRef.current = hostApi;
+
+  // Finish the presentation before telling the host to reveal the withheld
+  // payout in its balance UI. Demo mode mirrors that timing with fake credits.
+  useEffect(() => {
+    if (!round || round.status !== 'revealing' || round.tier === undefined || round.payout === undefined) return;
+    const timer = window.setTimeout(() => {
+      setRound(current => current && current.status === 'revealing' ? { ...current, status: 'done' } : current);
+
+      if (round.source === 'demo') {
+        setDemoBalance(current => current + round.payout!);
+        return;
+      }
+
+      if (round.sessionId) {
+        void hostApiRef.current?.revealOutcome({ sessionId: round.sessionId }).catch(() => {});
+        if (hostApiRef.current?.getRandomnessVerification) {
+          void hostApiRef.current.getRandomnessVerification({ sessionId: round.sessionId })
+            .then(verification => {
+              setRound(current => current?.sessionId === round.sessionId ? { ...current, verification } : current);
+            })
+            .catch(() => {});
+        }
+      }
+    }, routeDurationMs(round.route));
+    return () => window.clearTimeout(timer);
+  }, [round]);
+
+  const openHostRound = useCallback(async (mode: RiskMode, amount: bigint) => {
+    if (!hostApi) return;
+    const pendingKey = `pending:${Date.now()}`;
+    setRound({
+      source: 'host',
+      riskMode: mode,
+      wager: amount,
+      status: 'opening',
+      sessionKey: pendingKey,
+      route: [],
+    });
+
+    try {
+      const { sessionKey } = await hostApi.openSession({
+        wager: amount.toString(),
+        gameData: encodeGameData(mode),
+        randomnessRequestData: EMPTY_HEX,
+      });
+      setRound(current => current?.sessionKey === pendingKey ? { ...current, sessionKey, status: 'waiting' } : current);
+    } catch (cause) {
+      setRound(null);
+      setError(cause instanceof Error ? cause.message : 'The machine failed to accept the wager.');
+    }
+  }, [hostApi]);
+
+  const openDemoRound = useCallback((mode: RiskMode, amount: bigint) => {
+    setDemoBalance(current => current - amount);
+    setRound({ source: 'demo', riskMode: mode, wager: amount, status: 'opening', route: [] });
+
+    window.setTimeout(() => {
+      const randomness = browserRandomness();
+      const outcome = outcomeFromRandomness(mode, randomness);
+      const route = buildVisualRoute(outcome.tier, outcome.visualSeed);
+      setRound(current => current?.source === 'demo' && current.status === 'opening'
+        ? {
+            ...current,
+            status: 'revealing',
+            tier: outcome.tier,
+            randomness,
+            visualSeed: outcome.visualSeed,
+            route,
+            multiplierBps: outcome.multiplierBps,
+            payout: payoutFor(amount, mode, outcome.tier),
+          }
+        : current,
+      );
+    }, 520);
+  }, []);
+
+  const handlePlay = () => {
+    if (!canPlay || wager === null) return;
+    primeAudio();
+    setError(null);
+    setReceiptOpen(false);
+    if (demoMode) openDemoRound(riskMode, wager);
+    else void openHostRound(riskMode, wager);
+  };
+
+  const toggleMuted = () => {
+    const next = !muted;
+    setMuted(next);
+    setMachineMuted(next);
+    if (!next) primeAudio();
+  };
+
+  if (!ready) {
     return (
-      <div className="ck-canvas-loading">
-        <div className="ck-canvas-loading__card">
-          <div className="ck-canvas-loading__spinner" aria-hidden />
-          <span className="ck-canvas-loading__label">Connecting to host…</span>
-        </div>
-      </div>
+      <main className="boot-screen">
+        <div className="boot-screen__mark">BIM</div>
+        <span className="boot-screen__spinner" />
+        <strong>CONNECTING DANGEROUS EQUIPMENT…</strong>
+      </main>
     );
   }
 
-  const walletStatus = snapshot.wallet.status;
-  const walletReady = walletStatus === 'ready';
-  const roundInFlight =
-    round !== null &&
-    (round.status === 'opening' || round.status === 'waiting' || round.status === 'landing');
-  const roundDone = round?.status === 'done';
-
-  const insufficientBalance = wager !== null && balance !== undefined && wager > balance;
-  const exceedsRiskLimit =
-    wager !== null &&
-    maxAllowedReservedProfit !== undefined &&
-    maxReservedProfit(wager, form.coinCount, form.minWins) > maxAllowedReservedProfit;
-
-  const reason = !walletReady
-    ? walletStatus === 'disconnected'
-      ? 'Connect your wallet in the host app to play.'
-      : walletStatus === 'setup-required'
-        ? 'Finish setting up your Smart Vault in the host app to play.'
-        : 'Restore your session key in the host app before betting.'
-    : error
-      ? error
-      : insufficientBalance
-        ? 'Insufficient balance.'
-        : exceedsRiskLimit
-          ? platformMaxWager !== undefined
-            ? `Potential win exceeds the current house risk limit. Max bet: ${formatUnits(platformMaxWager, decimals)} ${symbol}.`
-            : 'Potential win exceeds the current house risk limit.'
-          : null;
-
-  const ctaLabel = roundInFlight ? 'Flipping…' : roundDone ? 'Play again' : 'Bet';
-  const canBet =
-    walletReady && !roundInFlight && wager !== null && !insufficientBalance && !exceedsRiskLimit;
-
-  const handleBet = () => {
-    if (wager === null) return;
-    void openRound(form, wager);
-  };
-
-  const stagePhase: StagePhase =
-    round === null || round.status === 'opening'
-      ? 'idle'
-      : round.status === 'waiting'
-        ? 'flipping'
-        : round.status === 'landing'
-          ? 'landing'
-          : 'settled';
-
-  const winVisible = roundDone && round?.outcome?.won === true && !winDismissed;
-  const winMultiplier =
-    round && round.payout !== undefined && round.wager > 0n
-      ? `${(Number((round.payout * 10000n) / round.wager) / 10000).toFixed(2)}x`
-      : '0.00x';
-  const winNet =
-    round && round.payout !== undefined
-      ? `+ ${formatUnits(round.payout - round.wager, decimals)} ${symbol}`
-      : '';
-  const winBetLabel = round
-    ? `${round.bet.minWins}/${round.bet.coinCount} ${round.bet.pickHeads ? 'heads' : 'tails'}`
-    : '';
-
-  const backdropStyle = {
-    ['--backdrop-image' as string]: `url(${backdrop})`,
-    ['--backdrop-mobile-image' as string]: `url(${backdropMobile})`,
-  } as CSSProperties;
-
-  const availableHeight = snapshot.ui.viewport?.availableHeight;
-  const shellStyle = availableHeight
-    ? ({ ['--ck-available-height' as string]: `${availableHeight}px` } as CSSProperties)
-    : undefined;
+  const displayMode = round?.riskMode ?? riskMode;
+  const machinePhase: MachinePhase = !round
+    ? 'idle'
+    : round.status === 'opening' || round.status === 'waiting'
+      ? 'arming'
+      : round.status === 'revealing'
+        ? 'revealing'
+        : 'result';
+  const balanceText = balance === undefined ? '—' : formatUnits(balance, decimals);
+  const payoutText = round?.payout === undefined ? '0' : formatUnits(round.payout, decimals);
+  const wagerText = round ? formatUnits(round.wager, decimals) : wagerInput;
+  const multiplierText = round?.multiplierBps === undefined
+    ? '—'
+    : `${(round.multiplierBps / 10_000).toFixed(round.multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
 
   return (
-    <div className="ck-shell" style={shellStyle}>
-      <div className="ck-shell__main" style={backdropStyle}>
-        <div className="ck-shell__backdrop" aria-hidden />
-        <div className="ck-shell__sidebar-host">
-          <Sidebar
-            form={form}
-            setForm={setForm}
-            wagerInput={wagerInput}
-            setWagerInput={setWagerInput}
-            balance={balance}
-            maxWager={platformMaxWager}
-            decimals={decimals}
-            symbol={symbol}
-            tokenIconUrl={tokenIconUrl}
-            fastMode={fastMode}
-            setFastMode={setFastMode}
-            ctaLabel={ctaLabel}
-            ctaDisabled={!canBet}
-            reason={reason}
-            onBet={handleBet}
-          />
+    <main className={`app-shell app-shell--mode-${displayMode}`}>
+      <div className="hazard-stripe" aria-hidden />
+      <header className="game-header">
+        <div className="game-header__brand">
+          <span className="brand-badge">BIM</span>
+          <div><strong>BAD IDEA MACHINE</strong><small>ONE BUTTON. SEVERAL TERRIBLE DECISIONS.</small></div>
         </div>
-        <div className="ck-shell__canvas">
-          <CanvasHistoryStrip
-            sessions={snapshot.sessions.items}
-            gameAddress={snapshot.integration.gameAddress}
-            hideSessionKey={roundInFlight ? round?.sessionKey : undefined}
-          />
-          <CoinStage
-            phase={stagePhase}
-            form={round?.bet ?? form}
-            outcome={round?.outcome ?? null}
-          />
-          <CanvasStatsStrip
-            form={form}
-            wagerInput={wagerInput}
-            decimals={decimals}
-            symbol={symbol}
-            tokenIconUrl={tokenIconUrl}
-          />
-          <WinOverlay
-            visible={winVisible}
-            multiplierText={winMultiplier}
-            netText={winNet}
-            betLabel={winBetLabel}
-            symbol={symbol}
-            tokenIconUrl={tokenIconUrl}
-            onDismiss={() => setWinDismissed(true)}
-          />
+        <div className="game-header__network">
+          <span className="network-dot" />
+          {demoMode ? 'STANDALONE DEMO' : `CHAIN ${snapshot?.integration.chainId ?? ''}`}
         </div>
+      </header>
+
+      <div className="game-layout">
+        <MachineStage
+          riskMode={displayMode}
+          phase={machinePhase}
+          route={round?.route ?? []}
+          tier={round?.tier}
+          multiplierBps={round?.multiplierBps}
+        />
+
+        <ControlPanel
+          riskMode={riskMode}
+          onRiskModeChange={setRiskMode}
+          wagerInput={wagerInput}
+          onWagerInputChange={setWagerInput}
+          balanceText={balanceText}
+          symbol={symbol}
+          ctaLabel={roundInFlight ? 'BAD IDEA IN PROGRESS' : round?.status === 'done' ? 'PRESS AGAIN' : 'DO NOT PRESS'}
+          disabled={!canPlay}
+          reason={reason}
+          demoMode={demoMode}
+          muted={muted}
+          onToggleMuted={toggleMuted}
+          onPlay={handlePlay}
+        />
       </div>
-      <BottomBar />
-    </div>
+
+      {round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && (
+        <FairnessReceipt
+          open={receiptOpen}
+          onToggle={() => setReceiptOpen(current => !current)}
+          riskMode={round.riskMode}
+          tier={round.tier}
+          route={round.route}
+          wagerText={wagerText}
+          payoutText={payoutText}
+          multiplierText={multiplierText}
+          symbol={symbol}
+          sessionId={round.sessionId}
+          requestId={round.requestId}
+          settleTransactionHash={round.settleTransactionHash}
+          verification={round.verification}
+          demoMode={round.source === 'demo'}
+        />
+      )}
+
+      <footer className="game-footer">
+        <span>96.00% RTP</span>
+        <span>CHAIN VRF</span>
+        <span>NO MANUAL REQUIRED</span>
+        <span>DO NOT EXPOSE TO REASONABLE DECISION MAKING</span>
+      </footer>
+    </main>
   );
 }

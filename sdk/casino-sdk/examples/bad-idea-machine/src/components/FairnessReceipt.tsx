@@ -1,4 +1,4 @@
-import type { RandomnessVerificationV1 } from '@chain/casino-sdk/guest';
+import type { RandomnessVerificationV1 } from '@chain/casino-sdk';
 
 import { RISK_MODE_LABELS, type OutcomeTier, type RiskMode } from '../lib/badIdea';
 import type { RouteStep } from '../lib/route';

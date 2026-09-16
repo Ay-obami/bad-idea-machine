@@ -45,10 +45,7 @@
   font-size: 13px;
 }
 
-.reference-gallery__brand-copy {
-  display: grid;
-  gap: 2px;
-}
+.reference-gallery__brand-copy { display: grid; gap: 2px; }
 
 .reference-gallery__brand-copy strong,
 .reference-gallery__footer-brand strong {
@@ -70,11 +67,7 @@
   letter-spacing: .1em;
 }
 
-.reference-gallery__nav a {
-  color: #a8b2b6;
-  text-decoration: none;
-}
-
+.reference-gallery__nav a { color: #a8b2b6; text-decoration: none; }
 .reference-gallery__nav a:hover { color: var(--bim-text); }
 
 .reference-gallery__wallet {
@@ -93,7 +86,7 @@
   padding-block: clamp(44px, 6vw, 74px);
 }
 
-.gallery-room { min-width: 0; }
+.gallery-room { min-width: 0; scroll-margin-top: 22px; }
 
 .gallery-room__heading-line {
   min-height: 58px;
@@ -185,8 +178,9 @@
 .gallery-card__body {
   display: grid;
   gap: 5px;
-  min-height: 100px;
-  padding: 12px 11px 13px;
+  min-height: 66px;
+  align-content: center;
+  padding: 10px 11px 11px;
   border-top: 1px solid #253239;
 }
 
@@ -206,12 +200,6 @@
   letter-spacing: .08em;
 }
 
-.gallery-card__copy {
-  color: #879398;
-  font-size: 9px;
-  line-height: 1.35;
-}
-
 .reference-gallery__footer {
   min-height: 92px;
   border-top: 1px solid var(--bim-line);
@@ -221,10 +209,7 @@
   gap: 24px;
 }
 
-.reference-gallery__footer-brand > div {
-  display: grid;
-  gap: 5px;
-}
+.reference-gallery__footer-brand > div { display: grid; gap: 5px; }
 
 .reference-gallery__footer-brand span:last-child {
   color: #9aa5a9;
@@ -232,11 +217,7 @@
   letter-spacing: .14em;
 }
 
-.reference-gallery__badge--footer {
-  width: 36px;
-  height: 36px;
-  font-size: 11px;
-}
+.reference-gallery__badge--footer { width: 36px; height: 36px; font-size: 11px; }
 
 .reference-gallery__cta {
   border: 0;

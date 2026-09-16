@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import { ControlPanel } from '../components/ControlPanel';
 import { EnvironmentStage, type EnvironmentPhase } from '../components/EnvironmentStage';
-import { OutcomeStrip } from '../components/OutcomeStrip';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import type { EnvironmentId, SceneScript } from '../scene/types';
 
@@ -58,7 +57,6 @@ export function GameScreen({
   muted,
   onToggleMuted,
   onPlay,
-  settledTier,
   receipt,
   onBackToGallery,
   canLeave,
@@ -116,7 +114,6 @@ export function GameScreen({
         />
       </div>
 
-      <OutcomeStrip environment={displayEnvironment} riskMode={displayMode} settledTier={settledTier} />
       {receipt}
 
       <footer className="game-footer reference-play__footer">

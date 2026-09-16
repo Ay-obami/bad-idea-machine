@@ -55,6 +55,7 @@ const VARIANTS: Record<MachineStation, readonly string[]> = {
 };
 
 const HAZARDS: readonly ChaosHazard[] = ['sparks', 'fire', 'smoke', 'debris', 'blast', 'alarm'];
+const MIN_STEP_DURATION_MS = 360;
 
 function bytesFor(seed: Hex): Uint8Array {
   return hexToBytes(seed);
@@ -115,6 +116,29 @@ function effectSeedFor(bytes: Uint8Array, index: number): number {
   );
 }
 
+function stepDurations(bytes: Uint8Array, count: number, targetDuration: number): readonly number[] {
+  const baseDuration = Math.floor(targetDuration / count);
+  const durations: number[] = [];
+  let remaining = targetDuration;
+
+  for (let index = 0; index < count; index += 1) {
+    const stepsAfter = count - index - 1;
+    if (stepsAfter === 0) {
+      durations.push(remaining);
+      break;
+    }
+
+    const jitter = (byteAt(bytes, index + 15) % 181) - 90;
+    const desired = baseDuration + jitter;
+    const maximum = remaining - stepsAfter * MIN_STEP_DURATION_MS;
+    const duration = Math.max(MIN_STEP_DURATION_MS, Math.min(maximum, desired));
+    durations.push(duration);
+    remaining -= duration;
+  }
+
+  return durations;
+}
+
 /**
  * Cosmetic-only deterministic choreography. The economic tier has already been
  * settled by the contract. The visible route deliberately does not encode that
@@ -130,17 +154,16 @@ export function buildVisualRoute(tier: OutcomeTier, visualSeed: Hex): readonly R
   const stations = shuffledStations(bytes).slice(0, count);
   const durationRoll = (byteAt(bytes, 30) << 8) | byteAt(bytes, 29);
   const targetDuration = 4_700 + (durationRoll % 1_500);
-  const baseDuration = Math.floor(targetDuration / count);
+  const durations = stepDurations(bytes, count, targetDuration);
 
   return stations.map((station, index) => {
-    const jitter = (byteAt(bytes, index + 15) % 181) - 90;
     const intensity = (1 + (byteAt(bytes, index + 9) % 3)) as ChaosIntensity;
     const terminal = index === stations.length - 1;
 
     return {
       station,
       variant: variantFor(station, bytes, index),
-      durationMs: Math.max(360, baseDuration + jitter),
+      durationMs: durations[index],
       intensity: terminal ? 3 : intensity,
       hazard: HAZARDS[byteAt(bytes, index + 17) % HAZARDS.length],
       decoys: decoysFor(station, bytes, index),

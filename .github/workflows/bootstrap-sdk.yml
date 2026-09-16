@@ -46,6 +46,9 @@ jobs:
       - name: Run Bad Idea Machine tests
         run: npm run test:bad-idea
 
+      - name: Verify room art assets
+        run: npm --prefix examples/bad-idea-machine run verify-room-assets
+
       - name: Typecheck Bad Idea Machine
         run: npm --prefix examples/bad-idea-machine run check-types
 

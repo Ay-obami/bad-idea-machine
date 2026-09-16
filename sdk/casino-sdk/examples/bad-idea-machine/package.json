@@ -9,7 +9,8 @@
     "test": "vitest run --passWithNoTests",
     "check-types": "tsc --noEmit",
     "simulate": "node scripts/simulate-flows.mjs",
-    "verify-build": "node scripts/verify-build.mjs"
+    "verify-build": "node scripts/verify-build.mjs",
+    "verify-room-assets": "node scripts/verify-room-assets.mjs"
   },
   "dependencies": {
     "@chain/casino-sdk": "file:../..",

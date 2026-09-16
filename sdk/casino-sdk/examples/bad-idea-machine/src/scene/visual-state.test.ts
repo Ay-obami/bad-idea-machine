@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
-import { damageStateForTier, outcomeCardsForMode, outcomeLabelForTier } from './visual-state';
+import {
+  damageStateForTier,
+  outcomeCardsForMode,
+  outcomeLabelForTier,
+  sceneFrameForState,
+} from './visual-state';
 
 const TIERS: readonly OutcomeTier[] = [0, 1, 2, 3, 4];
 const MODES: readonly RiskMode[] = [0, 1, 2];
@@ -19,6 +24,27 @@ describe('cinematic damage states', () => {
     expect(damageStateForTier(2)).toBe('controlled');
     expect(damageStateForTier(3)).toBe('major');
     expect(damageStateForTier(4)).toBe('legendary');
+  });
+});
+
+describe('photographic scene frames', () => {
+  it('uses distinct clean, live-chaos and five result frames for each room', () => {
+    expect(sceneFrameForState('kitchen', 'idle')).toBe(0);
+    expect(sceneFrameForState('kitchen', 'arming')).toBe(0);
+    expect(sceneFrameForState('kitchen', 'revealing')).toBe(1);
+    expect(TIERS.map(tier => sceneFrameForState('kitchen', 'result', tier))).toEqual([2, 3, 4, 5, 6]);
+
+    expect(sceneFrameForState('garage', 'idle')).toBe(7);
+    expect(sceneFrameForState('garage', 'arming')).toBe(7);
+    expect(sceneFrameForState('garage', 'revealing')).toBe(8);
+    expect(TIERS.map(tier => sceneFrameForState('garage', 'result', tier))).toEqual([9, 10, 11, 12, 13]);
+  });
+
+  it('never reuses a result frame between multiplier tiers', () => {
+    for (const environment of ['kitchen', 'garage'] as const) {
+      const frames = TIERS.map(tier => sceneFrameForState(environment, 'result', tier));
+      expect(new Set(frames).size).toBe(5);
+    }
   });
 });
 

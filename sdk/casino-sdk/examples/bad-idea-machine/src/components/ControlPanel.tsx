@@ -82,7 +82,7 @@ export function ControlPanel({
               className={Number(wagerInput) === Number(value) ? 'wager-preset wager-preset--selected' : 'wager-preset'}
               disabled={controlsLocked}
             >
-              {Number(value).toFixed(Number(value) >= 100 ? 0 : Number(value) >= 10 ? 0 : 0)}
+              {value}
             </button>
           ))}
         </div>

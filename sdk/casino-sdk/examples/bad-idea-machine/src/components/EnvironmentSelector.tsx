@@ -1,5 +1,6 @@
 import type { EnvironmentId } from '../scene/types';
 import '../styles/environment-selector.css';
+import '../styles/environment-layout.css';
 
 const OPTIONS: ReadonlyArray<{
   id: EnvironmentId;

@@ -90,6 +90,20 @@ function shuffledStations(bytes: Uint8Array): MachineStation[] {
   return route;
 }
 
+function shuffledHazards(bytes: Uint8Array): ChaosHazard[] {
+  const hazards = [...HAZARDS];
+  let cursor = 21;
+
+  for (let index = hazards.length - 1; index > 0; index -= 1) {
+    const random = byteAt(bytes, cursor) + byteAt(bytes, cursor + 7) * 257;
+    const swapWith = random % (index + 1);
+    [hazards[index], hazards[swapWith]] = [hazards[swapWith], hazards[index]];
+    cursor += 1;
+  }
+
+  return hazards;
+}
+
 function decoysFor(
   station: MachineStation,
   bytes: Uint8Array,
@@ -152,12 +166,13 @@ export function buildVisualRoute(tier: OutcomeTier, visualSeed: Hex): readonly R
   const bytes = bytesFor(visualSeed);
   const count = 8 + (byteAt(bytes, 31) % 3);
   const stations = shuffledStations(bytes).slice(0, count);
+  const hazards = shuffledHazards(bytes);
   const durationRoll = (byteAt(bytes, 30) << 8) | byteAt(bytes, 29);
   const targetDuration = 4_700 + (durationRoll % 1_500);
   const durations = stepDurations(bytes, count, targetDuration);
 
   return stations.map((station, index) => {
-    const intensity = (1 + (byteAt(bytes, index + 9) % 3)) as ChaosIntensity;
+    const intensity = (2 + (byteAt(bytes, index + 9) % 2)) as ChaosIntensity;
     const terminal = index === stations.length - 1;
 
     return {
@@ -165,7 +180,7 @@ export function buildVisualRoute(tier: OutcomeTier, visualSeed: Hex): readonly R
       variant: variantFor(station, bytes, index),
       durationMs: durations[index],
       intensity: terminal ? 3 : intensity,
-      hazard: HAZARDS[byteAt(bytes, index + 17) % HAZARDS.length],
+      hazard: hazards[index % hazards.length],
       decoys: decoysFor(station, bytes, index),
       effectSeed: effectSeedFor(bytes, index),
       terminal,

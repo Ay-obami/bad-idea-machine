@@ -70,7 +70,7 @@ jobs:
           async function verifyMovingActor(page) {
             await page.locator('.environment-stage[data-phase="revealing"]').waitFor({ timeout: 4_000 });
             const probe = page.locator('[data-event-actor]').first();
-            await probe.waitFor({ timeout: 4_000 });
+            await probe.waitFor({ state: 'attached', timeout: 4_000 });
             const actorId = await probe.getAttribute('data-event-actor');
             if (!actorId) throw new Error('Active scene event did not expose an actor id');
             const actor = page.locator(`[data-scene-actor="${actorId}"]`);

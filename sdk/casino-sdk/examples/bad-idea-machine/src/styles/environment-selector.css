@@ -1,0 +1,79 @@
+.environment-selector {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 8px;
+}
+.environment-selector legend {
+  margin-bottom: 7px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  color: rgba(238,231,214,.65);
+}
+.environment-selector__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.environment-choice {
+  min-width: 0;
+  min-height: 78px;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 9px;
+  background: rgba(18,20,19,.7);
+  color: #e9e2d4;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .15s ease,border-color .15s ease,background .15s ease,box-shadow .15s ease;
+}
+.environment-choice:hover:not(:disabled) { transform: translateY(-1px); border-color: rgba(255,255,255,.25); }
+.environment-choice:disabled { opacity: .55; cursor: not-allowed; }
+.environment-choice__icon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,.06);
+  font-size: 17px;
+}
+.environment-choice strong {
+  display: block;
+  font-size: 10px;
+  line-height: 1.05;
+  letter-spacing: .06em;
+}
+.environment-choice small {
+  display: block;
+  margin-top: 4px;
+  font-size: 8px;
+  line-height: 1.25;
+  opacity: .56;
+}
+.environment-choice--kitchen.environment-choice--selected {
+  border-color: rgba(255,157,49,.66);
+  background: linear-gradient(135deg,rgba(142,65,23,.34),rgba(32,25,20,.78));
+  box-shadow: inset 0 0 0 1px rgba(255,177,77,.13),0 0 18px rgba(255,108,34,.08);
+}
+.environment-choice--garage.environment-choice--selected {
+  border-color: rgba(208,181,69,.62);
+  background: linear-gradient(135deg,rgba(75,79,65,.48),rgba(24,29,29,.8));
+  box-shadow: inset 0 0 0 1px rgba(231,181,58,.12),0 0 18px rgba(107,148,153,.08);
+}
+.environment-choice--selected .environment-choice__icon { background: rgba(255,190,78,.14); }
+@media (max-width: 1100px) {
+  .environment-choice { min-height: 68px; grid-template-columns: 28px 1fr; padding: 8px; }
+  .environment-choice__icon { width: 28px; height: 28px; font-size: 15px; }
+  .environment-choice small { display: none; }
+}
+@media (max-width: 560px) {
+  .environment-choice { min-height: 54px; }
+  .environment-choice strong { font-size: 9px; }
+}

@@ -26,6 +26,7 @@ const SEEDS = [
 ] as const;
 
 const TIERS = [0, 1, 2, 3, 4] as const satisfies readonly OutcomeTier[];
+const REQUIRED_HAZARDS = ['fire', 'smoke', 'debris', 'blast'] as const;
 
 describe('Bad Idea Machine visual choreography', () => {
   it('is deterministic for the same settled visual seed', () => {
@@ -64,13 +65,16 @@ describe('Bad Idea Machine visual choreography', () => {
     expect(new Set(signatures).size).toBeGreaterThanOrEqual(4);
   });
 
-  it('attaches deterministic chaos metadata to every reveal step', () => {
-    const route = buildVisualRoute(3, SEEDS[3]);
+  it('makes every reveal visibly dangerous instead of allowing quiet routes', () => {
+    for (const seed of SEEDS) {
+      const route = buildVisualRoute(3, seed);
+      const hazards = new Set(route.map(step => step.hazard));
 
-    expect(route.every(step => step.intensity >= 1 && step.intensity <= 3)).toBe(true);
-    expect(route.every(step => ['sparks', 'fire', 'smoke', 'debris', 'blast', 'alarm'].includes(step.hazard))).toBe(true);
-    expect(route.every(step => Number.isInteger(step.effectSeed))).toBe(true);
-    expect(route.some(step => step.decoys.length > 0)).toBe(true);
+      expect(route.every(step => step.intensity >= 2 && step.intensity <= 3)).toBe(true);
+      for (const hazard of REQUIRED_HAZARDS) expect(hazards.has(hazard)).toBe(true);
+      expect(route.every(step => Number.isInteger(step.effectSeed))).toBe(true);
+      expect(route.some(step => step.decoys.length > 0)).toBe(true);
+    }
   });
 
   it('keeps every tier in the same suspense-length envelope', () => {

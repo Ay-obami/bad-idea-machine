@@ -1,0 +1,101 @@
+name: Live Bad Idea Machine Production Smoke
+
+on:
+  push:
+    branches:
+      - feat/chaos-unpredictability-pass
+    paths:
+      - .github/workflows/live-production-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: |
+          mkdir -p /tmp/bim-live-smoke
+          cd /tmp/bim-live-smoke
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Exercise public production URL
+        shell: bash
+        run: |
+          cd /tmp/bim-live-smoke
+          mkdir -p screenshots
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+
+          const BASE = 'https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app';
+          const browser = await chromium.launch({ headless: true });
+          const errors = [];
+
+          const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+          page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
+          page.on('pageerror', error => errors.push(error.message));
+
+          const response = await page.goto(BASE, { waitUntil: 'networkidle', timeout: 30_000 });
+          if (!response || response.status() !== 200) throw new Error(`Production index returned ${response?.status()}`);
+          await page.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor({ timeout: 15_000 });
+          await page.screenshot({ path: 'screenshots/live-ready.png', fullPage: true });
+
+          const manifest = await page.request.get(`${BASE}/game.manifest.json`);
+          if (manifest.status() !== 200) throw new Error(`Manifest returned ${manifest.status()}`);
+          const manifestJson = await manifest.json();
+          if (manifestJson.gameId !== 'BadIdeaMachineGame') throw new Error('Manifest gameId mismatch');
+
+          await page.getByRole('button', { name: /ABSOLUTELY NOT/i }).click();
+          await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          await page.locator('.machine--revealing').waitFor({ timeout: 10_000 });
+          await page.locator('.chaos-layer').waitFor({ timeout: 10_000 });
+          await page.waitForTimeout(350);
+          const particles = await page.locator('.chaos-particle').count();
+          if (particles < 30) throw new Error(`Expected >=30 chaos particles, got ${particles}`);
+          if (await page.locator('.station--active').count() !== 1) throw new Error('Expected one authoritative active station');
+          if (await page.locator('.station--decoy').count() < 1) throw new Error('Expected at least one decoy station');
+          await page.screenshot({ path: 'screenshots/live-chaos-early.png', fullPage: true });
+
+          await page.waitForFunction(() => {
+            const station = document.querySelector('.station--active');
+            const hazard = station?.getAttribute('data-hazard');
+            return hazard === 'fire' || hazard === 'blast';
+          }, undefined, { timeout: 8_000 });
+          if (await page.locator('.station__fire').count() < 1) throw new Error('Expected visible fire during major hazard');
+          await page.screenshot({ path: 'screenshots/live-chaos-fire-blast.png', fullPage: true });
+
+          await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor({ timeout: 12_000 });
+          await page.screenshot({ path: 'screenshots/live-result.png', fullPage: true });
+
+          const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
+          mobile.on('console', message => { if (message.type() === 'error') errors.push(`mobile: ${message.text()}`); });
+          mobile.on('pageerror', error => errors.push(`mobile: ${error.message}`));
+          await mobile.goto(BASE, { waitUntil: 'networkidle', timeout: 30_000 });
+          await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor({ timeout: 15_000 });
+          await mobile.getByRole('button', { name: /SEND IT/i }).click();
+          await mobile.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          await mobile.locator('.chaos-layer').waitFor({ timeout: 10_000 });
+          await mobile.waitForTimeout(500);
+          if (await mobile.locator('.chaos-particle').count() < 30) throw new Error('Mobile chaos field too sparse');
+          await mobile.screenshot({ path: 'screenshots/live-mobile-chaos.png', fullPage: true });
+
+          if (errors.length) throw new Error(`Browser errors:\n${errors.join('\n')}`);
+          console.log('PASS public production renders verified chaos experience on desktop and mobile');
+          await browser.close();
+          NODE
+
+      - name: Upload live production screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad-idea-machine-live-production-smoke
+          path: /tmp/bim-live-smoke/screenshots/*.png
+          if-no-files-found: warn

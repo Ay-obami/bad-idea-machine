@@ -1,4 +1,6 @@
 import type { RiskMode } from '../lib/badIdea';
+import type { EnvironmentId } from '../scene/types';
+import { EnvironmentSelector } from './EnvironmentSelector';
 
 const MODES: Array<{ mode: RiskMode; label: string; sub: string }> = [
   { mode: 0, label: 'CONTROLLED', sub: 'frequent little disasters' },
@@ -9,6 +11,8 @@ const MODES: Array<{ mode: RiskMode; label: string; sub: string }> = [
 type Props = {
   riskMode: RiskMode;
   onRiskModeChange: (mode: RiskMode) => void;
+  environment: EnvironmentId;
+  onEnvironmentChange: (environment: EnvironmentId) => void;
   wagerInput: string;
   onWagerInputChange: (value: string) => void;
   balanceText: string;
@@ -25,6 +29,8 @@ type Props = {
 export function ControlPanel({
   riskMode,
   onRiskModeChange,
+  environment,
+  onEnvironmentChange,
   wagerInput,
   onWagerInputChange,
   balanceText,
@@ -37,8 +43,6 @@ export function ControlPanel({
   onToggleMuted,
   onPlay,
 }: Props) {
-  // A bad wager should disable the launch button, not trap the player in their
-  // current risk selection. Lock configuration only while a round is active.
   const controlsLocked = ctaLabel === 'BAD IDEA IN PROGRESS';
 
   return (
@@ -86,6 +90,8 @@ export function ControlPanel({
         ))}
       </fieldset>
 
+      <EnvironmentSelector value={environment} onChange={onEnvironmentChange} disabled={controlsLocked} />
+
       <div className={`safety-readout safety-readout--${riskMode}`}>
         <span>{riskMode === 0 ? '●' : '○'} SAFETY SYSTEMS</span>
         <strong>{riskMode === 0 ? 'ENABLED' : riskMode === 1 ? 'OPTIONAL' : 'DISCONNECTED'}</strong>
@@ -99,7 +105,7 @@ export function ControlPanel({
       >
         <span className="do-not-press__cap" aria-hidden />
         <span>{ctaLabel}</span>
-        <small>{riskMode === 2 ? 'SERIOUSLY. DON’T.' : 'MANUFACTURER ADVISES AGAINST THIS'}</small>
+        <small>{environment === 'kitchen' ? 'APPLIANCES MAY BECOME PROJECTILES' : 'POWER TOOLS HAVE BEEN UNSUPERVISED'}</small>
       </button>
 
       <div className="control-panel__reason" role="status">

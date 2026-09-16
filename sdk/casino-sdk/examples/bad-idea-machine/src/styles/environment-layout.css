@@ -1,0 +1,76 @@
+.game-layout--environment {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 350px);
+  gap: 16px;
+  align-items: start;
+}
+
+.game-layout--environment .environment-stage {
+  min-height: 0;
+}
+
+.game-layout--environment .control-panel {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+@media (min-width: 1181px) {
+  .game-layout--environment .environment-stage {
+    min-height: min(72vh, 760px);
+  }
+}
+
+@media (max-width: 1180px) {
+  .game-layout--environment {
+    grid-template-columns: 1fr;
+  }
+  .game-layout--environment .control-panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 12px;
+  }
+  .game-layout--environment .control-panel__topline,
+  .game-layout--environment .wager-control,
+  .game-layout--environment .environment-selector,
+  .game-layout--environment .control-panel__reason {
+    grid-column: 1 / -1;
+  }
+  .game-layout--environment .risk-selector { grid-column: 1; }
+  .game-layout--environment .safety-readout { grid-column: 2; align-self: stretch; }
+  .game-layout--environment .do-not-press { grid-column: 2; }
+}
+
+@media (max-width: 760px) {
+  .app-shell { padding-inline: 10px; }
+  .hazard-stripe { margin-inline: -10px; }
+  .game-layout--environment { padding-top: 10px; gap: 10px; }
+  .game-layout--environment .control-panel { grid-template-columns: 1fr; gap: 10px; }
+  .game-layout--environment .control-panel > * { grid-column: 1 / -1; }
+  .game-layout--environment .environment-selector__options { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 480px) {
+  .game-header { min-height: 70px; }
+  .game-header__brand small { display: none; }
+  .game-layout--environment .environment-stage { min-height: 285px; }
+  .game-layout--environment .control-panel { gap: 7px; padding: 12px; }
+  .game-layout--environment .wager-control { gap: 4px; }
+  .game-layout--environment .wager-control__input input { padding: 9px 10px; font-size: 18px; }
+  .game-layout--environment .environment-selector { gap: 4px; }
+  .game-layout--environment .environment-selector legend { margin-bottom: 3px; }
+  .game-layout--environment .environment-choice {
+    min-height: 46px;
+    grid-template-columns: 24px 1fr;
+    gap: 6px;
+    padding: 6px 7px;
+  }
+  .game-layout--environment .environment-choice__icon { width: 24px; height: 24px; font-size: 13px; }
+  .game-layout--environment .safety-readout { padding-block: 7px; }
+  .game-layout--environment .do-not-press { min-height: 82px; }
+}

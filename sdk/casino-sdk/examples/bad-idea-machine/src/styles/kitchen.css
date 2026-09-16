@@ -1,0 +1,32 @@
+.environment-stage--kitchen {
+  --scene-accent: #ffb23c;
+  --scene-danger: #e74d2b;
+  --scene-cream: #f4e9cf;
+  background: #2c2922;
+}
+
+.environment-stage--kitchen .environment-scene {
+  background: radial-gradient(circle at 46% 30%, rgba(255,177,74,.13), transparent 38%);
+}
+
+.environment-stage--kitchen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 48% 62%, rgba(255,122,36,.08), transparent 28%),
+    linear-gradient(90deg, rgba(31,21,13,.2), transparent 18%, transparent 82%, rgba(31,21,13,.24));
+  mix-blend-mode: screen;
+}
+
+.environment-stage--kitchen.environment-stage--revealing .environment-art {
+  animation: kitchen-emergency-light 1.15s steps(2,end) infinite;
+}
+
+@keyframes kitchen-emergency-light {
+  0%,45% { filter: brightness(1) saturate(1); }
+  46%,70% { filter: brightness(1.12) saturate(1.18) sepia(.08); }
+  71%,100% { filter: brightness(.96) saturate(1.04); }
+}

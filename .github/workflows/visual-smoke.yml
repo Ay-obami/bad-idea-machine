@@ -1,12 +1,12 @@
 name: Bad Idea Machine Visual Smoke
 
-# Chaos-pass gate: assert the live reveal contains decoys, particles, major hazards, and no browser errors.
 on:
   push:
     branches:
       - main
       - feat/bad-idea-machine-game
       - feat/chaos-unpredictability-pass
+      - feat/environment-scene-rebuild
     paths:
       - .github/workflows/visual-smoke.yml
       - sdk/casino-sdk/examples/bad-idea-machine/src/**
@@ -56,7 +56,7 @@ jobs:
           cat /tmp/bad-idea-preview.log
           exit 1
 
-      - name: Capture ready, live chaos, result and mobile
+      - name: Capture both rooms and verify physical actor motion
         shell: bash
         run: |
           cd examples/bad-idea-machine
@@ -65,56 +65,105 @@ jobs:
           import { chromium } from 'playwright';
 
           const browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
           const consoleErrors = [];
-          page.on('console', message => {
-            if (message.type() === 'error') consoleErrors.push(message.text());
-          });
-          page.on('pageerror', error => consoleErrors.push(error.message));
 
+          function watchErrors(page, prefix = '') {
+            page.on('console', message => {
+              if (message.type() === 'error') consoleErrors.push(`${prefix}${message.text()}`);
+            });
+            page.on('pageerror', error => consoleErrors.push(`${prefix}${error.message}`));
+          }
+
+          async function verifyMovingActor(page) {
+            await page.locator('.environment-stage[data-phase="revealing"]').waitFor({ timeout: 4_000 });
+            if (await page.locator('.environment-result').count() !== 0) {
+              throw new Error('Result became visible before catastrophe reveal completed');
+            }
+
+            const probe = page.locator('[data-event-actor]').first();
+            await probe.waitFor({ state: 'attached', timeout: 4_000 });
+            const actorId = await probe.getAttribute('data-event-actor');
+            if (!actorId) throw new Error('Active scene event did not expose an actor id');
+
+            const actor = page.locator(`[data-scene-actor="${actorId}"]`);
+            const first = await actor.boundingBox();
+            await page.waitForTimeout(260);
+            const second = await actor.boundingBox();
+            if (!first || !second) throw new Error(`Could not measure moving actor ${actorId}`);
+            const distance = Math.hypot(second.x - first.x, second.y - first.y);
+            if (distance < 18) {
+              throw new Error(`Actor ${actorId} only moved ${distance.toFixed(1)}px; expected real screen travel`);
+            }
+            return actorId;
+          }
+
+          async function verifyChaos(page) {
+            await page.locator('.scene-vfx-layer').waitFor();
+            await page.waitForFunction(
+              () => document.querySelectorAll('.scene-particle').length >= 30,
+              undefined,
+              { timeout: 4_000 },
+            );
+            await page.waitForFunction(() => {
+              const probes = [...document.querySelectorAll('[data-event-decoy]')];
+              return probes.some(node => node.getAttribute('data-event-decoy') === 'true');
+            }, undefined, { timeout: 6_500 });
+            await page.waitForFunction(() => {
+              const probes = [...document.querySelectorAll('[data-event-hazard]')];
+              return probes.some(node => ['fire', 'blast'].includes(node.getAttribute('data-event-hazard') || ''));
+            }, undefined, { timeout: 6_500 });
+            await page.locator('.scene-flame, .scene-shockwave').first().waitFor({ timeout: 2_000 });
+            if (await page.locator('.environment-result').count() !== 0) {
+              throw new Error('Result overlay leaked into active catastrophe');
+            }
+          }
+
+          async function waitForResult(page) {
+            await page.locator('.environment-result').waitFor({ timeout: 9_000 });
+            await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor({ timeout: 2_000 });
+          }
+
+          const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+          watchErrors(page);
           await page.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
           await page.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
-          await page.screenshot({ path: 'visual-smoke/desktop-ready.png', fullPage: true });
+          if (await page.locator('.station').count() !== 0) throw new Error('Old station-card UI is still rendered');
+          await page.locator('.environment-stage[data-environment="kitchen"]').waitFor();
+          await page.screenshot({ path: 'visual-smoke/kitchen-idle.png', fullPage: true });
 
           await page.getByRole('button', { name: /ABSOLUTELY NOT/i }).click();
-          await page.screenshot({ path: 'visual-smoke/desktop-danger.png', fullPage: true });
-
           await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
-          await page.waitForTimeout(300);
-          await page.locator('.machine--revealing').waitFor();
-          await page.locator('.chaos-layer').waitFor();
-          if (await page.locator('.chaos-particle').count() < 30) throw new Error('Dense chaos particle field did not render');
-          if (await page.locator('.station--active').count() !== 1) throw new Error('Exactly one authoritative active station is required');
-          if (await page.locator('.station--decoy').count() < 1) throw new Error('Expected at least one false-alarm station');
-          await page.screenshot({ path: 'visual-smoke/desktop-chaos-early.png', fullPage: true });
+          console.log(`Kitchen moving actor: ${await verifyMovingActor(page)}`);
+          await verifyChaos(page);
+          await page.screenshot({ path: 'visual-smoke/kitchen-chaos.png', fullPage: true });
+          await waitForResult(page);
+          await page.screenshot({ path: 'visual-smoke/result.png', fullPage: true });
 
-          await page.waitForFunction(() => {
-            const station = document.querySelector('.station--active');
-            return station?.getAttribute('data-hazard') === 'fire' || station?.getAttribute('data-hazard') === 'blast';
-          }, undefined, { timeout: 6_500 });
-          if (await page.locator('.station__fire').count() < 1) throw new Error('Major hazard did not render visible fire');
-          await page.screenshot({ path: 'visual-smoke/desktop-chaos-fire-blast.png', fullPage: true });
-
-          await page.waitForTimeout(900);
-          await page.screenshot({ path: 'visual-smoke/desktop-chaos-mid.png', fullPage: true });
-
-          await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor({ timeout: 8_000 });
-          await page.screenshot({ path: 'visual-smoke/desktop-result.png', fullPage: true });
+          await page.getByRole('button', { name: /GARAGE MAYHEM/i }).click();
+          await page.locator('.environment-stage[data-environment="garage"][data-phase="idle"]').waitFor();
+          await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          console.log(`Garage moving actor: ${await verifyMovingActor(page)}`);
+          await verifyChaos(page);
+          await page.screenshot({ path: 'visual-smoke/garage-chaos.png', fullPage: true });
+          await waitForResult(page);
 
           const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
-          mobile.on('console', message => {
-            if (message.type() === 'error') consoleErrors.push(`mobile: ${message.text()}`);
-          });
-          mobile.on('pageerror', error => consoleErrors.push(`mobile: ${error.message}`));
+          watchErrors(mobile, 'mobile: ');
           await mobile.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
           await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
-          await mobile.screenshot({ path: 'visual-smoke/mobile-ready.png', fullPage: true });
-          await mobile.getByRole('button', { name: /SEND IT/i }).click();
+          await mobile.locator('.environment-stage[data-environment="kitchen"]').waitFor();
           await mobile.getByRole('button', { name: /DO NOT PRESS/i }).click();
-          await mobile.waitForTimeout(500);
-          await mobile.locator('.chaos-layer').waitFor();
-          if (await mobile.locator('.chaos-particle').count() < 30) throw new Error('Mobile chaos field did not render densely enough');
-          await mobile.screenshot({ path: 'visual-smoke/mobile-chaos.png', fullPage: true });
+          await verifyMovingActor(mobile);
+          await mobile.waitForFunction(() => document.querySelectorAll('.scene-particle').length >= 30, undefined, { timeout: 4_000 });
+          await mobile.screenshot({ path: 'visual-smoke/mobile-kitchen-chaos.png', fullPage: true });
+          await waitForResult(mobile);
+
+          await mobile.getByRole('button', { name: /GARAGE MAYHEM/i }).click();
+          await mobile.locator('.environment-stage[data-environment="garage"][data-phase="idle"]').waitFor();
+          await mobile.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          await verifyMovingActor(mobile);
+          await mobile.waitForFunction(() => document.querySelectorAll('.scene-particle').length >= 30, undefined, { timeout: 4_000 });
+          await mobile.screenshot({ path: 'visual-smoke/mobile-garage-chaos.png', fullPage: true });
 
           if (consoleErrors.length > 0) {
             throw new Error(`Browser errors:\n${consoleErrors.join('\n')}`);
@@ -125,6 +174,6 @@ jobs:
       - name: Upload visual smoke screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: bad-idea-machine-visual-smoke
+          name: bad-idea-machine-environment-visual-smoke
           path: sdk/casino-sdk/examples/bad-idea-machine/visual-smoke/*.png
           if-no-files-found: error

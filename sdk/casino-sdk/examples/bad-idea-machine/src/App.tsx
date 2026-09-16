@@ -4,8 +4,8 @@ import type { RandomnessVerificationV1 } from '@chain/casino-sdk';
 import { computeMaxWager } from '@chain/casino-sdk/guest';
 
 import { ControlPanel } from './components/ControlPanel';
+import { EnvironmentStage, type EnvironmentPhase } from './components/EnvironmentStage';
 import { FairnessReceipt } from './components/FairnessReceipt';
-import { MachineStage, type MachinePhase } from './components/MachineStage';
 import {
   EMPTY_HEX,
   PHASE_SETTLED,
@@ -23,17 +23,20 @@ import {
   type RiskMode,
 } from './lib/badIdea';
 import { isMachineMuted, primeAudio, setMachineMuted } from './lib/audio';
-import { buildVisualRoute, routeDurationMs, type RouteStep } from './lib/route';
 import { useCasinoHost } from './lib/useCasinoHost';
+import { buildSceneScript } from './scene/scene-script';
+import type { EnvironmentId, SceneScript } from './scene/types';
 
 const DEMO_DECIMALS = 2;
-const DEMO_STARTING_BALANCE = 250_000n; // 2,500.00 demo chUSD
+const DEMO_STARTING_BALANCE = 250_000n;
+const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
 
 type RoundStatus = 'opening' | 'waiting' | 'revealing' | 'done';
 
 type Round = {
   source: 'host' | 'demo';
   riskMode: RiskMode;
+  environment: EnvironmentId;
   wager: bigint;
   status: RoundStatus;
   sessionKey?: string;
@@ -41,7 +44,7 @@ type Round = {
   tier?: OutcomeTier;
   randomness?: Hex;
   visualSeed?: Hex;
-  route: readonly RouteStep[];
+  script?: SceneScript;
   multiplierBps?: number;
   payout?: bigint;
   requestId?: string;
@@ -53,6 +56,15 @@ function browserRandomness(): Hex {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return bytesToHex(bytes);
+}
+
+function initialEnvironment(): EnvironmentId {
+  if (typeof window === 'undefined') return 'kitchen';
+  try {
+    return window.localStorage.getItem(ENVIRONMENT_STORAGE_KEY) === 'garage' ? 'garage' : 'kitchen';
+  } catch {
+    return 'kitchen';
+  }
 }
 
 function inferTierFromPayout(wager: bigint, payout: bigint, riskMode: RiskMode): OutcomeTier | null {
@@ -67,6 +79,7 @@ export function App() {
   const standalone = useMemo(() => typeof window !== 'undefined' && window.self === window.top, []);
 
   const [riskMode, setRiskMode] = useState<RiskMode>(1);
+  const [environment, setEnvironment] = useState<EnvironmentId>(initialEnvironment);
   const [wagerInput, setWagerInput] = useState('10.00');
   const [round, setRound] = useState<Round | null>(null);
   const [demoBalance, setDemoBalance] = useState(DEMO_STARTING_BALANCE);
@@ -77,6 +90,14 @@ export function App() {
   const liveHost = hostApi !== null && snapshot !== null;
   const demoMode = standalone && !liveHost;
   const ready = liveHost || demoMode;
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(ENVIRONMENT_STORAGE_KEY, environment);
+    } catch {
+      // Persistence is cosmetic only; storage denial must never block play.
+    }
+  }, [environment]);
 
   const decimals = liveHost ? snapshot.token.decimals ?? 18 : DEMO_DECIMALS;
   const symbol = liveHost ? snapshot.token.symbol ?? 'chUSD' : 'demo chUSD';
@@ -109,8 +130,7 @@ export function App() {
 
   const roundInFlight = round !== null && round.status !== 'done';
   const insufficientBalance = wager !== null && balance !== undefined && wager > balance;
-  const exceedsPlatformMax =
-    liveHost && wager !== null && platformMaxWagerValue !== undefined && wager > platformMaxWagerValue;
+  const exceedsPlatformMax = liveHost && wager !== null && platformMaxWagerValue !== undefined && wager > platformMaxWagerValue;
   const exceedsRiskLimit =
     liveHost &&
     wager !== null &&
@@ -146,8 +166,6 @@ export function App() {
     !exceedsRiskLimit &&
     (!liveHost || snapshot.wallet.status === 'ready');
 
-  // Recover an in-flight Chain round after iframe refresh. The session snapshot
-  // remains authoritative; no localStorage copy of casino state is trusted.
   useEffect(() => {
     if (!liveHost || round || !snapshot) return;
     const pending = [...snapshot.sessions.items]
@@ -162,18 +180,16 @@ export function App() {
     setRound({
       source: 'host',
       riskMode: recoveredMode,
+      environment,
       wager: BigInt(pending.wager),
       status: 'waiting',
       sessionKey: pending.sessionKey,
       sessionId: pending.sessionId,
-      route: [],
       requestId: pending.raw.requestId,
       settleTransactionHash: pending.raw.settleTransactionHash,
     });
-  }, [liveHost, round, snapshot]);
+  }, [environment, liveHost, round, snapshot]);
 
-  // Resolve a Chain round from the pushed session row. gameState is preferred;
-  // raw VRF is a safe fallback because the contract outcome is deterministic.
   useEffect(() => {
     if (!liveHost || !round || round.source !== 'host' || round.status !== 'waiting' || !snapshot) return;
     const row = snapshot.sessions.items.find(item => item.sessionKey === round.sessionKey);
@@ -191,18 +207,14 @@ export function App() {
     const settledMode = decoded?.riskMode ?? round.riskMode;
     let tier = decoded?.tier;
 
-    if (tier === undefined && randomness) {
-      tier = outcomeFromRandomness(settledMode, randomness).tier;
-    }
+    if (tier === undefined && randomness) tier = outcomeFromRandomness(settledMode, randomness).tier;
 
     const chainPayout = row.payout !== undefined ? BigInt(row.payout) : undefined;
-    if (tier === undefined && chainPayout !== undefined) {
-      tier = inferTierFromPayout(round.wager, chainPayout, settledMode) ?? undefined;
-    }
+    if (tier === undefined && chainPayout !== undefined) tier = inferTierFromPayout(round.wager, chainPayout, settledMode) ?? undefined;
     if (tier === undefined || !randomness) return;
 
     const visualSeed = visualSeedFromRandomness(randomness);
-    const route = buildVisualRoute(tier, visualSeed);
+    const script = buildSceneScript(round.environment, tier, visualSeed);
     setRound(current => {
       if (!current || current.sessionKey !== round.sessionKey) return current;
       return {
@@ -213,7 +225,7 @@ export function App() {
         tier,
         randomness,
         visualSeed,
-        route,
+        script,
         multiplierBps: multiplierBpsForTier(settledMode, tier),
         payout: chainPayout ?? payoutFor(round.wager, settledMode, tier),
         requestId: row.raw.requestId,
@@ -225,10 +237,8 @@ export function App() {
   const hostApiRef = useRef(hostApi);
   hostApiRef.current = hostApi;
 
-  // Finish the presentation before telling the host to reveal the withheld
-  // payout in its balance UI. Demo mode mirrors that timing with fake credits.
   useEffect(() => {
-    if (!round || round.status !== 'revealing' || round.tier === undefined || round.payout === undefined) return;
+    if (!round || round.status !== 'revealing' || round.tier === undefined || round.payout === undefined || !round.script) return;
     const timer = window.setTimeout(() => {
       setRound(current => {
         if (!current || current.status !== 'revealing') return current;
@@ -253,20 +263,20 @@ export function App() {
             .catch(() => {});
         }
       }
-    }, routeDurationMs(round.route));
+    }, round.script.durationMs);
     return () => window.clearTimeout(timer);
   }, [round]);
 
-  const openHostRound = useCallback(async (mode: RiskMode, amount: bigint) => {
+  const openHostRound = useCallback(async (mode: RiskMode, amount: bigint, roundEnvironment: EnvironmentId) => {
     if (!hostApi) return;
     const pendingKey = `pending:${Date.now()}`;
     setRound({
       source: 'host',
       riskMode: mode,
+      environment: roundEnvironment,
       wager: amount,
       status: 'opening',
       sessionKey: pendingKey,
-      route: [],
     });
 
     try {
@@ -285,14 +295,14 @@ export function App() {
     }
   }, [hostApi]);
 
-  const openDemoRound = useCallback((mode: RiskMode, amount: bigint) => {
+  const openDemoRound = useCallback((mode: RiskMode, amount: bigint, roundEnvironment: EnvironmentId) => {
     setDemoBalance(current => current - amount);
-    setRound({ source: 'demo', riskMode: mode, wager: amount, status: 'opening', route: [] });
+    setRound({ source: 'demo', riskMode: mode, environment: roundEnvironment, wager: amount, status: 'opening' });
 
     window.setTimeout(() => {
       const randomness = browserRandomness();
       const outcome = outcomeFromRandomness(mode, randomness);
-      const route = buildVisualRoute(outcome.tier, outcome.visualSeed);
+      const script = buildSceneScript(roundEnvironment, outcome.tier, outcome.visualSeed);
       setRound(current => {
         if (!current || current.source !== 'demo' || current.status !== 'opening') return current;
         return {
@@ -301,7 +311,7 @@ export function App() {
           tier: outcome.tier,
           randomness,
           visualSeed: outcome.visualSeed,
-          route,
+          script,
           multiplierBps: outcome.multiplierBps,
           payout: payoutFor(amount, mode, outcome.tier),
         };
@@ -309,13 +319,29 @@ export function App() {
     }, 520);
   }, []);
 
+  const clearFinishedPresentation = () => {
+    if (round?.status !== 'done') return;
+    setRound(null);
+    setReceiptOpen(false);
+  };
+
+  const handleEnvironmentChange = (next: EnvironmentId) => {
+    clearFinishedPresentation();
+    setEnvironment(next);
+  };
+
+  const handleRiskModeChange = (next: RiskMode) => {
+    clearFinishedPresentation();
+    setRiskMode(next);
+  };
+
   const handlePlay = () => {
     if (!canPlay || wager === null) return;
     primeAudio();
     setError(null);
     setReceiptOpen(false);
-    if (demoMode) openDemoRound(riskMode, wager);
-    else void openHostRound(riskMode, wager);
+    if (demoMode) openDemoRound(riskMode, wager, environment);
+    else void openHostRound(riskMode, wager, environment);
   };
 
   const toggleMuted = () => {
@@ -336,7 +362,8 @@ export function App() {
   }
 
   const displayMode = round?.riskMode ?? riskMode;
-  const machinePhase: MachinePhase = !round
+  const displayEnvironment = round?.environment ?? environment;
+  const environmentPhase: EnvironmentPhase = !round
     ? 'idle'
     : round.status === 'opening' || round.status === 'waiting'
       ? 'arming'
@@ -351,12 +378,12 @@ export function App() {
     : `${(round.multiplierBps / 10_000).toFixed(round.multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
 
   return (
-    <main className={`app-shell app-shell--mode-${displayMode}`}>
+    <main className={`app-shell app-shell--mode-${displayMode} app-shell--environment-${displayEnvironment}`}>
       <div className="hazard-stripe" aria-hidden />
       <header className="game-header">
         <div className="game-header__brand">
           <span className="brand-badge">BIM</span>
-          <div><strong>BAD IDEA MACHINE</strong><small>ONE BUTTON. SEVERAL TERRIBLE DECISIONS.</small></div>
+          <div><strong>BAD IDEA MACHINE</strong><small>CHOOSE YOUR ROOM. DESTROY IT RESPONSIBLY.</small></div>
         </div>
         <div className="game-header__network">
           <span className="network-dot" />
@@ -364,18 +391,21 @@ export function App() {
         </div>
       </header>
 
-      <div className="game-layout">
-        <MachineStage
+      <div className="game-layout game-layout--environment">
+        <EnvironmentStage
+          environment={displayEnvironment}
           riskMode={displayMode}
-          phase={machinePhase}
-          route={round?.route ?? []}
+          phase={environmentPhase}
+          script={round?.script}
           tier={round?.tier}
           multiplierBps={round?.multiplierBps}
         />
 
         <ControlPanel
           riskMode={riskMode}
-          onRiskModeChange={setRiskMode}
+          onRiskModeChange={handleRiskModeChange}
+          environment={environment}
+          onEnvironmentChange={handleEnvironmentChange}
           wagerInput={wagerInput}
           onWagerInputChange={setWagerInput}
           balanceText={balanceText}
@@ -390,13 +420,13 @@ export function App() {
         />
       </div>
 
-      {round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && (
+      {round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && round.script && (
         <FairnessReceipt
           open={receiptOpen}
           onToggle={() => setReceiptOpen(current => !current)}
           riskMode={round.riskMode}
-          tier={round.tier}
-          route={round.route}
+          environment={round.environment}
+          script={round.script}
           wagerText={wagerText}
           payoutText={payoutText}
           multiplierText={multiplierText}
@@ -412,8 +442,8 @@ export function App() {
       <footer className="game-footer">
         <span>96.00% RTP</span>
         <span>CHAIN VRF</span>
-        <span>NO MANUAL REQUIRED</span>
-        <span>DO NOT EXPOSE TO REASONABLE DECISION MAKING</span>
+        <span>2 CHAOS ENVIRONMENTS</span>
+        <span>THE ROOM CHANGES. THE MATH DOES NOT.</span>
       </footer>
     </main>
   );

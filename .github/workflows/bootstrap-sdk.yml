@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feat/bad-idea-machine-game
+      - feat/environment-scene-rebuild
   pull_request:
     branches:
       - main

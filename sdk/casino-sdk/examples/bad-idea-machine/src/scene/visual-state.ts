@@ -1,6 +1,8 @@
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
+import type { EnvironmentId } from './types';
 
 export type DamageState = 'failure' | 'minor' | 'controlled' | 'major' | 'legendary';
+export type VisualPhase = 'idle' | 'arming' | 'revealing' | 'result';
 
 export type OutcomeCard = {
   tier: OutcomeTier;
@@ -13,12 +15,17 @@ export type OutcomeCard = {
 const DAMAGE_STATES: readonly DamageState[] = ['failure', 'minor', 'controlled', 'major', 'legendary'];
 const LABELS = ['TOTAL FAILURE', 'MINOR SUCCESS', 'CONTROLLED CHAOS', 'MAJOR PAYOUT', 'LEGENDARY CHAOS'] as const;
 const COPY = [
-  'Nothing worked. Just rubble.',
-  'A little destruction. Something survived.',
-  'Things got wild, but the machine delivered.',
-  'Serious damage. The room is barely recognizable.',
-  'Total annihilation. This room will never be the same.',
+  'The plan failed before the room did.',
+  'Localized damage. Most of the room survived.',
+  'A proper mess, but the machine delivered.',
+  'Serious structural regret. Somehow, a payout.',
+  'Catastrophic mayhem. Nothing in this room is the same.',
 ] as const;
+
+const BASE_FRAME: Readonly<Record<EnvironmentId, number>> = {
+  kitchen: 0,
+  garage: 7,
+};
 
 export function damageStateForTier(tier: OutcomeTier): DamageState {
   return DAMAGE_STATES[tier];
@@ -26,6 +33,22 @@ export function damageStateForTier(tier: OutcomeTier): DamageState {
 
 export function outcomeLabelForTier(tier: OutcomeTier): string {
   return LABELS[tier];
+}
+
+/**
+ * The photographic atlas contains fourteen 16:9 frames in a fixed order:
+ * kitchen idle, kitchen live chaos, kitchen results 0..4,
+ * garage idle, garage live chaos, garage results 0..4.
+ */
+export function sceneFrameForState(
+  environment: EnvironmentId,
+  phase: VisualPhase,
+  tier?: OutcomeTier,
+): number {
+  const base = BASE_FRAME[environment];
+  if (phase === 'revealing') return base + 1;
+  if (phase === 'result' && tier !== undefined) return base + 2 + tier;
+  return base;
 }
 
 export function outcomeCardsForMode(mode: RiskMode): OutcomeCard[] {

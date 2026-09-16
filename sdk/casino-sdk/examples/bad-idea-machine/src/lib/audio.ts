@@ -1,3 +1,5 @@
+import { buildEventSoundPlan, type SceneSoundLayer } from '../scene/audio-plan';
+import type { EnvironmentId, SceneEvent } from '../scene/types';
 import type { RouteStep } from './route';
 
 let context: AudioContext | null = null;
@@ -97,38 +99,17 @@ function hazardPlan(step: RouteStep): SoundEvent[] {
 
   switch (step.hazard) {
     case 'sparks':
-      return [
-        noiseEvent(55, at(), .04, 1_600),
-        toneEvent(high(), 45, at(), .022, 'square'),
-        toneEvent(high(), 38, at(), .018, 'triangle'),
-      ];
+      return [noiseEvent(55, at(), .04, 1_600), toneEvent(high(), 45, at(), .022, 'square'), toneEvent(high(), 38, at(), .018, 'triangle')];
     case 'fire':
-      return [
-        noiseEvent(360, 0, .055, 420),
-        noiseEvent(110, at(), .045, 1_050),
-        toneEvent(88, 320, 35, .03, 'sawtooth', 135),
-      ];
+      return [noiseEvent(360, 0, .055, 420), noiseEvent(110, at(), .045, 1_050), toneEvent(88, 320, 35, .03, 'sawtooth', 135)];
     case 'smoke':
       return [noiseEvent(520, 0, .04, 620), noiseEvent(180, at(), .025, 1_200)];
     case 'debris':
-      return [
-        toneEvent(low(), 95, at(), .06, 'square'),
-        noiseEvent(85, at(), .04, 350),
-        toneEvent(low(), 80, at(), .045, 'sawtooth'),
-      ];
+      return [toneEvent(low(), 95, at(), .06, 'square'), noiseEvent(85, at(), .04, 350), toneEvent(low(), 80, at(), .045, 'sawtooth')];
     case 'blast':
-      return [
-        noiseEvent(380, 0, .085, 95),
-        noiseEvent(145, 18, .065, 1_500),
-        toneEvent(48, 420, 0, .105, 'sawtooth', 34),
-        toneEvent(280, 130, 24, .035, 'square'),
-      ];
+      return [noiseEvent(380, 0, .085, 95), noiseEvent(145, 18, .065, 1_500), toneEvent(48, 420, 0, .105, 'sawtooth', 34), toneEvent(280, 130, 24, .035, 'square')];
     case 'alarm':
-      return [
-        toneEvent(410, 180, 0, .035, 'triangle'),
-        toneEvent(690, 180, 155, .038, 'triangle'),
-        toneEvent(410, 180, 310, .035, 'triangle'),
-      ];
+      return [toneEvent(410, 180, 0, .035, 'triangle'), toneEvent(690, 180, 155, .038, 'triangle'), toneEvent(410, 180, 310, .035, 'triangle')];
   }
 }
 
@@ -150,6 +131,20 @@ export function soundPlanForStep(step: RouteStep): readonly SoundEvent[] {
   return plan.sort((a, b) => a.atMs - b.atMs);
 }
 
+function sceneLayerToSoundEvent(layer: SceneSoundLayer): SoundEvent {
+  if (layer.kind === 'noise') {
+    return noiseEvent(layer.durationMs, layer.delayMs, layer.gain, layer.filterHz ?? 260);
+  }
+  return toneEvent(
+    layer.frequency ?? 220,
+    layer.durationMs,
+    layer.delayMs,
+    layer.gain,
+    layer.waveform ?? 'triangle',
+    layer.endFrequency,
+  );
+}
+
 function playTone(event: ToneEvent, baseTime: number, ctx: AudioContext): void {
   const start = baseTime + event.atMs / 1_000;
   const end = start + event.durationMs / 1_000;
@@ -158,9 +153,7 @@ function playTone(event: ToneEvent, baseTime: number, ctx: AudioContext): void {
 
   oscillator.type = event.wave;
   oscillator.frequency.setValueAtTime(event.frequency, start);
-  if (event.endFrequency !== undefined) {
-    oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, event.endFrequency), end);
-  }
+  if (event.endFrequency !== undefined) oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, event.endFrequency), end);
 
   gain.gain.setValueAtTime(.0001, start);
   gain.gain.exponentialRampToValueAtTime(event.volume, start + .01);
@@ -223,6 +216,10 @@ export function primeAudio(): void {
 
 export function playStationSound(step: RouteStep): void {
   playPlan(soundPlanForStep(step));
+}
+
+export function playSceneEventSound(environment: EnvironmentId, event: SceneEvent): void {
+  playPlan(buildEventSoundPlan(environment, event).map(sceneLayerToSoundEvent));
 }
 
 export function playResultSound(multiplierBps: number): void {

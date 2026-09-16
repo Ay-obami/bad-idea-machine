@@ -1,6 +1,8 @@
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
+import type { EnvironmentId } from './types';
 
 export type DamageState = 'failure' | 'minor' | 'controlled' | 'major' | 'legendary';
+export type VisualRoomPhase = 'idle' | 'arming' | 'revealing' | 'result';
 
 export type OutcomeCard = {
   tier: OutcomeTier;
@@ -26,6 +28,23 @@ export function damageStateForTier(tier: OutcomeTier): DamageState {
 
 export function outcomeLabelForTier(tier: OutcomeTier): string {
   return LABELS[tier];
+}
+
+export function sceneAssetForState(
+  environment: EnvironmentId,
+  phase: VisualRoomPhase,
+  tier?: OutcomeTier,
+): string {
+  if (phase === 'revealing') return `/cinematic/${environment}-chaos.webp`;
+  if (phase === 'result' && tier !== undefined) return `/cinematic/${environment}-result-${tier}.webp`;
+  return `/cinematic/${environment}-idle.webp`;
+}
+
+export function sceneAtlasFrame(environment: EnvironmentId, phase: VisualRoomPhase, tier?: OutcomeTier): number {
+  const base = environment === 'kitchen' ? 0 : 7;
+  if (phase === 'revealing') return base + 1;
+  if (phase === 'result' && tier !== undefined) return base + 2 + tier;
+  return base;
 }
 
 export function outcomeCardsForMode(mode: RiskMode): OutcomeCard[] {

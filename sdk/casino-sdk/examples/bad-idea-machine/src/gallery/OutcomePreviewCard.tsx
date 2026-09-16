@@ -20,7 +20,6 @@ export function OutcomePreviewCard({ card, onChoose }: Props) {
       <span className="gallery-card__body">
         <strong className="gallery-card__multiplier">{card.multiplier}</strong>
         <span className="gallery-card__title">{card.title}</span>
-        <span className="gallery-card__copy">{card.copy}</span>
       </span>
     </button>
   );

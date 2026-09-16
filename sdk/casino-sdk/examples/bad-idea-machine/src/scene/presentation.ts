@@ -82,20 +82,40 @@ const SCENE_FRAMES: Readonly<Record<EnvironmentId, Readonly<{
   garage: { idle: 7, chaos: 8, results: [9, 10, 11, 12, 13] },
 };
 
+function sprite(column: number, row: number): ActorSprite {
+  return { src: ACTOR_ATLAS_SRC, column, row };
+}
+
 const ACTOR_SPRITES: Readonly<Record<string, ActorSprite>> = {
-  'kitchen-toaster': { src: ACTOR_ATLAS_SRC, column: 0, row: 0 },
-  'kitchen-cat': { src: ACTOR_ATLAS_SRC, column: 1, row: 0 },
-  'kitchen-pan': { src: ACTOR_ATLAS_SRC, column: 2, row: 0 },
-  'kitchen-kettle': { src: ACTOR_ATLAS_SRC, column: 3, row: 0 },
-  'kitchen-ball': { src: ACTOR_ATLAS_SRC, column: 0, row: 1 },
-  'kitchen-rocket': { src: ACTOR_ATLAS_SRC, column: 1, row: 1 },
-  'kitchen-safe': { src: ACTOR_ATLAS_SRC, column: 2, row: 1 },
-  'garage-hammer': { src: ACTOR_ATLAS_SRC, column: 3, row: 1 },
-  'garage-drill': { src: ACTOR_ATLAS_SRC, column: 0, row: 2 },
-  'garage-tire': { src: ACTOR_ATLAS_SRC, column: 1, row: 2 },
-  'garage-rocket': { src: ACTOR_ATLAS_SRC, column: 2, row: 2 },
-  'garage-safe': { src: ACTOR_ATLAS_SRC, column: 3, row: 2 },
-  'garage-toolbox': { src: ACTOR_ATLAS_SRC, column: 0, row: 3 },
+  // Kitchen atlas cells: toaster, cat, pan, kettle, ball, rocket, safe.
+  'kitchen-toaster': sprite(0, 0),
+  'kitchen-toast': sprite(0, 0),
+  'kitchen-cat': sprite(1, 0),
+  'kitchen-pan': sprite(2, 0),
+  'kitchen-kettle': sprite(3, 0),
+  'kitchen-cabinet': sprite(2, 1),
+  'kitchen-plates': sprite(2, 0),
+  'kitchen-fan': sprite(3, 0),
+  'kitchen-ball': sprite(0, 1),
+  'kitchen-rocket': sprite(1, 1),
+  'kitchen-safe': sprite(2, 1),
+  'kitchen-core': sprite(1, 1),
+
+  // Garage atlas cells: hammer, drill, tire, rocket, safe, toolbox.
+  'garage-hammer': sprite(3, 1),
+  'garage-wrench': sprite(3, 1),
+  'garage-drill': sprite(0, 2),
+  'garage-saw': sprite(0, 2),
+  'garage-chain': sprite(3, 1),
+  'garage-fan': sprite(0, 2),
+  'garage-tire': sprite(1, 2),
+  'garage-ball': sprite(1, 2),
+  'garage-rocket': sprite(2, 2),
+  'garage-tank': sprite(3, 2),
+  'garage-toolbox': sprite(0, 3),
+  'garage-shelf': sprite(0, 3),
+  'garage-safe': sprite(3, 2),
+  'garage-core': sprite(0, 3),
 };
 
 export function getOutcomePresentation(tier: OutcomeTier): OutcomePresentation {

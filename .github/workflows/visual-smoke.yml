@@ -151,6 +151,30 @@ jobs:
             if (await page.locator('.outcome-preview--selected').count() !== 1) throw new Error('Settled multiplier card was not highlighted');
           }
 
+          async function verifyMobileControls(page) {
+            const viewport = page.viewportSize();
+            if (!viewport) throw new Error('Mobile viewport unavailable');
+
+            const riskCards = page.locator('.cinematic-risk-selector .risk-card');
+            if (await riskCards.count() !== 3) throw new Error('Expected three mobile risk cards');
+            for (let index = 0; index < 3; index += 1) {
+              const box = await riskCards.nth(index).boundingBox();
+              if (!box) throw new Error(`Could not measure mobile risk card ${index}`);
+              if (box.x < 0 || box.x + box.width > viewport.width + .5) {
+                throw new Error(`Mobile risk card ${index} escapes viewport: x=${box.x.toFixed(1)}, width=${box.width.toFixed(1)}, viewport=${viewport.width}`);
+              }
+            }
+
+            const wager = await page.locator('.cinematic-wager').boundingBox();
+            const risks = await page.locator('.cinematic-risk-selector').boundingBox();
+            const environment = await page.locator('.environment-selector').boundingBox();
+            const launch = await page.locator('.cinematic-launch').boundingBox();
+            if (!wager || !risks || !environment || !launch) throw new Error('Could not measure mobile control order');
+            if (!(wager.y < risks.y && risks.y < environment.y && environment.y < launch.y)) {
+              throw new Error(`Mobile control order regressed: wager=${wager.y.toFixed(1)}, risk=${risks.y.toFixed(1)}, environment=${environment.y.toFixed(1)}, launch=${launch.y.toFixed(1)}`);
+            }
+          }
+
           const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
           watchErrors(page);
           await page.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
@@ -181,6 +205,8 @@ jobs:
           await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
           await verifyCinematicShell(mobile);
           await mobile.locator('.environment-stage[data-environment="kitchen"]').waitFor();
+          await verifyMobileControls(mobile);
+          await mobile.screenshot({ path: 'visual-smoke/mobile-idle.png', fullPage: true });
           await mobile.getByRole('button', { name: /LAUNCH CHAOS/i }).click();
           await verifyMovingActor(mobile);
           await mobile.waitForFunction(() => document.querySelectorAll('.scene-particle').length >= 30, undefined, { timeout: 4_000 });
@@ -189,6 +215,7 @@ jobs:
 
           await mobile.getByRole('button', { name: /GARAGE MAYHEM/i }).click();
           await mobile.locator('.environment-stage[data-environment="garage"][data-phase="idle"]').waitFor();
+          await verifyMobileControls(mobile);
           await mobile.getByRole('button', { name: /LAUNCH CHAOS/i }).click();
           await verifyMovingActor(mobile);
           await mobile.waitForFunction(() => document.querySelectorAll('.scene-particle').length >= 30, undefined, { timeout: 4_000 });

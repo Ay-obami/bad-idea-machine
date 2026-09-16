@@ -253,9 +253,21 @@
 
 @media (max-width: 560px) {
   .reference-gallery { padding-inline: 14px; }
-  .reference-gallery__brand-copy small { display: none; }
+  .reference-gallery__header { gap: 10px; }
+  .reference-gallery__brand { gap: 9px; min-width: 0; }
+  .reference-gallery__badge { width: 36px; height: 36px; flex: 0 0 36px; font-size: 11px; }
+  .reference-gallery__brand-copy { min-width: 0; }
+  .reference-gallery__brand-copy strong { font-size: 14px; }
+  .reference-gallery__brand-copy small {
+    display: block;
+    max-width: 205px;
+    font-size: 6.5px;
+    line-height: 1.25;
+    letter-spacing: .1em;
+    white-space: normal;
+  }
   .reference-gallery__nav { gap: 6px; }
-  .reference-gallery__wallet { padding-inline: 10px; }
+  .reference-gallery__wallet { padding-inline: 9px; min-height: 32px; font-size: 8px; }
   .gallery-room__heading-line { display: grid; gap: 10px; }
   .gallery-room__quote { text-align: left; max-width: none; }
   .gallery-room__rail-item { flex-basis: 70vw; }

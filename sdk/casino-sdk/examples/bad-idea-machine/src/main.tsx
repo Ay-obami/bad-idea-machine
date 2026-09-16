@@ -1,4 +1,4 @@
-import { StrictMode, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@fontsource/poppins/500.css';
@@ -12,14 +12,35 @@ import '@fontsource/rubik/500.css';
 
 import { App } from './App';
 import { GalleryScreen } from './gallery/GalleryScreen';
+import { useCasinoHost } from './lib/useCasinoHost';
+import { hasRecoverableRound, visibleView, type AppView } from './play/view-state';
 import type { EnvironmentId } from './scene/types';
 import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
 
+type GalleryGateProps = Readonly<{
+  onChoose: (environment: EnvironmentId) => void;
+  onRecoverRound: () => void;
+}>;
+
+function GalleryGate({ onChoose, onRecoverRound }: GalleryGateProps) {
+  const { snapshot } = useCasinoHost();
+  const recoverableRound = snapshot
+    ? hasRecoverableRound(snapshot.sessions.items, snapshot.integration.gameAddress)
+    : false;
+  const effectiveView = visibleView('gallery', recoverableRound);
+
+  useEffect(() => {
+    if (effectiveView === 'play') onRecoverRound();
+  }, [effectiveView, onRecoverRound]);
+
+  return <GalleryScreen onChoose={onChoose} />;
+}
+
 function ExperienceRoot() {
   const embedded = typeof window !== 'undefined' && window.self !== window.top;
-  const [showGallery, setShowGallery] = useState(!embedded);
+  const [requestedView, setRequestedView] = useState<AppView>(embedded ? 'play' : 'gallery');
 
   const chooseEnvironment = (environment: EnvironmentId) => {
     try {
@@ -27,12 +48,19 @@ function ExperienceRoot() {
     } catch {
       // Environment persistence is cosmetic only.
     }
-    setShowGallery(false);
+    setRequestedView('play');
   };
 
-  return showGallery
-    ? <GalleryScreen onChoose={chooseEnvironment} />
-    : <App onBackToGallery={embedded ? undefined : () => setShowGallery(true)} />;
+  if (requestedView === 'gallery') {
+    return (
+      <GalleryGate
+        onChoose={chooseEnvironment}
+        onRecoverRound={() => setRequestedView('play')}
+      />
+    );
+  }
+
+  return <App onBackToGallery={embedded ? undefined : () => setRequestedView('gallery')} />;
 }
 
 createRoot(document.getElementById('root')!).render(

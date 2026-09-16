@@ -1,0 +1,77 @@
+name: Materialize Room Art
+
+on:
+  push:
+    branches:
+      - feat/reference-locked-cinematic-rebuild
+    paths:
+      - '.art-transfer/part-15.b64'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bad-idea-machine-room-art-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install materializer dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          python -m pip install --disable-pip-version-check pillow numpy
+
+      - name: Reassemble and verify the approved art seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .art-transfer/part-*.b64 > /tmp/room-art-seed.b64
+          base64 --decode /tmp/room-art-seed.b64 > /tmp/room-art-seed.tar.gz
+          echo 'a5939a6d93b5f88aabc6f4c3a528a20f795626ae3cd7942724062371f7aa9540  /tmp/room-art-seed.tar.gz' | sha256sum -c -
+          mkdir -p /tmp/room-art-seed
+          tar -xzf /tmp/room-art-seed.tar.gz -C /tmp/room-art-seed
+          test -s /tmp/room-art-seed/rooms.mkv
+          test -s /tmp/room-art-seed/kitchen.mkv
+          test -s /tmp/room-art-seed/garage.mkv
+
+      - name: Materialize all room plates and native object layers
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf sdk/casino-sdk/examples/bad-idea-machine/public/rooms
+          python sdk/casino-sdk/examples/bad-idea-machine/scripts/reconstruct-room-assets.py \
+            /tmp/room-art-seed \
+            sdk/casino-sdk/examples/bad-idea-machine/public/rooms
+
+      - name: Verify all 44 production assets
+        run: npm --prefix sdk/casino-sdk/examples/bad-idea-machine run verify-room-assets
+
+      - name: Commit self-hosted room art and remove transfer chunks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sdk/casino-sdk/examples/bad-idea-machine/public/rooms
+          git rm -r .art-transfer
+          git commit -m 'art: materialize authored kitchen and garage room states'
+          git push origin HEAD:feat/reference-locked-cinematic-rebuild

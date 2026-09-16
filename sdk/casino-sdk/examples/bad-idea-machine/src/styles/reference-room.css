@@ -33,6 +33,51 @@
   filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .2));
 }
 
+.authored-aftermath {
+  position: absolute;
+  inset: 0;
+  z-index: 65;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+  animation: authored-aftermath-reveal 220ms ease-out both;
+}
+
+.result-overlay {
+  position: absolute;
+  left: clamp(14px, 2vw, 28px);
+  bottom: clamp(14px, 2vw, 28px);
+  z-index: 95;
+  display: grid;
+  width: min(430px, calc(100% - 28px));
+  gap: 4px;
+  padding: 14px 16px 13px;
+  border: 1px solid rgba(234, 223, 194, .22);
+  background: rgba(7, 10, 11, .82);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .42);
+  backdrop-filter: blur(5px);
+}
+
+.result-overlay span,
+.result-overlay small,
+.result-overlay em {
+  color: rgba(244, 239, 224, .78);
+  font-style: normal;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.result-overlay span { font-size: .72rem; font-weight: 800; }
+.result-overlay strong { color: #f7c94b; font: 900 clamp(2rem, 4.8vw, 4rem)/.92 Poppins, sans-serif; letter-spacing: -.06em; }
+.result-overlay small { max-width: 38ch; font-size: .68rem; line-height: 1.45; }
+.result-overlay em { margin-top: 4px; color: #f0a463; font-size: .58rem; line-height: 1.4; }
+.result-overlay--tier-1 strong { color: #73d49a; }
+.result-overlay--tier-2 strong { color: #67cddd; }
+.result-overlay--tier-3 strong { color: #bd77d7; }
+.result-overlay--tier-4 strong { color: #e7bd4f; }
+
 .environment-stage--arming .room-stage__plate {
   filter: saturate(.92) brightness(.92);
 }
@@ -43,6 +88,22 @@
   animation-delay: var(--impact-delay) !important;
 }
 
+@keyframes authored-aftermath-reveal {
+  from { opacity: 0; transform: scale(1.006); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 620px) {
+  .result-overlay {
+    padding: 10px 12px;
+    gap: 2px;
+  }
+
+  .result-overlay strong { font-size: clamp(1.8rem, 10vw, 2.7rem); }
+  .result-overlay small { font-size: .61rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .room-object { will-change: auto; }
+  .authored-aftermath { animation: none; }
 }

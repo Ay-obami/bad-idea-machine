@@ -67,8 +67,15 @@ The default simulation must finish with `PASS 105 real local-VRF settlements ind
 
 ## Submission-only items
 
-The following are operational submission artifacts rather than source-code eligibility checks and are filled at submission time:
+The current Chain Jam form requires these operational items in addition to the source-code checks above:
 
-- stable hosted HTTPS demo URL
-- target-chain deployed contract address supplied to Chain
-- jam.chain.wtf submission form entry
+- stable hosted HTTPS game URL
+- game title
+- declared RTP
+- Discord handle
+- optional X / Telegram handles
+- source-access URL
+- pitch / info
+- final form submission at `jam.chain.wtf`
+
+A target-chain game-contract address is described by the Casino SDK as an integration-stage deliverable, but it is not a field in the current Chain Jam submission form and therefore does not block the jam entry itself.

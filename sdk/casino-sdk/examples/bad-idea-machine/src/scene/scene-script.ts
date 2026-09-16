@@ -2,6 +2,7 @@ import type { Hex } from 'viem';
 
 import type { OutcomeTier } from '../lib/badIdea';
 import { getEnvironmentDefinition } from './environments';
+import { buildImpact } from './impact';
 import { visualByte, visualU16 } from './random';
 import type {
   EnvironmentId,
@@ -84,9 +85,7 @@ function selectedTemplates(environment: EnvironmentId, visualSeed: Hex, count: n
   const selected = available.slice(0, Math.min(count, available.length));
   if (!selected.some(template => isLongTravel(template, environment))) {
     const hero = available.find(template => isLongTravel(template, environment));
-    if (hero && selected.length > 0 && !selected.some(template => template.actorId === hero.actorId)) {
-      selected[selected.length - 1] = hero;
-    }
+    if (hero && selected.length > 0 && !selected.some(template => template.actorId === hero.actorId)) selected[selected.length - 1] = hero;
   }
   return selected;
 }
@@ -96,22 +95,13 @@ function decoyIndices(visualSeed: Hex, count: number): ReadonlySet<number> {
   const indices = new Set<number>();
   const start = count > 0 ? visualU16(visualSeed, 26) % count : 0;
   const stride = 1 + (visualByte(visualSeed, 28) % Math.max(1, count - 1));
-
-  for (let offset = 0; offset < count * 2 && indices.size < wanted; offset += 1) {
-    indices.add((start + offset * stride) % count);
-  }
-  for (let index = 0; indices.size < wanted && index < count; index += 1) {
-    indices.add(index);
-  }
+  for (let offset = 0; offset < count * 2 && indices.size < wanted; offset += 1) indices.add((start + offset * stride) % count);
+  for (let index = 0; indices.size < wanted && index < count; index += 1) indices.add(index);
   return indices;
 }
 
 function effectSeed(visualSeed: Hex, index: number): number {
-  return (
-    (visualByte(visualSeed, index + 2) << 16)
-    | (visualByte(visualSeed, index + 13) << 8)
-    | visualByte(visualSeed, index + 27)
-  );
+  return (visualByte(visualSeed, index + 2) << 16) | (visualByte(visualSeed, index + 13) << 8) | visualByte(visualSeed, index + 27);
 }
 
 function hazardFor(template: EventTemplate, visualSeed: Hex, index: number): SceneHazard {
@@ -123,37 +113,21 @@ function hazardFor(template: EventTemplate, visualSeed: Hex, index: number): Sce
 function pathFor(environment: EnvironmentId, template: EventTemplate, visualSeed: Hex, index: number): readonly MotionKeyframe[] {
   const actor = getEnvironmentDefinition(environment).actors.find(candidate => candidate.id === template.actorId);
   if (!actor) throw new Error(`unknown ${environment} scene actor: ${template.actorId}`);
-
   const controlJitterX = (visualByte(visualSeed, index + 5) % 61) - 30;
   const controlJitterY = (visualByte(visualSeed, index + 16) % 51) - 25;
   const endJitterX = (visualByte(visualSeed, index + 7) % 31) - 15;
   const endJitterY = (visualByte(visualSeed, index + 18) % 31) - 15;
   const spin = 90 + (visualByte(visualSeed, index + 22) % 271);
-
   return [
     { at: 0, x: actor.home.x, y: actor.home.y, rotation: actor.rotation, scale: actor.scale },
-    {
-      at: .56,
-      x: clamp(template.control.x + controlJitterX, 30, 970),
-      y: clamp(template.control.y + controlJitterY, 30, 570),
-      rotation: actor.rotation + spin * .55,
-      scale: actor.scale * 1.05,
-    },
-    {
-      at: 1,
-      x: clamp(template.end.x + endJitterX, 20, 980),
-      y: clamp(template.end.y + endJitterY, 20, 580),
-      rotation: actor.rotation + spin,
-      scale: actor.scale,
-    },
+    { at: .56, x: clamp(template.control.x + controlJitterX, 30, 970), y: clamp(template.control.y + controlJitterY, 30, 570), rotation: actor.rotation + spin * .55, scale: actor.scale * 1.05 },
+    { at: 1, x: clamp(template.end.x + endJitterX, 20, 980), y: clamp(template.end.y + endJitterY, 20, 580), rotation: actor.rotation + spin, scale: actor.scale },
   ];
 }
 
-function impactFor(environment: EnvironmentId, template: EventTemplate, path: readonly MotionKeyframe[]): ScenePoint {
+function impactPointFor(environment: EnvironmentId, template: EventTemplate, path: readonly MotionKeyframe[]): ScenePoint {
   const definition = getEnvironmentDefinition(environment);
-  if (template.impactZone && definition.impactZones[template.impactZone]) {
-    return definition.impactZones[template.impactZone];
-  }
+  if (template.impactZone && definition.impactZones[template.impactZone]) return definition.impactZones[template.impactZone];
   const end = path.at(-1)!;
   return { x: end.x, y: end.y };
 }
@@ -171,7 +145,6 @@ function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinal
     ] as const;
     return { tier, label: copy[tier][0], flavor: copy[tier][1], impact };
   }
-
   const copy = [
     ['WORKSHOP DESTROYED. PROFIT MISSING.', 'Everything broke except the house edge.'],
     ['MINOR INDUSTRIAL MIRACLE', 'One useful thing survived the impact.'],
@@ -182,14 +155,9 @@ function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinal
   return { tier, label: copy[tier][0], flavor: copy[tier][1], impact };
 }
 
-export function buildSceneScript(
-  environment: EnvironmentId,
-  tier: OutcomeTier,
-  visualSeed: Hex,
-): SceneScript {
+export function buildSceneScript(environment: EnvironmentId, tier: OutcomeTier, visualSeed: Hex): SceneScript {
   const requestedCount = 8 + (visualByte(visualSeed, 31) % 5);
-  const availableCount = getEnvironmentDefinition(environment).actors.length;
-  const count = Math.min(requestedCount, availableCount);
+  const count = Math.min(requestedCount, getEnvironmentDefinition(environment).actors.length);
   const durationMs = 4_700 + (visualU16(visualSeed, 18) % 1_501);
   const templates = selectedTemplates(environment, visualSeed, count);
   const decoys = decoyIndices(visualSeed, templates.length);
@@ -201,6 +169,9 @@ export function buildSceneScript(
     const durationMsForEvent = Math.min(requestedDuration, durationMs - startMs);
     const path = pathFor(environment, template, visualSeed, index);
     const intensity = (2 + (visualByte(visualSeed, index + 9) % 2)) as 2 | 3;
+    const hazard = hazardFor(template, visualSeed, index);
+    const point = impactPointFor(environment, template, path);
+    const impacts = [buildImpact({ environment, actorId: template.actorId, action: template.action, hazard, intensity, point, durationMs: durationMsForEvent, zone: template.impactZone })] as const;
 
     return {
       id: `${environment}-${index}-${template.actorId}`,
@@ -209,8 +180,8 @@ export function buildSceneScript(
       startMs,
       durationMs: durationMsForEvent,
       path,
-      impact: impactFor(environment, template, path),
-      hazard: hazardFor(template, visualSeed, index),
+      impacts,
+      hazard,
       intensity,
       decoy: decoys.has(index),
       effectSeed: effectSeed(visualSeed, index),
@@ -218,12 +189,7 @@ export function buildSceneScript(
     };
   });
 
-  return {
-    environment,
-    durationMs,
-    events,
-    finalizer: finalizerFor(environment, tier),
-  };
+  return { environment, durationMs, events, finalizer: finalizerFor(environment, tier) };
 }
 
 export function sceneDurationMs(script: SceneScript): number {

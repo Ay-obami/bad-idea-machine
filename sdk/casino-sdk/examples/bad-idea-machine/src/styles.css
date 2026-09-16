@@ -1,4 +1,6 @@
 @import './styles/bad-idea.css';
+@import './styles/chaos.css';
+@import './styles/chaos-max.css';
 
 /* Desktop stations 6–10 belong to the second half of the serpentine rail.
    Explicitly pin the row so CSS grid auto-placement cannot create extra rows. */

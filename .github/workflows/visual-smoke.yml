@@ -1,10 +1,12 @@
 name: Bad Idea Machine Visual Smoke
 
+# Chaos-pass gate: assert the live reveal contains decoys, particles, major hazards, and no browser errors.
 on:
   push:
     branches:
       - main
       - feat/bad-idea-machine-game
+      - feat/chaos-unpredictability-pass
     paths:
       - .github/workflows/visual-smoke.yml
       - sdk/casino-sdk/examples/bad-idea-machine/src/**
@@ -54,7 +56,7 @@ jobs:
           cat /tmp/bad-idea-preview.log
           exit 1
 
-      - name: Capture desktop, danger mode, result and mobile
+      - name: Capture ready, live chaos, result and mobile
         shell: bash
         run: |
           cd examples/bad-idea-machine
@@ -78,8 +80,25 @@ jobs:
           await page.screenshot({ path: 'visual-smoke/desktop-danger.png', fullPage: true });
 
           await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
-          await page.waitForTimeout(7600);
-          await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor();
+          await page.waitForTimeout(300);
+          await page.locator('.machine--revealing').waitFor();
+          await page.locator('.chaos-layer').waitFor();
+          if (await page.locator('.chaos-particle').count() < 30) throw new Error('Dense chaos particle field did not render');
+          if (await page.locator('.station--active').count() !== 1) throw new Error('Exactly one authoritative active station is required');
+          if (await page.locator('.station--decoy').count() < 1) throw new Error('Expected at least one false-alarm station');
+          await page.screenshot({ path: 'visual-smoke/desktop-chaos-early.png', fullPage: true });
+
+          await page.waitForFunction(() => {
+            const station = document.querySelector('.station--active');
+            return station?.getAttribute('data-hazard') === 'fire' || station?.getAttribute('data-hazard') === 'blast';
+          }, undefined, { timeout: 6_500 });
+          if (await page.locator('.station__fire').count() < 1) throw new Error('Major hazard did not render visible fire');
+          await page.screenshot({ path: 'visual-smoke/desktop-chaos-fire-blast.png', fullPage: true });
+
+          await page.waitForTimeout(900);
+          await page.screenshot({ path: 'visual-smoke/desktop-chaos-mid.png', fullPage: true });
+
+          await page.getByText('WHAT WENT WRONG?', { exact: true }).waitFor({ timeout: 8_000 });
           await page.screenshot({ path: 'visual-smoke/desktop-result.png', fullPage: true });
 
           const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
@@ -90,6 +109,12 @@ jobs:
           await mobile.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
           await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
           await mobile.screenshot({ path: 'visual-smoke/mobile-ready.png', fullPage: true });
+          await mobile.getByRole('button', { name: /SEND IT/i }).click();
+          await mobile.getByRole('button', { name: /DO NOT PRESS/i }).click();
+          await mobile.waitForTimeout(500);
+          await mobile.locator('.chaos-layer').waitFor();
+          if (await mobile.locator('.chaos-particle').count() < 30) throw new Error('Mobile chaos field did not render densely enough');
+          await mobile.screenshot({ path: 'visual-smoke/mobile-chaos.png', fullPage: true });
 
           if (consoleErrors.length > 0) {
             throw new Error(`Browser errors:\n${consoleErrors.join('\n')}`);

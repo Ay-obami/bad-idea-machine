@@ -2,15 +2,15 @@
 
 **One button. Several terrible decisions.**
 
-Bad Idea Machine is an original instant casino game built for **Chain Jam Vol. 1**. Pick how reckless you feel, choose a wager, press the giant button, and watch an increasingly absurd Rube Goldberg machine attempt to reach your payout.
+Bad Idea Machine is an original instant casino game built for **Chain Jam Vol. 1**. Pick how reckless you feel, choose a wager, press the giant button, and watch a Rube Goldberg machine descend into a deliberately unreadable industrial disaster before the payout is finally revealed.
 
-The important rule is simple: **the animation never decides the result**. The Chain casino contract settles the economic outcome from verified randomness first; the frontend only turns that already-settled tier into a deterministic mechanical catastrophe.
+The important rule is simple: **the animation never decides the result**. The Chain casino contract settles the economic outcome from verified randomness first; the frontend only turns that already-settled tier into deterministic cosmetic chaos.
 
 ## Why it is different
 
-Most instant casino games expose their math directly as dice, wheels, mines, crash curves, or target multipliers. Bad Idea Machine keeps the wager loop just as understandable while making the reveal itself the game: toaster → cat → hammer → bowling ball → fan → dominoes → rocket → safe → the mysterious Bad Idea Core.
+Most instant casino games expose their math directly as dice, wheels, mines, crash curves, or target multipliers. Bad Idea Machine makes the reveal itself the game: rockets ignite early, safes drop where they should not, cats attack wiring, alarms lie, stations false-trigger, debris crosses the screen, and parts catch fire while the machine somehow keeps going.
 
-A losing round can fail early in several comic ways. Higher payout tiers travel farther through the machine. The rare top tier reaches the Core and ends in **CATASTROPHIC SUCCESS**.
+The visual route is intentionally **not a progress meter**. Every payout tier receives the same seed-driven 8–10-step suspense envelope and the same early visual choreography for a given visual seed. The payout tier does not determine how far the machine travels, so watching the first few events does not tell the player what they are about to win. Decoy station activations, non-linear station order, variable pacing, fire, smoke, sparks, debris and layered procedural audio keep the reveal noisy until the terminal result.
 
 ## Game loop
 
@@ -18,8 +18,8 @@ A losing round can fail early in several comic ways. Higher payout tiers travel 
 2. Choose a risk profile: **CONTROLLED**, **SEND IT**, or **ABSOLUTELY NOT**.
 3. Press **DO NOT PRESS**.
 4. The contract requests Chain VRF and settles one of five payout tiers.
-5. The frontend derives a separate cosmetic seed and plays the corresponding machine route.
-6. After the animation finishes, the game calls `revealOutcome` so the host can reveal the settled balance change.
+5. The frontend derives a separate cosmetic seed and builds a non-linear catastrophe route with false alarms and deterministic chaos effects.
+6. Only after the spectacle finishes does the multiplier become visually authoritative, and the game calls `revealOutcome` so the host can reveal the settled balance change.
 7. Open **WHAT WENT WRONG?** to inspect the route and Chain randomness verification data.
 
 No mid-round cash-out or player action exists, so this is not a crash/limbo mechanic hidden behind animation.
@@ -47,7 +47,7 @@ The VRF word is domain-separated into two deterministic seeds:
 
 The economic roll uses 16-bit rejection sampling: values below 60,000 are accepted because 60,000 contains exactly six complete 0–9,999 partitions. This avoids modulo bias.
 
-The visual seed can change cat behavior, machine variants, failure punchlines, and other presentation details, but **cannot change the payout tier or payout**.
+The visual seed can change route order, timing, false alarms, station variants, hazards, particle trajectories and sound choreography, but **cannot change the payout tier or payout**. Route length and early station order are explicitly tested not to encode the economic tier.
 
 For real Chain-hosted rounds the receipt can show the session ID, VRF request ID, settlement transaction hash, and the host's optional VRF verification checks. The standalone demo is explicitly labeled and uses browser randomness plus fake demo credits only.
 
@@ -55,7 +55,7 @@ For real Chain-hosted rounds the receipt can show the session ID, VRF request ID
 
 ```text
 Bad Idea Machine UI
-  React + CSS machine + procedural WebAudio
+  React + CSS catastrophe engine + procedural WebAudio
                │
                ▼
 @chain/casino-sdk/guest bridge
@@ -74,7 +74,10 @@ Key files:
 
 - `sdk/casino-sdk/simulator/contracts/BadIdeaMachineGame.sol` — authoritative game math and settlement.
 - `sdk/casino-sdk/examples/bad-idea-machine/src/lib/badIdea.ts` — frontend mirror used for previews/decoding; never authoritative for money.
-- `sdk/casino-sdk/examples/bad-idea-machine/src/lib/route.ts` — cosmetic catastrophe routing.
+- `sdk/casino-sdk/examples/bad-idea-machine/src/lib/route.ts` — cosmetic non-linear catastrophe choreography.
+- `sdk/casino-sdk/examples/bad-idea-machine/src/lib/audio.ts` — procedural layered machine/hazard audio engine.
+- `sdk/casino-sdk/examples/bad-idea-machine/src/components/MachineStage.tsx` — live station, decoy and particle rendering.
+- `sdk/casino-sdk/examples/bad-idea-machine/src/styles/chaos.css` — fire, smoke, sparks, debris and shake effects.
 - `sdk/casino-sdk/examples/bad-idea-machine/src/App.tsx` — Chain session lifecycle + standalone demo controller.
 - `sdk/casino-sdk/examples/bad-idea-machine/public/game.manifest.json` — Chain game manifest.
 - `sdk/casino-sdk/examples/bad-idea-machine/scripts/simulate-flows.mjs` — real local-host/VRF integration check.
@@ -108,7 +111,7 @@ Open `http://localhost:3100`. Standalone mode uses clearly labeled **demo credit
 ```bash
 cd sdk/casino-sdk
 
-# Exact paytables, ABI codecs, route determinism, manifest validation
+# Exact paytables, ABI codecs, route ambiguity, chaos audio, manifest validation
 npm run test:bad-idea
 
 # Compile all simulator Solidity contracts including BadIdeaMachineGame
@@ -126,11 +129,13 @@ npm --prefix examples/bad-idea-machine run verify-build
 
 CI additionally launches the full local casino + bundled Verify Network VRF node and runs `npm run simulate:bad-idea`. The default soak settles **105 real local-VRF wagers (35 per risk mode)** and independently recomputes every contract tier from its stored VRF word before verifying the payout.
 
+A Playwright/Chromium visual smoke workflow also asserts that a live reveal contains an authoritative active station, at least one false-alarm station, and a populated particle field. It captures early chaos, mid-chaos, result, and mobile chaos states while failing on browser-console errors.
+
 ## Performance and presentation
 
-The game deliberately avoids a 3D engine, background video, large sprite sheets, and a runtime backend. The machine is rendered with React/CSS primitives and procedural WebAudio. CI enforces production bundle guardrails and verifies that the static output still includes both `game.manifest.json` and the Chain Jam widget.
+The game deliberately avoids a 3D engine, background video, large sprite sheets, and a runtime backend. The spectacle is rendered from React/CSS primitives and procedural WebAudio, including fire, smoke, sparks, embers, flying debris, false triggers, alarms, impact layers, blast noise and intensity-dependent camera shake. CI enforces production bundle guardrails and verifies that the static output still includes both `game.manifest.json` and the Chain Jam widget.
 
-The UI is responsive: desktop uses a wide 5×2 machine rail; mobile reflows it into a compact serpentine 2×5 route while keeping the wager controls touch-friendly. A Chromium visual smoke check covers desktop ready/danger/result states and a 390×844 mobile viewport with browser-console error detection.
+Desktop uses an irregular industrial-machine map instead of a readable progress rail. Mobile keeps the same chaos model in a compact touch-friendly layout. The Chromium visual smoke check covers both desktop and 390×844 mobile viewports.
 
 ## Chain Jam requirements
 

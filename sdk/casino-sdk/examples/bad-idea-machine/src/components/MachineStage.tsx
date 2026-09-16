@@ -81,17 +81,17 @@ function particleKindsFor(step: RouteStep): readonly ParticleKind[] {
 function buildParticles(step: RouteStep): readonly ParticleSpec[] {
   const random = seededRandom(step.effectSeed);
   const kinds = particleKindsFor(step);
-  const count = 9 + step.intensity * 9 + (step.hazard === 'blast' ? 8 : 0);
+  const count = 18 + step.intensity * 14 + (step.hazard === 'blast' ? 12 : 0);
 
   return Array.from({ length: count }, (_, index) => {
     const kind = kinds[index % kinds.length];
     const smoke = kind === 'smoke';
-    const x = 8 + random() * 84;
-    const y = 13 + random() * 72;
-    const dx = (random() - .5) * (smoke ? 100 : 330);
-    const dy = smoke ? -(75 + random() * 150) : (random() - .68) * 260;
-    const size = smoke ? 18 + random() * 38 : 5 + random() * (step.intensity * 5 + 8);
-    const rotation = (random() - .5) * 760;
+    const x = 4 + random() * 92;
+    const y = 8 + random() * 82;
+    const dx = (random() - .5) * (smoke ? 180 : 520);
+    const dy = smoke ? -(100 + random() * 230) : (random() - .64) * 390;
+    const size = smoke ? 28 + random() * 58 : 8 + random() * (step.intensity * 7 + 12);
+    const rotation = (random() - .5) * 1_080;
 
     return {
       kind,
@@ -145,8 +145,8 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
   const resultText = multiplierBps === undefined ? '' : `${(multiplierBps / 10_000).toFixed(multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
   const isFailure = tier === 0;
   const machineIntensity = phase === 'revealing' && activeStep ? `machine--intensity-${activeStep.intensity}` : '';
-  const burstX = activeStep ? 18 + (activeStep.effectSeed % 65) : 50;
-  const burstY = activeStep ? 18 + ((activeStep.effectSeed >>> 7) % 60) : 50;
+  const burstX = activeStep ? 12 + (activeStep.effectSeed % 76) : 50;
+  const burstY = activeStep ? 12 + ((activeStep.effectSeed >>> 7) % 68) : 50;
 
   return (
     <section className={`machine machine--${modeClass} machine--${phase} ${machineIntensity}`} aria-live="polite">
@@ -176,9 +176,12 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
             (phase === 'revealing' && currentRouteIndex !== undefined && currentRouteIndex < activeIndex) ||
             (phase === 'result' && currentRouteIndex !== undefined);
           const variant = currentRouteIndex === undefined ? '' : route[currentRouteIndex]?.variant ?? '';
-          const showFire = isActive && (activeStep?.hazard === 'fire' || activeStep?.hazard === 'blast');
-          const showSmoke = isActive && ['fire', 'smoke', 'blast'].includes(activeStep?.hazard ?? '');
           const dangerousDecoy = isDecoy && (activeStep?.intensity ?? 0) >= 2;
+          const decoyFire = dangerousDecoy && (((activeStep?.effectSeed ?? 0) + index) % 2 === 0);
+          const showFire = isActive
+            ? activeStep?.hazard === 'fire' || activeStep?.hazard === 'blast' || activeStep?.intensity === 3
+            : decoyFire;
+          const showSmoke = isActive || dangerousDecoy;
 
           return (
             <div className="machine__station-wrap" key={station}>

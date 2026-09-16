@@ -1,5 +1,6 @@
 name: Probe Bad Idea Machine Production
 
+# Re-run after disabling Vercel Authentication.
 on:
   push:
     branches:

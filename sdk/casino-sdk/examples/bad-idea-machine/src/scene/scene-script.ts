@@ -11,6 +11,7 @@ import type {
   SceneEvent,
   SceneFinalizer,
   SceneHazard,
+  SceneIntensity,
   ScenePoint,
   SceneScript,
 } from './types';
@@ -23,6 +24,14 @@ type EventTemplate = Readonly<{
   hazards: readonly SceneHazard[];
   soundCue: string;
   impactZone?: string;
+}>;
+
+type TerminalBeat = Readonly<{
+  actorId: string;
+  action?: SceneAction;
+  hazard: SceneHazard;
+  intensity: SceneIntensity;
+  soundCue?: string;
 }>;
 
 const KITCHEN_TEMPLATES: readonly EventTemplate[] = [
@@ -51,8 +60,75 @@ const GARAGE_TEMPLATES: readonly EventTemplate[] = [
   { actorId: 'garage-safe', action: 'drop', control: { x: 825, y: 220 }, end: { x: 665, y: 515 }, hazards: ['blast', 'debris'], soundCue: 'safe-crash', impactZone: 'floorCenter' },
 ];
 
-const PRIMARY_HAZARDS: readonly SceneHazard[] = ['fire', 'blast'];
-const SECONDARY_HAZARDS: readonly SceneHazard[] = ['debris', 'smoke', 'steam', 'shards'];
+const KITCHEN_SHARED = ['kitchen-toaster', 'kitchen-toast', 'kitchen-pan', 'kitchen-kettle', 'kitchen-cabinet', 'kitchen-plates'] as const;
+const GARAGE_SHARED = ['garage-hammer', 'garage-wrench', 'garage-drill', 'garage-saw', 'garage-chain', 'garage-tire', 'garage-shelf'] as const;
+
+const KITCHEN_SHARED_HAZARDS: Readonly<Record<string, SceneHazard>> = {
+  'kitchen-toaster': 'fire',
+  'kitchen-toast': 'debris',
+  'kitchen-pan': 'sparks',
+  'kitchen-kettle': 'steam',
+  'kitchen-cabinet': 'debris',
+  'kitchen-plates': 'shards',
+};
+
+const GARAGE_SHARED_HAZARDS: Readonly<Record<string, SceneHazard>> = {
+  'garage-hammer': 'sparks',
+  'garage-wrench': 'debris',
+  'garage-drill': 'fire',
+  'garage-saw': 'sparks',
+  'garage-chain': 'debris',
+  'garage-tire': 'smoke',
+  'garage-shelf': 'debris',
+};
+
+const KITCHEN_TERMINALS: Readonly<Record<OutcomeTier, readonly TerminalBeat[]>> = {
+  0: [
+    { actorId: 'kitchen-safe', hazard: 'blast', intensity: 3 },
+    { actorId: 'kitchen-rocket', hazard: 'fire', intensity: 3 },
+  ],
+  1: [
+    { actorId: 'kitchen-ball', hazard: 'debris', intensity: 1 },
+    { actorId: 'kitchen-rocket', action: 'near-miss', hazard: 'smoke', intensity: 1, soundCue: 'rocket-flyby' },
+  ],
+  2: [
+    { actorId: 'kitchen-ball', hazard: 'shards', intensity: 2 },
+    { actorId: 'kitchen-safe', hazard: 'debris', intensity: 2 },
+  ],
+  3: [
+    { actorId: 'kitchen-rocket', hazard: 'blast', intensity: 3 },
+    { actorId: 'kitchen-safe', hazard: 'blast', intensity: 3 },
+  ],
+  4: [
+    { actorId: 'kitchen-ball', hazard: 'debris', intensity: 3 },
+    { actorId: 'kitchen-rocket', hazard: 'blast', intensity: 3 },
+    { actorId: 'kitchen-safe', hazard: 'blast', intensity: 3 },
+  ],
+};
+
+const GARAGE_TERMINALS: Readonly<Record<OutcomeTier, readonly TerminalBeat[]>> = {
+  0: [
+    { actorId: 'garage-safe', hazard: 'blast', intensity: 3 },
+    { actorId: 'garage-toolbox', hazard: 'debris', intensity: 3 },
+    { actorId: 'garage-tank', hazard: 'blast', intensity: 3 },
+  ],
+  1: [{ actorId: 'garage-toolbox', hazard: 'debris', intensity: 1 }],
+  2: [
+    { actorId: 'garage-toolbox', hazard: 'debris', intensity: 2 },
+    { actorId: 'garage-tank', hazard: 'smoke', intensity: 2 },
+  ],
+  3: [
+    { actorId: 'garage-tank', hazard: 'blast', intensity: 3 },
+    { actorId: 'garage-rocket', hazard: 'fire', intensity: 3 },
+    { actorId: 'garage-safe', hazard: 'debris', intensity: 3 },
+  ],
+  4: [
+    { actorId: 'garage-toolbox', hazard: 'debris', intensity: 3 },
+    { actorId: 'garage-tank', hazard: 'blast', intensity: 3 },
+    { actorId: 'garage-rocket', hazard: 'blast', intensity: 3 },
+    { actorId: 'garage-safe', hazard: 'blast', intensity: 3 },
+  ],
+};
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -62,32 +138,23 @@ function templatesFor(environment: EnvironmentId): readonly EventTemplate[] {
   return environment === 'kitchen' ? KITCHEN_TEMPLATES : GARAGE_TEMPLATES;
 }
 
-function shuffledTemplates(environment: EnvironmentId, visualSeed: Hex): EventTemplate[] {
-  const deck = [...templatesFor(environment)];
-  let cursor = 1;
-  for (let index = deck.length - 1; index > 0; index -= 1) {
-    const swapWith = visualU16(visualSeed, cursor) % (index + 1);
-    [deck[index], deck[swapWith]] = [deck[swapWith], deck[index]];
-    cursor += 2;
-  }
-  return deck;
+function templateFor(environment: EnvironmentId, actorId: string): EventTemplate {
+  const template = templatesFor(environment).find(candidate => candidate.actorId === actorId);
+  if (!template) throw new Error(`unknown ${environment} event template: ${actorId}`);
+  return template;
 }
 
-function isLongTravel(template: EventTemplate, environment: EnvironmentId): boolean {
-  const actor = getEnvironmentDefinition(environment).actors.find(candidate => candidate.id === template.actorId);
-  if (!actor) return false;
-  return Math.abs(template.end.x - actor.home.x) >= 350 || Math.abs(template.end.y - actor.home.y) >= 180;
+function scriptDurationMs(visualSeed: Hex): number {
+  return 4_700 + (visualU16(visualSeed, 18) % 1_501);
 }
 
-function selectedTemplates(environment: EnvironmentId, visualSeed: Hex, count: number): EventTemplate[] {
-  const actorIds = new Set(getEnvironmentDefinition(environment).actors.map(actor => actor.id));
-  const available = shuffledTemplates(environment, visualSeed).filter(template => actorIds.has(template.actorId));
-  const selected = available.slice(0, Math.min(count, available.length));
-  if (!selected.some(template => isLongTravel(template, environment))) {
-    const hero = available.find(template => isLongTravel(template, environment));
-    if (hero && selected.length > 0 && !selected.some(template => template.actorId === hero.actorId)) selected[selected.length - 1] = hero;
+function seededOrder<T>(values: readonly T[], visualSeed: Hex, cursor: number): T[] {
+  const result = [...values];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const swapWith = visualU16(visualSeed, cursor + index * 2) % (index + 1);
+    [result[index], result[swapWith]] = [result[swapWith], result[index]];
   }
-  return selected;
+  return result;
 }
 
 function decoyIndices(visualSeed: Hex, count: number): ReadonlySet<number> {
@@ -102,12 +169,6 @@ function decoyIndices(visualSeed: Hex, count: number): ReadonlySet<number> {
 
 function effectSeed(visualSeed: Hex, index: number): number {
   return (visualByte(visualSeed, index + 2) << 16) | (visualByte(visualSeed, index + 13) << 8) | visualByte(visualSeed, index + 27);
-}
-
-function hazardFor(template: EventTemplate, visualSeed: Hex, index: number): SceneHazard {
-  if (index === 0) return PRIMARY_HAZARDS[visualByte(visualSeed, 20) % PRIMARY_HAZARDS.length];
-  if (index === 1) return SECONDARY_HAZARDS[visualByte(visualSeed, 21) % SECONDARY_HAZARDS.length];
-  return template.hazards[visualByte(visualSeed, index + 10) % template.hazards.length];
 }
 
 function pathFor(environment: EnvironmentId, template: EventTemplate, visualSeed: Hex, index: number): readonly MotionKeyframe[] {
@@ -130,6 +191,106 @@ function impactPointFor(environment: EnvironmentId, template: EventTemplate, pat
   if (template.impactZone && definition.impactZones[template.impactZone]) return definition.impactZones[template.impactZone];
   const end = path.at(-1)!;
   return { x: end.x, y: end.y };
+}
+
+function buildEvent(input: Readonly<{
+  environment: EnvironmentId;
+  template: EventTemplate;
+  visualSeed: Hex;
+  index: number;
+  startMs: number;
+  totalDurationMs: number;
+  hazard: SceneHazard;
+  intensity: SceneIntensity;
+  decoy: boolean;
+  action?: SceneAction;
+  soundCue?: string;
+  idPrefix: string;
+}>): SceneEvent {
+  const requestedDuration = 780 + (visualByte(input.visualSeed, input.index + 12) % 241);
+  const durationMs = Math.max(1, Math.min(requestedDuration, input.totalDurationMs - input.startMs));
+  const path = pathFor(input.environment, input.template, input.visualSeed, input.index);
+  const point = impactPointFor(input.environment, input.template, path);
+  const action = input.action ?? input.template.action;
+  return {
+    id: `${input.idPrefix}-${input.template.actorId}`,
+    actorId: input.template.actorId,
+    action,
+    startMs: input.startMs,
+    durationMs,
+    path,
+    impacts: [buildImpact({
+      environment: input.environment,
+      actorId: input.template.actorId,
+      action,
+      hazard: input.hazard,
+      intensity: input.intensity,
+      point,
+      durationMs,
+      zone: input.template.impactZone,
+    })],
+    hazard: input.hazard,
+    intensity: input.intensity,
+    decoy: input.decoy,
+    effectSeed: effectSeed(input.visualSeed, input.index),
+    soundCue: input.soundCue ?? input.template.soundCue,
+  };
+}
+
+export function buildSharedSequence(environment: EnvironmentId, visualSeed: Hex): readonly SceneEvent[] {
+  const durationMs = scriptDurationMs(visualSeed);
+  const actorIds = environment === 'kitchen' ? KITCHEN_SHARED : GARAGE_SHARED;
+  const hazards = environment === 'kitchen' ? KITCHEN_SHARED_HAZARDS : GARAGE_SHARED_HAZARDS;
+  const ordered = seededOrder(actorIds, visualSeed, 2);
+  const decoys = decoyIndices(visualSeed, ordered.length);
+  const lastSharedStart = Math.floor(durationMs * .52);
+
+  return ordered.map((actorId, index) => {
+    const template = templateFor(environment, actorId);
+    const startMs = ordered.length === 1 ? 0 : Math.floor(index * lastSharedStart / (ordered.length - 1));
+    const intensity = (2 + (visualByte(visualSeed, index + 9) % 2)) as 2 | 3;
+    return buildEvent({
+      environment,
+      template,
+      visualSeed,
+      index,
+      startMs,
+      totalDurationMs: durationMs,
+      hazard: hazards[actorId] ?? template.hazards[0],
+      intensity,
+      decoy: decoys.has(index),
+      idPrefix: `${environment}-shared-${index}`,
+    });
+  });
+}
+
+export function buildTerminalSequence(environment: EnvironmentId, tier: OutcomeTier, visualSeed: Hex): readonly SceneEvent[] {
+  const durationMs = scriptDurationMs(visualSeed);
+  const beats = environment === 'kitchen' ? KITCHEN_TERMINALS[tier] : GARAGE_TERMINALS[tier];
+  const firstStart = Math.floor(durationMs * .67);
+  const latestStart = Math.max(firstStart, durationMs - 1_050);
+
+  return beats.map((beat, index) => {
+    const template = templateFor(environment, beat.actorId);
+    const startMs = beats.length === 1
+      ? firstStart
+      : Math.floor(firstStart + index * (latestStart - firstStart) / (beats.length - 1));
+    const seedIndex = 64 + tier * 11 + index * 3;
+    return buildEvent({
+      environment,
+      template,
+      visualSeed,
+      index: seedIndex,
+      startMs,
+      totalDurationMs: durationMs,
+      hazard: beat.hazard,
+      intensity: beat.intensity,
+      decoy: false,
+      action: beat.action,
+      soundCue: beat.soundCue,
+      idPrefix: `${environment}-terminal-${tier}-${index}`,
+    });
+  });
 }
 
 function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinalizer {
@@ -156,40 +317,10 @@ function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinal
 }
 
 export function buildSceneScript(environment: EnvironmentId, tier: OutcomeTier, visualSeed: Hex): SceneScript {
-  const requestedCount = 8 + (visualByte(visualSeed, 31) % 5);
-  const count = Math.min(requestedCount, getEnvironmentDefinition(environment).actors.length);
-  const durationMs = 4_700 + (visualU16(visualSeed, 18) % 1_501);
-  const templates = selectedTemplates(environment, visualSeed, count);
-  const decoys = decoyIndices(visualSeed, templates.length);
-  const latestStart = durationMs - 1_050;
-
-  const events: readonly SceneEvent[] = templates.map((template, index) => {
-    const startMs = templates.length === 1 ? 0 : Math.floor(index * latestStart / Math.max(1, templates.length - 1));
-    const requestedDuration = 800 + (visualByte(visualSeed, index + 12) % 251);
-    const durationMsForEvent = Math.min(requestedDuration, durationMs - startMs);
-    const path = pathFor(environment, template, visualSeed, index);
-    const intensity = (2 + (visualByte(visualSeed, index + 9) % 2)) as 2 | 3;
-    const hazard = hazardFor(template, visualSeed, index);
-    const point = impactPointFor(environment, template, path);
-    const impacts = [buildImpact({ environment, actorId: template.actorId, action: template.action, hazard, intensity, point, durationMs: durationMsForEvent, zone: template.impactZone })] as const;
-
-    return {
-      id: `${environment}-${index}-${template.actorId}`,
-      actorId: template.actorId,
-      action: template.action,
-      startMs,
-      durationMs: durationMsForEvent,
-      path,
-      impacts,
-      hazard,
-      intensity,
-      decoy: decoys.has(index),
-      effectSeed: effectSeed(visualSeed, index),
-      soundCue: template.soundCue,
-    };
-  });
-
-  return { environment, durationMs, events, finalizer: finalizerFor(environment, tier) };
+  const durationMs = scriptDurationMs(visualSeed);
+  const shared = buildSharedSequence(environment, visualSeed);
+  const terminal = buildTerminalSequence(environment, tier, visualSeed);
+  return { environment, durationMs, events: [...shared, ...terminal], finalizer: finalizerFor(environment, tier) };
 }
 
 export function sceneDurationMs(script: SceneScript): number {

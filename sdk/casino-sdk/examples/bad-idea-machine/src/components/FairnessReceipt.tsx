@@ -1,14 +1,16 @@
 import type { RandomnessVerificationV1 } from '@chain/casino-sdk';
 
-import { RISK_MODE_LABELS, type OutcomeTier, type RiskMode } from '../lib/badIdea';
-import type { RouteStep } from '../lib/route';
+import { RISK_MODE_LABELS, type RiskMode } from '../lib/badIdea';
+import { getEnvironmentDefinition } from '../scene/environments';
+import { catastropheSummary } from '../scene/scene-script';
+import type { EnvironmentId, SceneScript } from '../scene/types';
 
 type Props = {
   open: boolean;
   onToggle: () => void;
   riskMode: RiskMode;
-  tier: OutcomeTier;
-  route: readonly RouteStep[];
+  environment: EnvironmentId;
+  script: SceneScript;
   wagerText: string;
   payoutText: string;
   multiplierText: string;
@@ -18,19 +20,6 @@ type Props = {
   settleTransactionHash?: string;
   verification?: RandomnessVerificationV1 | null;
   demoMode: boolean;
-};
-
-const STATION_NAME: Record<string, string> = {
-  button: 'BUTTON',
-  toaster: 'TOASTER',
-  cat: 'CAT',
-  hammer: 'HAMMER',
-  ball: 'BOWLING BALL',
-  fan: 'FAN',
-  dominoes: 'DOMINOES',
-  rocket: 'ROCKET',
-  safe: 'SAFE',
-  core: 'BAD IDEA CORE',
 };
 
 function shortHash(value?: string): string {
@@ -43,7 +32,8 @@ export function FairnessReceipt({
   open,
   onToggle,
   riskMode,
-  route,
+  environment,
+  script,
   wagerText,
   payoutText,
   multiplierText,
@@ -57,6 +47,8 @@ export function FairnessReceipt({
   const verified = verification?.supported && verification.requests.length > 0
     ? verification.requests.every(request => request.valid === true)
     : undefined;
+  const environmentDefinition = getEnvironmentDefinition(environment);
+  const summary = catastropheSummary(script);
 
   return (
     <section className={`receipt ${open ? 'receipt--open' : ''}`}>
@@ -69,16 +61,17 @@ export function FairnessReceipt({
         <div className="receipt__body">
           <div className="receipt__summary">
             <div><span>MODE</span><strong>{RISK_MODE_LABELS[riskMode]}</strong></div>
+            <div><span>CHAOS</span><strong>{environmentDefinition.label}</strong></div>
             <div><span>WAGER</span><strong>{wagerText} {symbol}</strong></div>
             <div><span>RETURN</span><strong>{payoutText} {symbol}</strong></div>
             <div><span>RESULT</span><strong>{multiplierText}</strong></div>
           </div>
 
-          <div className="receipt__route" aria-label="Round machine route">
-            {route.map((step, index) => (
-              <div key={`${step.station}-${index}`}>
-                <span>{STATION_NAME[step.station] ?? step.station.toUpperCase()}</span>
-                {index < route.length - 1 && <i>↓</i>}
+          <div className="receipt__route" aria-label="Round catastrophe trace">
+            {summary.map((event, index) => (
+              <div key={`${event}-${index}`}>
+                <span>{event.toUpperCase()}</span>
+                {index < summary.length - 1 && <i>↓</i>}
               </div>
             ))}
           </div>

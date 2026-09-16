@@ -11,7 +11,7 @@ export type EnvironmentDefinition = Readonly<{
 
 function actor(
   id: string,
-  kind: string,
+  assetId: string,
   x: number,
   y: number,
   rotation: number,
@@ -19,22 +19,19 @@ function actor(
   zIndex: number,
   ariaLabel: string,
 ): SceneActorDefinition {
-  return { id, kind, home: { x, y }, rotation, scale, zIndex, ariaLabel };
+  return { id, assetId, home: { x, y }, rotation, scale, zIndex, ariaLabel };
 }
 
 const kitchenActors: readonly SceneActorDefinition[] = [
   actor('kitchen-toaster', 'toaster', 150, 355, -2, 1, 32, 'Toaster'),
   actor('kitchen-toast', 'toast', 160, 305, -8, .82, 38, 'Toast projectile'),
-  actor('kitchen-cat', 'cat', 365, 405, 0, 1, 46, 'Kitchen cat'),
   actor('kitchen-pan', 'pan', 470, 285, 11, .95, 36, 'Frying pan'),
   actor('kitchen-kettle', 'kettle', 615, 350, -3, .95, 35, 'Kettle'),
-  actor('kitchen-cabinet', 'cabinet-door', 320, 145, 0, 1, 18, 'Cabinet door'),
+  actor('kitchen-cabinet', 'cabinet-right', 320, 145, 0, 1, 18, 'Cabinet door'),
   actor('kitchen-plates', 'plates', 435, 155, 0, .9, 24, 'Stack of plates'),
-  actor('kitchen-fan', 'fan', 720, 255, 0, 1, 30, 'Counter fan'),
   actor('kitchen-ball', 'ball', 790, 115, 0, .9, 42, 'Bowling ball'),
   actor('kitchen-rocket', 'rocket', 835, 425, -90, .9, 52, 'Kitchen rocket'),
   actor('kitchen-safe', 'safe', 690, 95, 0, .88, 55, 'Suspended safe'),
-  actor('kitchen-core', 'core', 515, 455, 0, 1, 28, 'Bad Idea Core'),
 ];
 
 const garageActors: readonly SceneActorDefinition[] = [
@@ -43,15 +40,12 @@ const garageActors: readonly SceneActorDefinition[] = [
   actor('garage-drill', 'drill', 350, 355, -6, 1, 43, 'Power drill'),
   actor('garage-saw', 'saw', 470, 350, 0, .95, 42, 'Circular saw'),
   actor('garage-chain', 'chain', 585, 135, 0, 1, 34, 'Hanging chain'),
-  actor('garage-fan', 'fan', 675, 330, 0, 1, 37, 'Workshop fan'),
   actor('garage-tire', 'tire', 115, 445, 0, 1, 48, 'Loose tire'),
-  actor('garage-ball', 'ball', 300, 475, 0, .9, 46, 'Bowling ball'),
   actor('garage-rocket', 'rocket', 825, 365, -90, .9, 54, 'Workshop rocket'),
   actor('garage-tank', 'tank', 895, 420, 0, 1, 33, 'Compressed gas tank'),
   actor('garage-toolbox', 'toolbox', 525, 445, 0, 1, 31, 'Toolbox'),
   actor('garage-shelf', 'shelf', 760, 155, 0, 1, 22, 'Loaded metal shelf'),
   actor('garage-safe', 'safe', 865, 95, 0, .88, 56, 'Suspended safe'),
-  actor('garage-core', 'core', 600, 470, 0, 1, 29, 'Bad Idea Core'),
 ];
 
 export const ENVIRONMENTS: Readonly<Record<EnvironmentId, EnvironmentDefinition>> = {

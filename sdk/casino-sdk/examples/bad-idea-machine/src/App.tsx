@@ -319,6 +319,22 @@ export function App() {
     }, 520);
   }, []);
 
+  const clearFinishedPresentation = () => {
+    if (round?.status !== 'done') return;
+    setRound(null);
+    setReceiptOpen(false);
+  };
+
+  const handleEnvironmentChange = (next: EnvironmentId) => {
+    clearFinishedPresentation();
+    setEnvironment(next);
+  };
+
+  const handleRiskModeChange = (next: RiskMode) => {
+    clearFinishedPresentation();
+    setRiskMode(next);
+  };
+
   const handlePlay = () => {
     if (!canPlay || wager === null) return;
     primeAudio();
@@ -387,9 +403,9 @@ export function App() {
 
         <ControlPanel
           riskMode={riskMode}
-          onRiskModeChange={setRiskMode}
+          onRiskModeChange={handleRiskModeChange}
           environment={environment}
-          onEnvironmentChange={setEnvironment}
+          onEnvironmentChange={handleEnvironmentChange}
           wagerInput={wagerInput}
           onWagerInputChange={setWagerInput}
           balanceText={balanceText}

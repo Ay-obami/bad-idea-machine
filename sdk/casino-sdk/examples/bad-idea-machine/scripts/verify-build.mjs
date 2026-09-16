@@ -32,6 +32,19 @@ function walk(directory) {
 }
 walk(distPath);
 
+// The standalone artifact is also published from an immutable subpath/CDN during
+// submission QA. Root-absolute asset references break there (notably font URLs
+// such as /assets/*.woff2), so all generated bundle references must stay relative.
+if (/\b(?:src|href)=["']\/assets\//.test(html)) {
+  throw new Error('Production HTML contains root-absolute /assets references');
+}
+for (const file of files.filter(file => file.path.endsWith('.css'))) {
+  const css = readFileSync(join(distPath, file.path), 'utf8');
+  if (css.includes('url(/assets/')) {
+    throw new Error(`Production CSS ${file.path} contains root-absolute /assets URLs`);
+  }
+}
+
 const totalBytes = files.reduce((sum, file) => sum + file.bytes, 0);
 const largest = [...files].sort((a, b) => b.bytes - a.bytes)[0];
 const MAX_TOTAL_BYTES = 2_500_000;
@@ -47,3 +60,4 @@ if (largest && largest.bytes > MAX_SINGLE_ASSET_BYTES) {
 console.log(`PASS standalone bundle: ${files.length} files, ${totalBytes} bytes total`);
 if (largest) console.log(`Largest asset: ${largest.path} (${largest.bytes} bytes)`);
 console.log('PASS manifest + Chain Jam widget present in production output');
+console.log('PASS production asset references are relative/subpath-safe');

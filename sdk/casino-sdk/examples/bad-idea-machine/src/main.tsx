@@ -32,7 +32,7 @@ function ExperienceRoot() {
 
   return showGallery
     ? <GalleryScreen onChoose={chooseEnvironment} />
-    : <App />;
+    : <App onBackToGallery={embedded ? undefined : () => setShowGallery(true)} />;
 }
 
 createRoot(document.getElementById('root')!).render(

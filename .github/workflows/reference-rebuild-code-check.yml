@@ -22,6 +22,26 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Reject retired presentation system
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=examples/bad-idea-machine
+          for retired in \
+            src/components/CinematicBackdrop.tsx \
+            src/components/OutcomeStrip.tsx \
+            src/components/SceneActor.tsx \
+            src/components/scenes/ActorArtwork.tsx \
+            src/components/scenes/KitchenScene.tsx \
+            src/components/scenes/GarageScene.tsx \
+            src/styles/cinematic-actors.css; do
+            test ! -e "$app/$retired"
+          done
+          test ! -d "$app/public/cinematic"
+          if grep -R -n -E 'CinematicBackdrop|ActorArtwork|cinematic-backdrop--damage|actor-art' "$app/src"; then
+            echo 'Retired presentation code is still referenced.' >&2
+            exit 1
+          fi
       - name: Bad Idea Machine tests
         run: npm --prefix examples/bad-idea-machine test
       - name: Typecheck

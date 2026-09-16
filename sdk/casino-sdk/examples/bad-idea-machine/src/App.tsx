@@ -6,6 +6,7 @@ import { computeMaxWager } from '@chain/casino-sdk/guest';
 import { ControlPanel } from './components/ControlPanel';
 import { EnvironmentStage, type EnvironmentPhase } from './components/EnvironmentStage';
 import { FairnessReceipt } from './components/FairnessReceipt';
+import { OutcomeStrip } from './components/OutcomeStrip';
 import {
   EMPTY_HEX,
   PHASE_SETTLED,
@@ -410,7 +411,7 @@ export function App() {
           onWagerInputChange={setWagerInput}
           balanceText={balanceText}
           symbol={symbol}
-          ctaLabel={roundInFlight ? 'BAD IDEA IN PROGRESS' : round?.status === 'done' ? 'PRESS AGAIN' : 'DO NOT PRESS'}
+          ctaLabel={roundInFlight ? 'BAD IDEA IN PROGRESS' : round?.status === 'done' ? 'LAUNCH AGAIN' : 'LAUNCH CHAOS'}
           disabled={!canPlay}
           reason={reason}
           demoMode={demoMode}
@@ -419,6 +420,12 @@ export function App() {
           onPlay={handlePlay}
         />
       </div>
+
+      <OutcomeStrip
+        environment={displayEnvironment}
+        riskMode={displayMode}
+        settledTier={round?.status === 'done' ? round.tier : undefined}
+      />
 
       {round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && round.script && (
         <FairnessReceipt

@@ -1,12 +1,15 @@
 import type { RiskMode } from '../lib/badIdea';
 import type { EnvironmentId } from '../scene/types';
+import '../styles/cinematic-controls.css';
 import { EnvironmentSelector } from './EnvironmentSelector';
 
 const MODES: Array<{ mode: RiskMode; label: string; sub: string }> = [
   { mode: 0, label: 'CONTROLLED', sub: 'frequent little disasters' },
   { mode: 1, label: 'SEND IT', sub: 'responsibility not included' },
-  { mode: 2, label: 'ABSOLUTELY NOT', sub: 'common sense offline' },
+  { mode: 2, label: 'ABSOLUTELY NOT', sub: 'maximum chaos offline' },
 ];
+
+const WAGER_PRESETS = ['1.00', '5.00', '10.00', '50.00', '100.00'] as const;
 
 type Props = {
   riskMode: RiskMode;
@@ -46,18 +49,19 @@ export function ControlPanel({
   const controlsLocked = ctaLabel === 'BAD IDEA IN PROGRESS';
 
   return (
-    <aside className="control-panel">
+    <aside className="control-panel cinematic-controls">
       <div className="control-panel__topline">
         <div>
           <span className="eyebrow">AVAILABLE {demoMode ? 'DEMO CREDITS' : 'BALANCE'}</span>
           <strong className="balance-readout">{balanceText} {symbol}</strong>
         </div>
         <button className="sound-button" type="button" onClick={onToggleMuted} aria-label={muted ? 'Enable sound' : 'Mute sound'}>
+          <span aria-hidden>{muted ? '×' : '◖))'}</span>
           {muted ? 'SOUND OFF' : 'SOUND ON'}
         </button>
       </div>
 
-      <label className="wager-control">
+      <label className="wager-control cinematic-wager">
         <span>WAGER</span>
         <div className="wager-control__input">
           <input
@@ -69,9 +73,22 @@ export function ControlPanel({
           />
           <b>{symbol}</b>
         </div>
+        <div className="wager-presets" aria-label="Quick wager amounts">
+          {WAGER_PRESETS.map(value => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onWagerInputChange(value)}
+              className={Number(wagerInput) === Number(value) ? 'wager-preset wager-preset--selected' : 'wager-preset'}
+              disabled={controlsLocked}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
       </label>
 
-      <fieldset className="risk-selector">
+      <fieldset className="risk-selector cinematic-risk-selector">
         <legend>HOW BAD AN IDEA?</legend>
         {MODES.map(option => (
           <button
@@ -81,7 +98,7 @@ export function ControlPanel({
             onClick={() => onRiskModeChange(option.mode)}
             disabled={controlsLocked}
           >
-            <span className="risk-card__indicator" />
+            <span className="risk-card__indicator" aria-hidden>{riskMode === option.mode && option.mode === 2 ? '☠' : ''}</span>
             <span>
               <strong>{option.label}</strong>
               <small>{option.sub}</small>
@@ -92,20 +109,15 @@ export function ControlPanel({
 
       <EnvironmentSelector value={environment} onChange={onEnvironmentChange} disabled={controlsLocked} />
 
-      <div className={`safety-readout safety-readout--${riskMode}`}>
-        <span>{riskMode === 0 ? '●' : '○'} SAFETY SYSTEMS</span>
-        <strong>{riskMode === 0 ? 'ENABLED' : riskMode === 1 ? 'OPTIONAL' : 'DISCONNECTED'}</strong>
-      </div>
-
       <button
-        className={`do-not-press do-not-press--${riskMode}`}
+        className={`do-not-press do-not-press--${riskMode} cinematic-launch`}
         type="button"
         onClick={onPlay}
         disabled={disabled}
       >
-        <span className="do-not-press__cap" aria-hidden />
+        <span className="cinematic-launch__icon" aria-hidden>◈</span>
         <span>{ctaLabel}</span>
-        <small>{environment === 'kitchen' ? 'APPLIANCES MAY BECOME PROJECTILES' : 'POWER TOOLS HAVE BEEN UNSUPERVISED'}</small>
+        <small>{environment === 'kitchen' ? 'SAME BUTTON. DIFFERENT DISASTER.' : 'POWER TOOLS HAVE BEEN UNSUPERVISED'}</small>
       </button>
 
       <div className="control-panel__reason" role="status">

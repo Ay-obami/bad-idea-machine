@@ -1,7 +1,53 @@
+import type { ReactNode } from 'react';
+
 type Props = { kind: string };
 
-function Svg({ children, viewBox = '0 0 120 120' }: { children: React.ReactNode; viewBox?: string }) {
-  return <svg className="actor-art" viewBox={viewBox} aria-hidden="true">{children}</svg>;
+function Svg({ children, viewBox = '0 0 120 120' }: { children: ReactNode; viewBox?: string }) {
+  return (
+    <svg className="actor-art" viewBox={viewBox} aria-hidden="true">
+      <defs>
+        <linearGradient id="actorMetalGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f0f2ed" />
+          <stop offset=".18" stopColor="#9ea6a1" />
+          <stop offset=".48" stopColor="#d9ddd8" />
+          <stop offset=".72" stopColor="#666d69" />
+          <stop offset="1" stopColor="#bcc2bd" />
+        </linearGradient>
+        <linearGradient id="actorDarkMetalGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#7c8480" />
+          <stop offset=".35" stopColor="#343a37" />
+          <stop offset=".72" stopColor="#171b19" />
+          <stop offset="1" stopColor="#59605c" />
+        </linearGradient>
+        <linearGradient id="actorRedGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ff7055" />
+          <stop offset=".28" stopColor="#d9412f" />
+          <stop offset=".72" stopColor="#7d1711" />
+          <stop offset="1" stopColor="#bd2b20" />
+        </linearGradient>
+        <linearGradient id="actorWoodGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#c58a52" />
+          <stop offset=".5" stopColor="#8f5731" />
+          <stop offset="1" stopColor="#4d2c19" />
+        </linearGradient>
+        <radialGradient id="actorTireGrad" cx="36%" cy="27%" r="76%">
+          <stop offset="0" stopColor="#4c514e" />
+          <stop offset=".42" stopColor="#202422" />
+          <stop offset="1" stopColor="#070908" />
+        </radialGradient>
+        <linearGradient id="actorYellowGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#ffd64f" />
+          <stop offset=".48" stopColor="#dba72b" />
+          <stop offset="1" stopColor="#735212" />
+        </linearGradient>
+        <filter id="actorObjectShadow" x="-30%" y="-30%" width="160%" height="170%">
+          <feDropShadow dx="0" dy="4" stdDeviation="3" floodColor="#000" floodOpacity=".55" />
+          <feDropShadow dx="-1" dy="-1" stdDeviation="1.4" floodColor="#fff3d4" floodOpacity=".18" />
+        </filter>
+      </defs>
+      <g filter="url(#actorObjectShadow)">{children}</g>
+    </svg>
+  );
 }
 
 export function ActorArtwork({ kind }: Props) {

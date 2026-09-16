@@ -8,10 +8,10 @@ import '../styles/environment-stage.css';
 import '../styles/environment-ui.css';
 import '../styles/kitchen.css';
 import '../styles/garage.css';
+import '../styles/cinematic-stage.css';
+import { CinematicBackdrop } from './CinematicBackdrop';
 import { SceneActor } from './SceneActor';
 import { SceneVfx } from './SceneVfx';
-import { GarageScene } from './scenes/GarageScene';
-import { KitchenScene } from './scenes/KitchenScene';
 
 export type EnvironmentPhase = 'idle' | 'arming' | 'revealing' | 'result';
 
@@ -84,15 +84,15 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
 
   return (
     <section
-      className={`environment-stage environment-stage--${environment} environment-stage--${modeClass} environment-stage--${phase}`}
+      className={`environment-stage cinematic-stage environment-stage--${environment} environment-stage--${modeClass} environment-stage--${phase}`}
       data-environment={environment}
       data-phase={phase}
       data-camera-impact={cameraImpact}
       aria-live="polite"
     >
-      {environment === 'kitchen' ? <KitchenScene /> : <GarageScene />}
+      <CinematicBackdrop environment={environment} phase={phase} tier={tier} />
 
-      <div className="scene-actor-layer" aria-label={`${definition.label} interactive scene`}>
+      <div className="scene-actor-layer cinematic-stage__actors" aria-label={`${definition.label} interactive scene`}>
         {definition.actors.map(actor => (
           <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
         ))}
@@ -100,10 +100,11 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
 
       <SceneVfx events={activeEvents} />
 
-      <div className="environment-stage__hud" aria-hidden="true">
+      <div className="environment-stage__hud cinematic-stage__hud" aria-hidden="true">
         <div className="environment-stage__name">
           <small>CHAOS ENVIRONMENT</small>
           <strong>{definition.label}</strong>
+          <i>{environment === 'kitchen' ? 'EVERYDAY APPLIANCES. EXTRAORDINARY BAD IDEAS.' : 'POWER TOOLS, HEAVY METAL, LOOSE TIRES AND INDUSTRIAL REGRET.'}</i>
         </div>
         <div className="environment-stage__status">
           {phase === 'revealing' && activeEvents.length > 0
@@ -125,7 +126,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       )}
 
       {phase === 'idle' && (
-        <div className="environment-stage__idle-prompt">
+        <div className="environment-stage__idle-prompt cinematic-stage__idle-prompt">
           <span>{environment === 'kitchen' ? 'KITCHEN MELTDOWN READY' : 'GARAGE MAYHEM READY'}</span>
           <strong>PRESS THE BUTTON WHEN COMMON SENSE LEAVES.</strong>
         </div>
@@ -140,7 +141,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       )}
 
       <div className="environment-stage__event-probe" aria-hidden="true">
-        {activeEvents.map(event => (
+        {startedEvents.map(event => (
           <i
             key={event.id}
             data-event-actor={event.actorId}

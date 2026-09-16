@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { playResultSound, playSceneEventSound } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
+import { RoomStage } from '../play/RoomStage';
 import { getEnvironmentDefinition } from '../scene/environments';
 import type { EnvironmentId, SceneEvent, SceneScript } from '../scene/types';
 import '../styles/environment-stage.css';
@@ -9,8 +10,6 @@ import '../styles/environment-ui.css';
 import '../styles/kitchen.css';
 import '../styles/garage.css';
 import '../styles/cinematic-stage.css';
-import { CinematicBackdrop } from './CinematicBackdrop';
-import { SceneActor } from './SceneActor';
 import { SceneVfx } from './SceneVfx';
 
 export type EnvironmentPhase = 'idle' | 'arming' | 'revealing' | 'result';
@@ -90,13 +89,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       data-camera-impact={cameraImpact}
       aria-live="polite"
     >
-      <CinematicBackdrop environment={environment} phase={phase} tier={tier} />
-
-      <div className="scene-actor-layer cinematic-stage__actors" aria-label={`${definition.label} interactive scene`}>
-        {definition.actors.map(actor => (
-          <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
-        ))}
-      </div>
+      <RoomStage environment={environment} startedByActor={startedByActor} revision={revision} />
 
       <SceneVfx events={activeEvents} />
 
@@ -104,7 +97,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
         <div className="environment-stage__name">
           <small>CHAOS ENVIRONMENT</small>
           <strong>{definition.label}</strong>
-          <i>{environment === 'kitchen' ? 'EVERYDAY APPLIANCES. EXTRAORDINARY BAD IDEAS.' : 'POWER TOOLS, HEAVY METAL, LOOSE TIRES AND INDUSTRIAL REGRET.'}</i>
+          <i>{environment === 'kitchen' ? 'EVERYDAY APPLIANCES. EXTRAORDINARILY BAD IDEAS.' : 'POWER TOOLS, HEAVY METAL, LOOSE TIRES AND INDUSTRIAL REGRET.'}</i>
         </div>
         <div className="environment-stage__status">
           {phase === 'revealing' && activeEvents.length > 0

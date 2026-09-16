@@ -8,6 +8,7 @@ import { buildSceneScript, sceneDurationMs } from './scene-script';
 import type { EnvironmentId, SceneEvent } from './types';
 
 const SEED = `0x${'00112233445566778899aabbccddeeff'.repeat(2)}` as Hex;
+const ZERO_SEED = `0x${'00'.repeat(32)}` as Hex;
 const ENVIRONMENTS: readonly EnvironmentId[] = ['kitchen', 'garage'];
 const TIERS: readonly OutcomeTier[] = [0, 1, 2, 3, 4];
 const SEEDS: readonly Hex[] = Array.from({ length: 64 }, (_, index) =>
@@ -65,6 +66,12 @@ describe('deterministic environment catastrophe scripts', () => {
     const first = buildSceneScript('kitchen', 2, SEED);
     const second = buildSceneScript('kitchen', 2, SEED);
     expect(second).toEqual(first);
+  });
+
+  it('terminates and assigns a decoy even for an all-zero visual seed', () => {
+    const script = buildSceneScript('kitchen', 0, ZERO_SEED);
+    expect(script.events.length).toBeGreaterThanOrEqual(8);
+    expect(script.events.some(event => event.decoy)).toBe(true);
   });
 
   it('keeps every tested catastrophe within the spectacle contract', () => {

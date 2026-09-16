@@ -1,16 +1,40 @@
-# Bad Idea Machine — Submission Notes
+# Bad Idea Machine — Chain Jam Submission Notes
 
 ## One-line pitch
 
-Press one button and watch a deterministic Rube Goldberg catastrophe reveal a payout that was already settled on-chain by Chain VRF.
+Press one button and watch a deterministic Rube Goldberg catastrophe reveal a payout that was already settled by Chain VRF.
+
+## Submission form
+
+- **Game title:** Bad Idea Machine
+- **Game URL:** add the final stable HTTPS deployment URL after hosting
+- **Declared RTP:** 96%
+- **Discord:** add your Discord handle before submitting
+- **X:** optional
+- **Telegram:** optional
+- **Source access:** https://github.com/Ay-obami/bad-idea-machine
+
+## Pitch / info
+
+**One button. Several terrible decisions.**
+
+Bad Idea Machine is an original instant casino game where the player chooses one of three risk profiles — Controlled, Send It, or Absolutely Not — then presses a giant DO NOT PRESS button and watches a ridiculous Rube Goldberg machine try to survive long enough to reach the payout.
+
+The key rule is that the animation never decides the money. The Chain casino contract consumes verified VRF randomness first and settles one of five payout tiers; the frontend only turns that already-settled result into a deterministic catastrophe. Higher tiers travel farther through the machine, while losing rounds fail early in different comic ways.
+
+All three risk modes have an exact theoretical RTP of **96.00%**, with the paytable enforced in the Solidity contract and exhaustively mirrored by tests. Economic and cosmetic randomness are domain-separated, so presentation variation cannot affect payout.
+
+The game runs standalone as a playable demo, includes the Chain Jam widget, supports desktop and mobile, uses procedural mechanical sound, and exposes a post-round **WHAT WENT WRONG?** receipt for route and randomness details.
+
+Verification in the repository includes contract compilation, 18 automated game tests, typechecking, a production bundle audit, Chromium desktop/mobile smoke tests, and a 105-round local Chain/Verify Network VRF soak where every settled tier is independently recomputed from the emitted randomness.
 
 ## What judges should try
 
-1. Open the hosted game or run the local simulator.
+1. Open the hosted game directly.
 2. Try all three risk modes: **Controlled**, **Send It**, and **Absolutely Not**.
 3. Press **DO NOT PRESS** and watch how higher payout tiers travel farther through the machine.
 4. After the reveal, open **WHAT WENT WRONG?** to inspect the route and randomness receipt.
-5. Compare multiple rounds: cosmetic details vary, but the contract-settled payout tier is authoritative.
+5. Play several rounds: cosmetic details vary, but the contract-settled payout tier remains authoritative.
 
 ## Why the implementation matters
 
@@ -42,12 +66,10 @@ npm --prefix simulator run local-node
 npm run simulate:bad-idea
 ```
 
-The simulation verifies contract quotes and paytable boundaries, then settles **105 real local-VRF rounds (35 per mode)**. Every settled tier is independently recomputed from the emitted VRF word using the same documented payout-domain rejection sampler and its payout is checked against the on-chain result.
+The simulation verifies contract quotes and paytable boundaries, then settles **105 real local-VRF rounds (35 per mode)**. Every settled tier is independently recomputed from the emitted VRF word using the documented payout-domain rejection sampler and its payout is checked against the on-chain result.
 
-## Submission links
+## Deployment / integration distinction
 
-- Source: `https://github.com/Ay-obami/bad-idea-machine`
-- Hosted demo: add the final HTTPS deployment URL here before submitting.
-- Production/testnet contract address: add the final Chain-supported deployment address here before submitting.
+For the **Chain Jam submission form**, the public hosted game URL and source-access URL are the operational requirements.
 
-The hosted URL and target-chain contract address are intentionally left as operational placeholders until the final deployment step; all local contract, simulator, VRF, frontend, and static-build evidence is reproducible from this repository.
+A target-chain deployed contract address is an integration-stage deliverable described by the Casino SDK documentation. It is not a field in the current Chain Jam submission form, so it should not block submitting the jam entry once the hosted demo is live.

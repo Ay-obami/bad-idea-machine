@@ -1,0 +1,42 @@
+.room-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  container-type: size;
+  background: #0a1115;
+}
+
+.room-stage__plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+.room-stage__objects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.room-object {
+  position: absolute;
+  display: block;
+  height: auto;
+  max-width: none;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .2));
+}
+
+.environment-stage--arming .room-stage__plate {
+  filter: saturate(.92) brightness(.92);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-object { will-change: auto; }
+}

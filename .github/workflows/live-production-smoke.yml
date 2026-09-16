@@ -38,10 +38,19 @@ jobs:
           const BASE = 'https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app';
           const browser = await chromium.launch({ headless: true });
           const errors = [];
+          const failedResources = [];
+
+          const wire = (page, prefix = '') => {
+            page.on('console', message => { if (message.type() === 'error') errors.push(`${prefix}${message.text()}`); });
+            page.on('pageerror', error => errors.push(`${prefix}${error.message}`));
+            page.on('response', response => {
+              if (response.status() >= 400) failedResources.push(`${prefix}${response.status()} ${response.url()}`);
+            });
+            page.on('requestfailed', request => failedResources.push(`${prefix}FAILED ${request.url()} :: ${request.failure()?.errorText ?? 'unknown'}`));
+          };
 
           const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-          page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-          page.on('pageerror', error => errors.push(error.message));
+          wire(page);
 
           const response = await page.goto(BASE, { waitUntil: 'networkidle', timeout: 30_000 });
           if (!response || response.status() !== 200) throw new Error(`Production index returned ${response?.status()}`);
@@ -76,8 +85,7 @@ jobs:
           await page.screenshot({ path: 'screenshots/live-result.png', fullPage: true });
 
           const mobile = await browser.newPage({ viewport: { width: 390, height: 844 } });
-          mobile.on('console', message => { if (message.type() === 'error') errors.push(`mobile: ${message.text()}`); });
-          mobile.on('pageerror', error => errors.push(`mobile: ${error.message}`));
+          wire(mobile, 'mobile: ');
           await mobile.goto(BASE, { waitUntil: 'networkidle', timeout: 30_000 });
           await mobile.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor({ timeout: 15_000 });
           await mobile.getByRole('button', { name: /SEND IT/i }).click();
@@ -87,6 +95,7 @@ jobs:
           if (await mobile.locator('.chaos-particle').count() < 30) throw new Error('Mobile chaos field too sparse');
           await mobile.screenshot({ path: 'screenshots/live-mobile-chaos.png', fullPage: true });
 
+          if (failedResources.length) console.log(`FAILED_RESOURCES\n${[...new Set(failedResources)].join('\n')}`);
           if (errors.length) throw new Error(`Browser errors:\n${errors.join('\n')}`);
           console.log('PASS public production renders verified chaos experience on desktop and mobile');
           await browser.close();

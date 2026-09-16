@@ -1,44 +1,85 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildVisualRoute, routeDurationMs } from './route';
+import type { OutcomeTier } from './badIdea';
+import { buildVisualRoute, routeDurationMs, type MachineStation } from './route';
 
-const SEED_A = `0x${'12'.repeat(32)}` as const;
-const SEED_B = `0x${'f3'.repeat(32)}` as const;
+const SERIAL: readonly MachineStation[] = [
+  'button',
+  'toaster',
+  'cat',
+  'hammer',
+  'ball',
+  'fan',
+  'dominoes',
+  'rocket',
+  'safe',
+  'core',
+];
 
-describe('catastrophe routes', () => {
-  it('is deterministic for the same tier and visual seed', () => {
-    expect(buildVisualRoute(3, SEED_A)).toEqual(buildVisualRoute(3, SEED_A));
+const SEEDS = [
+  `0x${'00'.repeat(32)}`,
+  `0x${'11'.repeat(32)}`,
+  `0x${'23'.repeat(32)}`,
+  `0x${'5a'.repeat(32)}`,
+  `0x${'a5'.repeat(32)}`,
+  `0x${'ef'.repeat(32)}`,
+] as const;
+
+const TIERS = [0, 1, 2, 3, 4] as const satisfies readonly OutcomeTier[];
+
+describe('Bad Idea Machine visual choreography', () => {
+  it('is deterministic for the same settled visual seed', () => {
+    expect(buildVisualRoute(3, SEEDS[3])).toEqual(buildVisualRoute(3, SEEDS[3]));
   });
 
-  it('uses visual seed only to vary presentation', () => {
-    const first = buildVisualRoute(2, SEED_A);
-    const second = buildVisualRoute(2, SEED_B);
-    expect(first.map(step => step.station)).toEqual(second.map(step => step.station));
-    expect(first.some((step, index) => step.variant !== second[index]?.variant)).toBe(true);
-  });
+  it('does not reveal the payout tier through route length or early station order', () => {
+    for (const seed of SEEDS) {
+      const routes = TIERS.map(tier => buildVisualRoute(tier, seed));
+      const lengths = routes.map(route => route.length);
+      const earlySignatures = routes.map(route => route.slice(0, 6).map(step => step.station).join('>'));
 
-  it('makes higher tiers travel farther through the machine', () => {
-    expect(buildVisualRoute(1, SEED_A).length).toBe(4);
-    expect(buildVisualRoute(2, SEED_A).length).toBe(6);
-    expect(buildVisualRoute(3, SEED_A).length).toBe(8);
-    expect(buildVisualRoute(4, SEED_A).length).toBe(10);
-  });
-
-  it('lets failures terminate at several early stations', () => {
-    const stations = new Set<string>();
-    for (let byte = 0; byte < 32; byte += 1) {
-      const seed = `0x${byte.toString(16).padStart(2, '0')}${'00'.repeat(31)}` as const;
-      const route = buildVisualRoute(0, seed);
-      stations.add(route.at(-1)?.station ?? '');
+      expect(new Set(lengths).size).toBe(1);
+      expect(lengths[0]).toBeGreaterThanOrEqual(8);
+      expect(lengths[0]).toBeLessThanOrEqual(10);
+      expect(new Set(earlySignatures).size).toBe(1);
     }
-    expect(stations.size).toBeGreaterThanOrEqual(3);
-    expect([...stations].every(station => ['toaster', 'cat', 'hammer'].includes(station))).toBe(true);
   });
 
-  it('keeps reveal durations in the intended fast casino range', () => {
-    expect(routeDurationMs(buildVisualRoute(0, SEED_A))).toBeGreaterThanOrEqual(1_800);
-    expect(routeDurationMs(buildVisualRoute(0, SEED_A))).toBeLessThanOrEqual(3_200);
-    expect(routeDurationMs(buildVisualRoute(4, SEED_A))).toBeGreaterThanOrEqual(5_000);
-    expect(routeDurationMs(buildVisualRoute(4, SEED_A))).toBeLessThanOrEqual(7_200);
+  it('never falls back to the old serial station-prefix reveal', () => {
+    for (const seed of SEEDS) {
+      for (const tier of TIERS) {
+        const route = buildVisualRoute(tier, seed);
+        expect(route.map(step => step.station)).not.toEqual(SERIAL.slice(0, route.length));
+      }
+    }
+  });
+
+  it('produces materially different route orders from different visual seeds', () => {
+    const signatures = SEEDS.map(seed =>
+      buildVisualRoute(2, seed)
+        .map(step => step.station)
+        .join('>'),
+    );
+
+    expect(new Set(signatures).size).toBeGreaterThanOrEqual(4);
+  });
+
+  it('attaches deterministic chaos metadata to every reveal step', () => {
+    const route = buildVisualRoute(3, SEEDS[3]);
+
+    expect(route.every(step => step.intensity >= 1 && step.intensity <= 3)).toBe(true);
+    expect(route.every(step => ['sparks', 'fire', 'smoke', 'debris', 'blast', 'alarm'].includes(step.hazard))).toBe(true);
+    expect(route.every(step => Number.isInteger(step.effectSeed))).toBe(true);
+    expect(route.some(step => step.decoys.length > 0)).toBe(true);
+  });
+
+  it('keeps every tier in the same suspense-length envelope', () => {
+    for (const seed of SEEDS) {
+      for (const tier of TIERS) {
+        const duration = routeDurationMs(buildVisualRoute(tier, seed));
+        expect(duration).toBeGreaterThanOrEqual(4_200);
+        expect(duration).toBeLessThanOrEqual(7_000);
+      }
+    }
   });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { playResultSound, playSceneEventSound } from '../lib/audio';
+import { playAftermathAmbience, playSceneEventSound, stopAftermathAmbience } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import { AftermathController } from '../play/AftermathController';
 import { ResultOverlay } from '../play/ResultOverlay';
@@ -81,10 +81,13 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   }, [environment, phase, script]);
 
   useEffect(() => {
-    if (phase === 'result' && aftermathStatus !== 'pending' && multiplierBps !== undefined) {
-      playResultSound(multiplierBps);
+    if (phase === 'result' && aftermathStatus === 'visible' && tier !== undefined) {
+      playAftermathAmbience(environment, tier);
+      return () => stopAftermathAmbience();
     }
-  }, [aftermathStatus, phase, multiplierBps]);
+    stopAftermathAmbience();
+    return undefined;
+  }, [aftermathStatus, environment, phase, tier]);
 
   const modeClass = riskMode === 0 ? 'controlled' : riskMode === 1 ? 'send-it' : 'absolutely-not';
 

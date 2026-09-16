@@ -1,0 +1,43 @@
+.cinematic-stage .actor-metal,
+.cinematic-stage .actor-saw-blade,
+.cinematic-stage .actor-safe-door { fill: url(#actorMetalGrad); }
+.cinematic-stage .actor-dark-metal,
+.cinematic-stage .actor-safe,
+.cinematic-stage .actor-core-shell { fill: url(#actorDarkMetalGrad); }
+.cinematic-stage .actor-red,
+.cinematic-stage .actor-toolbox,
+.cinematic-stage .actor-saw-body { fill: url(#actorRedGrad); }
+.cinematic-stage .actor-wood,
+.cinematic-stage .actor-wood-panel,
+.cinematic-stage .actor-crate { fill: url(#actorWoodGrad); }
+.cinematic-stage .actor-drill,
+.cinematic-stage .actor-core-ring { fill: url(#actorYellowGrad); }
+.cinematic-stage .actor-tire,
+.cinematic-stage .actor-ball { fill: url(#actorTireGrad); }
+.cinematic-stage .actor-rocket { fill: url(#actorMetalGrad); }
+.cinematic-stage .actor-tank { fill: url(#actorRedGrad); }
+
+.cinematic-stage .actor-art {
+  overflow:visible;
+  filter: drop-shadow(0 9px 8px rgba(0,0,0,.58));
+}
+.cinematic-stage .actor-art path,
+.cinematic-stage .actor-art rect,
+.cinematic-stage .actor-art circle,
+.cinematic-stage .actor-art ellipse {
+  vector-effect: non-scaling-stroke;
+}
+.cinematic-stage .actor-window {
+  fill: radial-gradient(circle,#8fe2f1,#276778);
+}
+.cinematic-stage .scene-actor--rocket .actor-art,
+.cinematic-stage .scene-actor--safe .actor-art,
+.cinematic-stage .scene-actor--hammer .actor-art,
+.cinematic-stage .scene-actor--drill .actor-art,
+.cinematic-stage .scene-actor--tire .actor-art,
+.cinematic-stage .scene-actor--toaster .actor-art {
+  filter: drop-shadow(0 13px 9px rgba(0,0,0,.72)) saturate(.92) contrast(1.08);
+}
+.cinematic-stage .scene-actor[data-scene-moving="true"] .actor-art {
+  filter: drop-shadow(0 17px 13px rgba(0,0,0,.75)) saturate(1.08) contrast(1.12);
+}

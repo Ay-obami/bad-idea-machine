@@ -1,6 +1,7 @@
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import type { EnvironmentId } from '../scene/types';
 import { multiplierDisplay, outcomeCardsForMode } from '../scene/visual-state';
+import '../styles/cinematic-shell.css';
 import { CinematicBackdrop } from './CinematicBackdrop';
 
 type Props = {

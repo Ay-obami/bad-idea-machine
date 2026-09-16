@@ -6,7 +6,7 @@ export type SceneIntensity = 1 | 2 | 3;
 
 export type SceneActorDefinition = Readonly<{
   id: string;
-  kind: string;
+  assetId: string;
   home: ScenePoint;
   rotation: number;
   scale: number;

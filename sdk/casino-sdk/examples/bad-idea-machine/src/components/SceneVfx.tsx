@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import type { SceneEvent, SceneHazard } from '../scene/types';
+import type { ImpactEffect, ImpactEvent, SceneEvent } from '../scene/types';
 
 type ChaosStyle = CSSProperties & { [key: `--${string}`]: string };
 
@@ -18,43 +18,34 @@ function seededRandom(seed: number) {
   };
 }
 
-function kindsForHazard(hazard: SceneHazard): readonly ParticleKind[] {
-  if (hazard === 'fire') return ['ember', 'spark', 'ember', 'smoke'];
-  if (hazard === 'smoke') return ['smoke', 'smoke', 'ember', 'debris'];
-  if (hazard === 'debris') return ['debris', 'spark', 'debris', 'smoke'];
-  if (hazard === 'blast') return ['spark', 'debris', 'ember', 'smoke', 'shard'];
-  if (hazard === 'steam') return ['steam', 'steam', 'smoke'];
-  if (hazard === 'shards') return ['shard', 'shard', 'spark', 'debris'];
-  if (hazard === 'alarm') return ['spark', 'ember'];
+function kindsForEffect(effect: ImpactEffect): readonly ParticleKind[] {
+  if (effect === 'fire') return ['ember', 'spark', 'ember', 'smoke'];
+  if (effect === 'dust') return ['smoke', 'debris', 'smoke'];
+  if (effect === 'debris') return ['debris', 'spark', 'debris', 'smoke'];
+  if (effect === 'blast') return ['spark', 'debris', 'ember', 'smoke', 'shard'];
+  if (effect === 'shatter') return ['shard', 'shard', 'spark', 'debris'];
   return ['spark', 'spark', 'ember', 'debris'];
 }
 
-function originFor(event: SceneEvent) {
-  if (event.impact) return event.impact;
-  const end = event.path.at(-1);
-  return end ? { x: end.x, y: end.y } : { x: 500, y: 300 };
-}
-
-function particlesFor(event: SceneEvent) {
-  const random = seededRandom(event.effectSeed ^ 0x9e3779b9);
-  const kinds = kindsForHazard(event.hazard);
-  const origin = originFor(event);
-  const count = 16 + event.intensity * 12 + (event.hazard === 'blast' ? 14 : 0);
+function particlesFor(event: SceneEvent, impact: ImpactEvent, impactIndex: number) {
+  const random = seededRandom(event.effectSeed ^ ((impactIndex + 1) * 0x9e3779b9));
+  const kinds = kindsForEffect(impact.effect);
+  const count = 10 + impact.strength * 10 + (impact.effect === 'blast' ? 12 : 0);
 
   return Array.from({ length: count }, (_, index) => {
     const kind = kinds[index % kinds.length];
     const smokeLike = kind === 'smoke' || kind === 'steam';
-    const spread = event.intensity === 3 ? 1.25 : 1;
+    const spread = impact.strength >= 3 ? 1.25 : 1;
     const dx = (random() - .5) * (smokeLike ? 190 : 470) * spread;
     const dy = smokeLike ? -(80 + random() * 235) : (random() - .68) * 360 * spread;
-    const size = smokeLike ? 24 + random() * 54 : 5 + random() * (event.intensity * 7 + 11);
+    const size = smokeLike ? 24 + random() * 54 : 5 + random() * (impact.strength * 7 + 11);
     const rotation = (random() - .5) * 1_080;
     const duration = smokeLike ? 900 + random() * 700 : 520 + random() * 520;
-    const delay = random() * 120;
+    const delay = impact.atMs + random() * 120;
 
     const style: ChaosStyle = {
-      '--vfx-x': `${origin.x / 10}%`,
-      '--vfx-y': `${origin.y / 6}%`,
+      '--vfx-x': `${impact.point.x / 10}%`,
+      '--vfx-y': `${impact.point.y / 6}%`,
       '--vfx-dx': `${dx}px`,
       '--vfx-dy': `${dy}px`,
       '--vfx-size': `${size}px`,
@@ -70,35 +61,37 @@ function particlesFor(event: SceneEvent) {
 export function SceneVfx({ events }: Props) {
   return (
     <div className="scene-vfx-layer" aria-hidden="true">
-      {events.map(event => {
-        const origin = originFor(event);
+      {events.flatMap(event => event.impacts.map((impact, impactIndex) => {
         const originStyle: ChaosStyle = {
-          '--impact-x': `${origin.x / 10}%`,
-          '--impact-y': `${origin.y / 6}%`,
+          '--impact-x': `${impact.point.x / 10}%`,
+          '--impact-y': `${impact.point.y / 6}%`,
+          '--impact-delay': `${impact.atMs}ms`,
         };
-        const particles = particlesFor(event);
-        const showShockwave = event.hazard === 'blast' || event.hazard === 'fire' || event.intensity === 3;
+        const particles = particlesFor(event, impact, impactIndex);
+        const showShockwave = impact.effect === 'blast' || impact.effect === 'fire' || impact.strength >= 3;
 
         return (
           <div
-            className={`scene-impact scene-impact--${event.hazard} scene-impact--intensity-${event.intensity}`}
+            className={`scene-impact scene-impact--${impact.effect} scene-impact--strength-${impact.strength}`}
             data-vfx-event={event.id}
-            data-vfx-hazard={event.hazard}
-            key={event.id}
+            data-vfx-impact={impactIndex}
+            data-vfx-effect={impact.effect}
+            data-impact-materials={`${impact.materialA}:${impact.materialB}`}
+            key={`${event.id}-${impactIndex}`}
             style={originStyle}
           >
-            {showShockwave && <span className="scene-shockwave" />}
-            {(event.hazard === 'fire' || event.hazard === 'blast') && <span className="scene-flame" />}
+            {showShockwave && <span className="scene-shockwave scene-impact__delayed" />}
+            {(impact.effect === 'fire' || impact.effect === 'blast') && <span className="scene-flame scene-impact__delayed" />}
             {particles.map((particle, index) => (
               <span
                 className={`scene-particle scene-particle--${particle.kind}`}
-                key={`${event.id}-${index}`}
+                key={`${event.id}-${impactIndex}-${index}`}
                 style={particle.style}
               />
             ))}
           </div>
         );
-      })}
+      }))}
     </div>
   );
 }

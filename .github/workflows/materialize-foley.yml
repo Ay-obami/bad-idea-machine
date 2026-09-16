@@ -1,0 +1,51 @@
+name: Materialize Foley
+
+on:
+  push:
+    branches:
+      - feat/reference-locked-cinematic-rebuild
+    paths:
+      - '.audio-materialize/READY'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bad-idea-machine-foley-materialize
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Materialize deterministic room-native foley
+        run: |
+          set -euo pipefail
+          rm -rf sdk/casino-sdk/examples/bad-idea-machine/public/audio/foley
+          python sdk/casino-sdk/examples/bad-idea-machine/scripts/generate-foley.py \
+            sdk/casino-sdk/examples/bad-idea-machine/public/audio/foley
+
+      - name: Verify all production foley assets
+        run: npm --prefix sdk/casino-sdk/examples/bad-idea-machine run verify-audio-assets
+
+      - name: Commit self-hosted foley and remove bootstrap
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sdk/casino-sdk/examples/bad-idea-machine/public/audio/foley
+          git rm -r .audio-materialize
+          git rm .github/workflows/materialize-foley.yml
+          git commit -m 'audio: materialize room-native foley samples'
+          git push origin HEAD:feat/reference-locked-cinematic-rebuild

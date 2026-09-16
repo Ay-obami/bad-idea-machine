@@ -167,13 +167,12 @@ export function buildEventSoundPlan(environment: EnvironmentId, event: SceneEven
   return plan.sort((a, b) => a.delayMs - b.delayMs || a.role.localeCompare(b.role));
 }
 
-export function buildAftermathSoundPlan(environment: EnvironmentId, tier: 0 | 1 | 2 | 3 | 4): readonly SceneSoundLayer[] {
-  const gain = .08 + tier * .02;
+export function buildAftermathSoundPlan(environment: EnvironmentId, _tier: 0 | 1 | 2 | 3 | 4): readonly SceneSoundLayer[] {
   return [layer(
     environment === 'kitchen' ? 'kitchen-aftermath' : 'garage-aftermath',
     'ambience',
     0,
-    gain,
+    .12,
     0,
     1,
     true,

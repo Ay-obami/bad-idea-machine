@@ -27,14 +27,11 @@ function walk(directory) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const full = join(directory, entry.name);
     if (entry.isDirectory()) walk(full);
-    else files.push({ path: relative(distPath, full), bytes: statSync(full).size });
+    else files.push({ path: relative(distPath, full).replaceAll('\\', '/'), bytes: statSync(full).size });
   }
 }
 walk(distPath);
 
-// The standalone artifact is also published from an immutable subpath/CDN during
-// submission QA. Root-absolute asset references break there (notably font URLs
-// such as /assets/*.woff2), so all generated bundle references must stay relative.
 if (/\b(?:src|href)=["']\/assets\//.test(html)) {
   throw new Error('Production HTML contains root-absolute /assets references');
 }
@@ -45,19 +42,55 @@ for (const file of files.filter(file => file.path.endsWith('.css'))) {
   }
 }
 
-const totalBytes = files.reduce((sum, file) => sum + file.bytes, 0);
-const largest = [...files].sort((a, b) => b.bytes - a.bytes)[0];
-const MAX_TOTAL_BYTES = 2_500_000;
-const MAX_SINGLE_ASSET_BYTES = 800_000;
+if (files.some(file => file.path.startsWith('cinematic/'))) {
+  throw new Error('Retired /cinematic production assets are still present');
+}
 
-if (totalBytes > MAX_TOTAL_BYTES) {
-  throw new Error(`Production bundle is ${totalBytes} bytes; limit is ${MAX_TOTAL_BYTES}`);
+const roomArt = files.filter(file => file.path.startsWith('rooms/'));
+const foley = files.filter(file => file.path.startsWith('audio/foley/'));
+const runtime = files.filter(file => !file.path.startsWith('rooms/') && !file.path.startsWith('audio/foley/'));
+const sum = group => group.reduce((total, file) => total + file.bytes, 0);
+const totalBytes = sum(files);
+const roomBytes = sum(roomArt);
+const foleyBytes = sum(foley);
+const runtimeBytes = sum(runtime);
+
+if (roomArt.length !== 44) throw new Error(`Production room-art count is ${roomArt.length}; expected 44`);
+if (foley.length !== 17) throw new Error(`Production foley count is ${foley.length}; expected 17`);
+
+const budgets = {
+  total: 4_350_000,
+  runtime: 1_100_000,
+  roomArt: 2_100_000,
+  foley: 1_150_000,
+  javascript: 400_000,
+  stylesheet: 100_000,
+  font: 80_000,
+  roomAsset: 150_000,
+  foleyAsset: 200_000,
+};
+
+function enforce(label, bytes, limit) {
+  if (bytes > limit) throw new Error(`${label} is ${bytes} bytes; limit is ${limit}`);
 }
-if (largest && largest.bytes > MAX_SINGLE_ASSET_BYTES) {
-  throw new Error(`Largest production asset ${largest.path} is ${largest.bytes} bytes; limit is ${MAX_SINGLE_ASSET_BYTES}`);
+
+enforce('Production bundle', totalBytes, budgets.total);
+enforce('Runtime/code/font payload', runtimeBytes, budgets.runtime);
+enforce('Authored room-art payload', roomBytes, budgets.roomArt);
+enforce('Foley payload', foleyBytes, budgets.foley);
+
+for (const file of files) {
+  if (file.path.endsWith('.js')) enforce(`JavaScript asset ${file.path}`, file.bytes, budgets.javascript);
+  if (file.path.endsWith('.css')) enforce(`Stylesheet ${file.path}`, file.bytes, budgets.stylesheet);
+  if (/\.(?:woff2?|ttf|otf)$/.test(file.path)) enforce(`Font asset ${file.path}`, file.bytes, budgets.font);
 }
+for (const file of roomArt) enforce(`Room-art asset ${file.path}`, file.bytes, budgets.roomAsset);
+for (const file of foley) enforce(`Foley asset ${file.path}`, file.bytes, budgets.foleyAsset);
 
 console.log(`PASS standalone bundle: ${files.length} files, ${totalBytes} bytes total`);
-if (largest) console.log(`Largest asset: ${largest.path} (${largest.bytes} bytes)`);
+console.log(`  runtime/code/fonts: ${runtimeBytes} / ${budgets.runtime}`);
+console.log(`  authored room art: ${roomBytes} / ${budgets.roomArt} (${roomArt.length} files)`);
+console.log(`  foley: ${foleyBytes} / ${budgets.foley} (${foley.length} files)`);
 console.log('PASS manifest + Chain Jam widget present in production output');
 console.log('PASS production asset references are relative/subpath-safe');
+console.log('PASS retired cinematic assets absent and category budgets enforced');

@@ -51,6 +51,9 @@ jobs:
       - name: Verify room art assets
         run: npm --prefix examples/bad-idea-machine run verify-room-assets
 
+      - name: Verify foley assets
+        run: npm --prefix examples/bad-idea-machine run verify-audio-assets
+
       - name: Typecheck Bad Idea Machine
         run: npm --prefix examples/bad-idea-machine run check-types
 

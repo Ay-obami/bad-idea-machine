@@ -1,14 +1,14 @@
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import '@fontsource/poppins/500.css';
-import '@fontsource/poppins/700.css';
-import '@fontsource/poppins/700-italic.css';
-import '@fontsource/poppins/800.css';
-import '@fontsource/poppins/800-italic.css';
-import '@fontsource/poppins/900.css';
-import '@fontsource/rubik/400.css';
-import '@fontsource/rubik/500.css';
+import '@fontsource/poppins/latin-500.css';
+import '@fontsource/poppins/latin-700.css';
+import '@fontsource/poppins/latin-700-italic.css';
+import '@fontsource/poppins/latin-800.css';
+import '@fontsource/poppins/latin-800-italic.css';
+import '@fontsource/poppins/latin-900.css';
+import '@fontsource/rubik/latin-400.css';
+import '@fontsource/rubik/latin-500.css';
 
 import { App } from './App';
 import { GalleryScreen } from './gallery/GalleryScreen';

@@ -1,5 +1,6 @@
 name: Bad Idea Machine Visual Smoke
 
+# Chaos-pass gate: assert the live reveal contains decoys, particles, and no browser errors.
 on:
   push:
     branches:

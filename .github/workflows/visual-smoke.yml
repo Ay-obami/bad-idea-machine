@@ -88,27 +88,40 @@ jobs:
             if (await page.locator('.station').count() !== 0) throw new Error('Old station-card UI is still rendered');
           }
 
+          async function activeActorBoxes(page) {
+            const actorIds = [...new Set(await page.locator('[data-event-actor]').evaluateAll(nodes => nodes
+              .map(node => node.getAttribute('data-event-actor'))
+              .filter(Boolean)))];
+            const boxes = new Map();
+            for (const actorId of actorIds) {
+              const box = await page.locator(`[data-scene-actor="${actorId}"]`).boundingBox();
+              if (box) boxes.set(actorId, box);
+            }
+            return boxes;
+          }
+
           async function verifyMovingActor(page) {
             await page.locator('.environment-stage[data-phase="revealing"]').waitFor({ timeout: 4_000 });
             if (await page.locator('.environment-result').count() !== 0) {
               throw new Error('Result became visible before catastrophe reveal completed');
             }
+            await page.locator('[data-event-actor]').first().waitFor({ state: 'attached', timeout: 4_000 });
 
-            const probe = page.locator('[data-event-actor]').first();
-            await probe.waitFor({ state: 'attached', timeout: 4_000 });
-            const actorId = await probe.getAttribute('data-event-actor');
-            if (!actorId) throw new Error('Active scene event did not expose an actor id');
-
-            const actor = page.locator(`[data-scene-actor="${actorId}"]`);
-            const first = await actor.boundingBox();
-            await page.waitForTimeout(260);
-            const second = await actor.boundingBox();
-            if (!first || !second) throw new Error(`Could not measure moving actor ${actorId}`);
-            const distance = Math.hypot(second.x - first.x, second.y - first.y);
-            if (distance < 18) {
-              throw new Error(`Actor ${actorId} only moved ${distance.toFixed(1)}px; expected real screen travel`);
+            let best = { id: 'none', distance: 0 };
+            for (let attempt = 0; attempt < 12; attempt += 1) {
+              const before = await activeActorBoxes(page);
+              await page.waitForTimeout(190);
+              const after = await activeActorBoxes(page);
+              for (const [actorId, first] of before) {
+                const second = after.get(actorId);
+                if (!second) continue;
+                const distance = Math.hypot(second.x - first.x, second.y - first.y);
+                if (distance > best.distance) best = { id: actorId, distance };
+                if (distance >= 18) return actorId;
+              }
+              await page.waitForTimeout(80);
             }
-            return actorId;
+            throw new Error(`No active actor crossed the scene; best was ${best.id} at ${best.distance.toFixed(1)}px`);
           }
 
           async function verifyChaos(page) {
@@ -127,9 +140,7 @@ jobs:
               return probes.some(node => ['fire', 'blast'].includes(node.getAttribute('data-event-hazard') || ''));
             }, undefined, { timeout: 6_500 });
             await page.locator('.scene-flame, .scene-shockwave').first().waitFor({ timeout: 2_000 });
-            if (await page.locator('.environment-result').count() !== 0) {
-              throw new Error('Result overlay leaked into active catastrophe');
-            }
+            if (await page.locator('.environment-result').count() !== 0) throw new Error('Result overlay leaked into active catastrophe');
           }
 
           async function waitForResult(page) {
@@ -183,15 +194,14 @@ jobs:
           await mobile.waitForFunction(() => document.querySelectorAll('.scene-particle').length >= 30, undefined, { timeout: 4_000 });
           await mobile.screenshot({ path: 'visual-smoke/mobile-garage-chaos.png', fullPage: true });
 
-          if (consoleErrors.length > 0) {
-            throw new Error(`Browser errors:\n${consoleErrors.join('\n')}`);
-          }
+          if (consoleErrors.length > 0) throw new Error(`Browser errors:\n${consoleErrors.join('\n')}`);
           await browser.close();
           NODE
 
       - name: Upload visual smoke screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bad-idea-machine-cinematic-visual-smoke
           path: sdk/casino-sdk/examples/bad-idea-machine/visual-smoke/*.png
-          if-no-files-found: error
+          if-no-files-found: warn

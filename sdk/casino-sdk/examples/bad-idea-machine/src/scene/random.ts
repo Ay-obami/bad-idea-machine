@@ -1,13 +1,18 @@
 import { hexToBytes, type Hex } from 'viem';
 
+const VISUAL_SEED_BYTES = 32;
+
 function bytesFor(seed: Hex): Uint8Array {
-  return hexToBytes(seed);
+  const bytes = hexToBytes(seed);
+  if (bytes.length !== VISUAL_SEED_BYTES) {
+    throw new Error(`visual seed must be exactly ${VISUAL_SEED_BYTES} bytes`);
+  }
+  return bytes;
 }
 
 export function visualByte(seed: Hex, index: number): number {
   const bytes = bytesFor(seed);
-  if (bytes.length === 0) throw new Error('visual seed must contain bytes');
-  const wrapped = ((index % bytes.length) + bytes.length) % bytes.length;
+  const wrapped = ((index % VISUAL_SEED_BYTES) + VISUAL_SEED_BYTES) % VISUAL_SEED_BYTES;
   return bytes[wrapped];
 }
 

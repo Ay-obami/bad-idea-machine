@@ -1,21 +1,19 @@
 import type { EnvironmentId } from '../scene/types';
+import '../styles/environment-selector.css';
 
 const OPTIONS: ReadonlyArray<{
   id: EnvironmentId;
   label: string;
-  short: string;
   description: string;
 }> = [
   {
     id: 'kitchen',
     label: 'KITCHEN MELTDOWN',
-    short: 'KITCHEN',
     description: 'appliances, grease fire, crockery and terrible food safety',
   },
   {
     id: 'garage',
     label: 'GARAGE MAYHEM',
-    short: 'GARAGE',
     description: 'power tools, heavy metal, loose tires and industrial regret',
   },
 ];

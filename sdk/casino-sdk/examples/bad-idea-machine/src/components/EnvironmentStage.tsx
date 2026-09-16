@@ -141,7 +141,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       )}
 
       <div className="environment-stage__event-probe" aria-hidden="true">
-        {activeEvents.map(event => (
+        {startedEvents.map(event => (
           <i
             key={event.id}
             data-event-actor={event.actorId}

@@ -80,7 +80,11 @@ jobs:
             if (await page.locator('.outcome-preview').count() !== 5) throw new Error('Expected five persistent multiplier outcome cards');
             const photo = page.locator('.environment-stage .cinematic-backdrop__photo').first();
             const background = await photo.evaluate(node => getComputedStyle(node).backgroundImage);
-            if (!background.includes('images.unsplash.com')) throw new Error(`Cinematic photo backdrop missing: ${background}`);
+            if (!background.includes('/cinematic/')) throw new Error(`Self-hosted cinematic photo backdrop missing: ${background}`);
+            for (const asset of ['kitchen.webp', 'garage.webp', 'blast.webp']) {
+              const response = await page.request.get(`http://127.0.0.1:3100/cinematic/${asset}`);
+              if (!response.ok()) throw new Error(`Missing self-hosted cinematic asset ${asset}: ${response.status()}`);
+            }
             if (await page.locator('.station').count() !== 0) throw new Error('Old station-card UI is still rendered');
           }
 

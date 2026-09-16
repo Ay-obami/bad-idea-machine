@@ -133,7 +133,6 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
     if (phase === 'result' && multiplierBps !== undefined) playResultSound(multiplierBps);
   }, [phase, multiplierBps]);
 
-  const reached = useMemo(() => new Set(route.map(step => step.station)), [route]);
   const routeIndex = useMemo(
     () => new Map(route.map((step, index) => [step.station, index] as const)),
     [route],
@@ -167,12 +166,15 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
       <div className="machine__rail" aria-label="Bad Idea Machine chain reaction">
         {ALL_STATIONS.map((station, index) => {
           const currentRouteIndex = routeIndex.get(station);
-          const isReached = reached.has(station);
           const isActive = phase === 'revealing' && currentRouteIndex === activeIndex;
           const isDecoy = phase === 'revealing' && decoys.has(station) && !isActive;
+          const isReached =
+            phase === 'result'
+              ? currentRouteIndex !== undefined
+              : phase === 'revealing' && currentRouteIndex !== undefined && currentRouteIndex <= activeIndex;
           const isComplete =
             (phase === 'revealing' && currentRouteIndex !== undefined && currentRouteIndex < activeIndex) ||
-            (phase === 'result' && isReached);
+            (phase === 'result' && currentRouteIndex !== undefined);
           const variant = currentRouteIndex === undefined ? '' : route[currentRouteIndex]?.variant ?? '';
           const showFire = isActive && (activeStep?.hazard === 'fire' || activeStep?.hazard === 'blast');
           const showSmoke = isActive && ['fire', 'smoke', 'blast'].includes(activeStep?.hazard ?? '');
@@ -183,7 +185,7 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
               <article
                 className={`station ${isReached ? 'station--reached' : ''} ${isActive ? 'station--active' : ''} ${isComplete ? 'station--complete' : ''} ${isDecoy ? 'station--decoy' : ''} ${dangerousDecoy ? 'station--danger' : ''}`}
                 data-station={station}
-                data-variant={variant}
+                data-variant={isActive ? variant : undefined}
                 data-hazard={isActive ? activeStep?.hazard : undefined}
                 style={isActive ? ({ '--chaos-tilt': `${((activeStep?.effectSeed ?? 0) % 7) - 3}deg` } as ChaosStyle) : undefined}
               >

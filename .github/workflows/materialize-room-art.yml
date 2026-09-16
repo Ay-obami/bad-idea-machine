@@ -5,7 +5,7 @@ on:
     branches:
       - feat/reference-locked-cinematic-rebuild
     paths:
-      - '.art-transfer/part-21.b64'
+      - '.art-transfer/part-07.b64'
 
 permissions:
   contents: write
@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find .art-transfer -maxdepth 1 -name 'part-*.b64' | wc -l)" -eq 22
+          test "$(find .art-transfer -maxdepth 1 -name 'part-*.b64' | wc -l)" -eq 8
           cat .art-transfer/part-*.b64 > /tmp/room-art-seed.b64
           base64 --decode /tmp/room-art-seed.b64 > /tmp/room-art-seed.tar.gz
           echo 'a5939a6d93b5f88aabc6f4c3a528a20f795626ae3cd7942724062371f7aa9540  /tmp/room-art-seed.tar.gz' | sha256sum -c -

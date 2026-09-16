@@ -58,5 +58,19 @@
 @media (max-width: 480px) {
   .game-header { min-height: 70px; }
   .game-header__brand small { display: none; }
-  .game-layout--environment .environment-stage { min-height: 300px; }
+  .game-layout--environment .environment-stage { min-height: 285px; }
+  .game-layout--environment .control-panel { gap: 7px; padding: 12px; }
+  .game-layout--environment .wager-control { gap: 4px; }
+  .game-layout--environment .wager-control__input input { padding: 9px 10px; font-size: 18px; }
+  .game-layout--environment .environment-selector { gap: 4px; }
+  .game-layout--environment .environment-selector legend { margin-bottom: 3px; }
+  .game-layout--environment .environment-choice {
+    min-height: 46px;
+    grid-template-columns: 24px 1fr;
+    gap: 6px;
+    padding: 6px 7px;
+  }
+  .game-layout--environment .environment-choice__icon { width: 24px; height: 24px; font-size: 13px; }
+  .game-layout--environment .safety-readout { padding-block: 7px; }
+  .game-layout--environment .do-not-press { min-height: 82px; }
 }

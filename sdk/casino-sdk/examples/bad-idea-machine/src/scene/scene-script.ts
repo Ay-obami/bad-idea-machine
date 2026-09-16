@@ -95,10 +95,14 @@ function selectedTemplates(environment: EnvironmentId, visualSeed: Hex, count: n
 function decoyIndices(visualSeed: Hex, count: number): ReadonlySet<number> {
   const wanted = 1 + (visualByte(visualSeed, 25) % 3);
   const indices = new Set<number>();
-  let cursor = 26;
-  while (indices.size < wanted) {
-    indices.add(visualU16(visualSeed, cursor) % count);
-    cursor += 2;
+  const start = visualU16(visualSeed, 26) % count;
+  const stride = 1 + (visualByte(visualSeed, 28) % Math.max(1, count - 1));
+
+  for (let offset = 0; offset < count * 2 && indices.size < wanted; offset += 1) {
+    indices.add((start + offset * stride) % count);
+  }
+  for (let index = 0; indices.size < wanted && index < count; index += 1) {
+    indices.add(index);
   }
   return indices;
 }

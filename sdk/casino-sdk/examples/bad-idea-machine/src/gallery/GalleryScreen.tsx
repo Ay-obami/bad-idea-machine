@@ -7,6 +7,10 @@ type Props = Readonly<{
 }>;
 
 export function GalleryScreen({ onChoose }: Props) {
+  const scrollToRooms = () => {
+    document.querySelector('[data-environment="kitchen"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <main className="reference-gallery">
       <header className="reference-gallery__header">
@@ -39,7 +43,7 @@ export function GalleryScreen({ onChoose }: Props) {
             <span>SAME BUTTON. DIFFERENT DISASTER.</span>
           </div>
         </div>
-        <button type="button" className="reference-gallery__cta" onClick={() => onChoose('kitchen')}>
+        <button type="button" className="reference-gallery__cta" onClick={scrollToRooms}>
           CHOOSE YOUR CHAOS <span aria-hidden>→</span>
         </button>
       </footer>

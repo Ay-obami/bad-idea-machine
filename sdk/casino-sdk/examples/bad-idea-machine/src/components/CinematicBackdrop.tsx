@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react';
+
 import type { OutcomeTier } from '../lib/badIdea';
 import type { EnvironmentId } from '../scene/types';
 import { damageStateForTier, type DamageState } from '../scene/visual-state';
@@ -24,7 +26,7 @@ export function CinematicBackdrop({ environment, phase, tier, compact = false }:
   const style = {
     '--room-photo': `url("${ROOM_PHOTOS[environment]}")`,
     '--blast-photo': `url("${BLAST_PHOTO}")`,
-  } as React.CSSProperties;
+  } as CSSProperties;
 
   return (
     <div

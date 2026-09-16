@@ -1,0 +1,30 @@
+name: Probe Bad Idea Machine Production
+
+on:
+  push:
+    branches:
+      - feat/chaos-unpredictability-pass
+    paths:
+      - .github/workflows/probe-production.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify production alias serves merged chaos build
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app'
+          HTML="$(curl --fail --silent --show-error --location --retry 5 --retry-delay 2 "$BASE/")"
+          printf '%s\n' "$HTML" | grep -F '/assets/index-fg5H4bbd.js'
+          printf '%s\n' "$HTML" | grep -F '/assets/index-Y-RzVO_v.css'
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 2 "$BASE/game.manifest.json" | tee /tmp/manifest.json
+          grep -F '"gameId": "BadIdeaMachineGame"' /tmp/manifest.json
+          grep -F '"name": "Bad Idea Machine"' /tmp/manifest.json
+          curl --fail --silent --show-error --head --location "$BASE/assets/index-fg5H4bbd.js"
+          curl --fail --silent --show-error --head --location "$BASE/assets/index-Y-RzVO_v.css"
+          echo 'PASS production alias serves exact verified chaos bundle'

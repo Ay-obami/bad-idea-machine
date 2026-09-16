@@ -6,6 +6,7 @@ on:
       - main
       - feat/bad-idea-machine-game
       - feat/environment-scene-rebuild
+      - feat/cinematic-reference-ui
   pull_request:
     branches:
       - main

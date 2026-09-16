@@ -2,7 +2,7 @@
 
 ## One-line pitch
 
-Press one button and watch a deterministic industrial catastrophe obscure a payout that was already settled by Chain VRF.
+Choose a room, press one terrible button, and watch a deterministic physical catastrophe reveal a payout that Chain VRF already settled.
 
 ## Submission form
 
@@ -18,26 +18,31 @@ Press one button and watch a deterministic industrial catastrophe obscure a payo
 
 **One button. Several terrible decisions.**
 
-Bad Idea Machine is an original instant casino game where the player chooses one of three risk profiles — Controlled, Send It, or Absolutely Not — then presses a giant DO NOT PRESS button and watches a ridiculous industrial machine lose control around them.
+Bad Idea Machine is an original instant casino game where the player chooses one of three risk profiles — **Controlled**, **Send It**, or **Absolutely Not** — and one of two disaster environments — **Kitchen Meltdown** or **Garage Mayhem** — then presses a giant **DO NOT PRESS** button and watches the room physically fall apart.
 
-The key rule is that the animation never decides the money. The Chain casino contract consumes verified VRF randomness first and settles one of five payout tiers. Only then does the frontend derive a separate cosmetic seed and turn that already-settled result into an intentionally unreadable catastrophe: non-linear station order, false alarms, premature rockets, fire, smoke, sparks, flying debris, alarms, blast impacts, screen shake and layered mechanical audio.
+Kitchen Meltdown turns appliances, cookware, crockery, a cat, a bowling ball, a rocket and a safe into a domestic chain reaction. Garage Mayhem swaps that cast for hammers, wrenches, drills, saws, chains, tires, tanks, shelves and workshop machinery. These are illustrated scene objects that move through actual room coordinates: several failures can overlap, objects travel across the scene, and impacts produce localized fire, blast, smoke, steam, shards and debris with matching procedural audio.
 
-Crucially, the visible path is **not a payout progress bar**. For the same visual seed, every economic tier receives the same route length and early choreography. The payout tier does not determine how far the machine gets, so the first few seconds are deliberately ambiguous and the multiplier only becomes legible at the terminal reveal.
+The key rule is that **the animation never decides the money**. The Chain casino contract consumes verified VRF randomness first and settles one of five payout tiers. Only then does the frontend derive a separate cosmetic seed and generate the selected room's catastrophe.
 
-All three risk modes have an exact theoretical RTP of **96.00%**, with the paytable enforced in the Solidity contract and exhaustively mirrored by tests. Economic and cosmetic randomness are domain-separated, so the chaos can vary dramatically without affecting payout.
+The room selector is cosmetic only. Kitchen and Garage have the **same contract, same three paytables, same 96.00% RTP and same payout probabilities**. Environment is never encoded into contract `gameData`.
 
-The game runs standalone as a playable demo, includes the Chain Jam widget, supports desktop and mobile, uses procedural layered sound, and exposes a post-round **WHAT WENT WRONG?** receipt for route and randomness details.
+The visible catastrophe is also **not a payout progress bar**. For the same cosmetic seed, a 0× result and a huge result receive identical event choreography and duration. The payout tier affects the final result copy only, so watching the first few seconds cannot reveal whether the player is about to lose or hit the top multiplier.
 
-Repository verification covers contract compilation, automated paytable/route/audio/manifest tests, strict typechecking, a production bundle audit, Chromium desktop/mobile chaos smoke tests, and a 105-round local Chain/Verify Network VRF soak where every settled tier is independently recomputed from the emitted randomness.
+All three risk modes have an exact theoretical RTP of **96.00%**, enforced by the Solidity contract and exhaustively mirrored by tests. Economic and cosmetic randomness are domain-separated, so the spectacle can vary dramatically without affecting payout.
+
+The game runs standalone as a playable demo, includes the Chain Jam widget, supports desktop and mobile, uses procedural layered sound, and exposes a post-round **WHAT WENT WRONG?** receipt for the chosen environment, catastrophe trace and randomness details.
+
+Repository verification covers contract compilation, exhaustive paytable tests, deterministic scene invariants, environment-specific sound tests, manifest validation, strict typechecking, production bundle audit, Chromium desktop/mobile physical-motion smoke tests, and a 105-round local Chain/Verify Network VRF soak where every settled tier is independently recomputed from the emitted randomness.
 
 ## What judges should try
 
 1. Open the hosted game directly.
-2. Try all three risk modes: **Controlled**, **Send It**, and **Absolutely Not**.
-3. Press **DO NOT PRESS** several times and try to predict the result from the first few machine events — false alarms and shuffled routes are designed to stop that from working.
-4. Watch for fire, smoke, debris, sparks, station misfires and sound escalation during the reveal.
-5. After the multiplier appears, open **WHAT WENT WRONG?** to inspect the route and randomness receipt.
-6. Play several rounds: spectacle changes, but the contract-settled payout tier remains authoritative.
+2. Switch between **Kitchen Meltdown** and **Garage Mayhem** before playing; the entire room/cast should visibly change.
+3. Try all three risk modes: **Controlled**, **Send It**, and **Absolutely Not**.
+4. Press **DO NOT PRESS** several times. Watch actual actors cross the room while multiple hazards overlap instead of following a readable progress rail.
+5. Look for localized fire/blasts, smoke/steam, flying debris or shards, near misses and decoy failures; turn sound on for the room-specific mechanical layers.
+6. After the multiplier appears, open **WHAT WENT WRONG?** to inspect the environment, catastrophe trace and randomness receipt.
+7. Play both rooms repeatedly: presentation changes, but the contract-settled payout math remains identical.
 
 ## Why the implementation matters
 
@@ -45,11 +50,13 @@ Repository verification covers contract compilation, automated paytable/route/au
 - Theoretical RTP is exactly **96.00%** for every risk mode.
 - Economic randomness uses Chain / Verify Network VRF with unbiased 16-bit rejection sampling.
 - Payout and presentation are domain-separated with `BAD_IDEA_PAYOUT` and `BAD_IDEA_VISUAL`.
-- The visual route is derived only from the cosmetic seed; payout tier does not encode route length or early order.
-- Deterministic false alarms, hazards and effect seeds create replayable chaos without affecting economics.
-- Procedural WebAudio layers machine sounds with fire, blast, alarm, debris and intensity-dependent noise.
+- Kitchen/Garage choice is frontend-only and cannot change economics.
+- The scene generator creates 4.7–6.2 second deterministic scripts with 8–12 overlapping events, decoys, long trajectories and multiple hazard types.
+- Regression tests assert identical visible choreography between failure and huge tiers for the same cosmetic seed across both environments.
+- Illustrated SVG/CSS actors move through a logical 1000×600 room instead of animating cards or a progress board.
+- Procedural WebAudio layers Kitchen/Garage-specific impacts, motors, metal, appliance, fire, blast, alarm and debris sounds.
 - The frontend uses `@chain/casino-sdk/guest`; it contains no custom wallet or settlement path.
-- Result multipliers are hidden until the terminal machine reveal.
+- Result multipliers remain hidden until the catastrophe finishes.
 - Standalone mode is explicitly labeled as demo credits / local randomness and never impersonates Chain verification.
 
 ## Reproducible verification
@@ -65,7 +72,7 @@ npm run build:bad-idea
 npm --prefix examples/bad-idea-machine run verify-build
 ```
 
-For the complete local Chain lifecycle, start the local node and then run the simulation in a second shell:
+For the complete local Chain lifecycle, start the local node and run the simulation in a second shell:
 
 ```bash
 npm --prefix simulator run local-node
@@ -74,10 +81,10 @@ npm run simulate:bad-idea
 
 The simulation verifies contract quotes and paytable boundaries, then settles **105 real local-VRF rounds (35 per mode)**. Every settled tier is independently recomputed from the emitted VRF word using the documented payout-domain rejection sampler and its payout is checked against the on-chain result.
 
-The visual-smoke workflow also launches the production build in Chromium, verifies that chaos particles and false-alarm stations are present during live reveals, captures early/mid/result screenshots, tests a 390×844 mobile reveal, and fails on browser-console errors.
+The visual-smoke workflow launches the production build in Chromium, exercises both environments plus a 390×844 mobile viewport, rejects the removed station-card UI, measures a real actor's screen coordinates during a live reveal, requires substantial physical movement and catastrophe VFX, and fails on browser-console/page errors.
 
 ## Deployment / integration distinction
 
 For the **Chain Jam submission form**, the public hosted game URL and source-access URL are the operational requirements.
 
-The Vercel production alias above is assigned to the deployed project. A target-chain deployed contract address is an integration-stage deliverable described by the Casino SDK documentation. It is not a field in the current Chain Jam submission form, so it should not block submitting the jam entry once the hosted demo is confirmed publicly reachable.
+The Vercel production alias above is assigned to the deployed project. A target-chain deployed contract address is an integration-stage deliverable described by the Casino SDK documentation. It is not a field in the current Chain Jam submission form, so it should not block the jam entry once the hosted demo is confirmed publicly reachable.

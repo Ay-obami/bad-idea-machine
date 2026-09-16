@@ -52,6 +52,13 @@ jobs:
       - name: Audit standalone production bundle
         run: npm --prefix examples/bad-idea-machine run verify-build
 
+      - name: Upload production bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad-idea-machine-dist
+          path: sdk/casino-sdk/examples/bad-idea-machine/dist
+          if-no-files-found: error
+
       - name: Run real local VRF settlement flows
         shell: bash
         run: |

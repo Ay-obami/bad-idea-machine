@@ -13,6 +13,7 @@ import type {
   ScenePoint,
   SceneScript,
 } from './types';
+import { actorPhotoFor } from './visual-state';
 
 type EventTemplate = Readonly<{
   actorId: string;
@@ -89,6 +90,15 @@ function selectedTemplates(environment: EnvironmentId, visualSeed: Hex, count: n
     const hero = templatesFor(environment).find(template => isLongTravel(template, environment));
     if (hero && !selected.some(template => template.actorId === hero.actorId)) selected[selected.length - 1] = hero;
   }
+
+  if (!selected.some(template => actorPhotoFor(template.actorId))) {
+    const photoHero = templatesFor(environment).find(template => actorPhotoFor(template.actorId) && isLongTravel(template, environment))
+      ?? templatesFor(environment).find(template => actorPhotoFor(template.actorId));
+    if (photoHero && !selected.some(template => template.actorId === photoHero.actorId)) {
+      const replaceIndex = selected.findIndex(template => !isLongTravel(template, environment));
+      selected[replaceIndex >= 0 ? replaceIndex : selected.length - 1] = photoHero;
+    }
+  }
   return selected;
 }
 
@@ -98,21 +108,13 @@ function decoyIndices(visualSeed: Hex, count: number): ReadonlySet<number> {
   const start = visualU16(visualSeed, 26) % count;
   const stride = 1 + (visualByte(visualSeed, 28) % Math.max(1, count - 1));
 
-  for (let offset = 0; offset < count * 2 && indices.size < wanted; offset += 1) {
-    indices.add((start + offset * stride) % count);
-  }
-  for (let index = 0; indices.size < wanted && index < count; index += 1) {
-    indices.add(index);
-  }
+  for (let offset = 0; offset < count * 2 && indices.size < wanted; offset += 1) indices.add((start + offset * stride) % count);
+  for (let index = 0; indices.size < wanted && index < count; index += 1) indices.add(index);
   return indices;
 }
 
 function effectSeed(visualSeed: Hex, index: number): number {
-  return (
-    (visualByte(visualSeed, index + 2) << 16)
-    | (visualByte(visualSeed, index + 13) << 8)
-    | visualByte(visualSeed, index + 27)
-  );
+  return ((visualByte(visualSeed, index + 2) << 16) | (visualByte(visualSeed, index + 13) << 8) | visualByte(visualSeed, index + 27));
 }
 
 function hazardFor(template: EventTemplate, visualSeed: Hex, index: number): SceneHazard {
@@ -133,28 +135,14 @@ function pathFor(environment: EnvironmentId, template: EventTemplate, visualSeed
 
   return [
     { at: 0, x: actor.home.x, y: actor.home.y, rotation: actor.rotation, scale: actor.scale },
-    {
-      at: .56,
-      x: clamp(template.control.x + controlJitterX, 30, 970),
-      y: clamp(template.control.y + controlJitterY, 30, 570),
-      rotation: actor.rotation + spin * .55,
-      scale: actor.scale * 1.05,
-    },
-    {
-      at: 1,
-      x: clamp(template.end.x + endJitterX, 20, 980),
-      y: clamp(template.end.y + endJitterY, 20, 580),
-      rotation: actor.rotation + spin,
-      scale: actor.scale,
-    },
+    { at: .56, x: clamp(template.control.x + controlJitterX, 30, 970), y: clamp(template.control.y + controlJitterY, 30, 570), rotation: actor.rotation + spin * .55, scale: actor.scale * 1.05 },
+    { at: 1, x: clamp(template.end.x + endJitterX, 20, 980), y: clamp(template.end.y + endJitterY, 20, 580), rotation: actor.rotation + spin, scale: actor.scale },
   ];
 }
 
 function impactFor(environment: EnvironmentId, template: EventTemplate, path: readonly MotionKeyframe[]): ScenePoint {
   const definition = getEnvironmentDefinition(environment);
-  if (template.impactZone && definition.impactZones[template.impactZone]) {
-    return definition.impactZones[template.impactZone];
-  }
+  if (template.impactZone && definition.impactZones[template.impactZone]) return definition.impactZones[template.impactZone];
   const end = path.at(-1)!;
   return { x: end.x, y: end.y };
 }
@@ -172,7 +160,6 @@ function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinal
     ] as const;
     return { tier, label: copy[tier][0], flavor: copy[tier][1], impact };
   }
-
   const copy = [
     ['WORKSHOP DESTROYED. PROFIT MISSING.', 'Everything broke except the house edge.'],
     ['MINOR INDUSTRIAL MIRACLE', 'One useful thing survived the impact.'],
@@ -183,11 +170,7 @@ function finalizerFor(environment: EnvironmentId, tier: OutcomeTier): SceneFinal
   return { tier, label: copy[tier][0], flavor: copy[tier][1], impact };
 }
 
-export function buildSceneScript(
-  environment: EnvironmentId,
-  tier: OutcomeTier,
-  visualSeed: Hex,
-): SceneScript {
+export function buildSceneScript(environment: EnvironmentId, tier: OutcomeTier, visualSeed: Hex): SceneScript {
   const count = 8 + (visualByte(visualSeed, 31) % 5);
   const durationMs = 4_700 + (visualU16(visualSeed, 18) % 1_501);
   const templates = selectedTemplates(environment, visualSeed, count);
@@ -200,7 +183,6 @@ export function buildSceneScript(
     const durationMsForEvent = Math.min(requestedDuration, durationMs - startMs);
     const path = pathFor(environment, template, visualSeed, index);
     const intensity = (2 + (visualByte(visualSeed, index + 9) % 2)) as 2 | 3;
-
     return {
       id: `${environment}-${index}-${template.actorId}`,
       actorId: template.actorId,
@@ -217,17 +199,10 @@ export function buildSceneScript(
     };
   });
 
-  return {
-    environment,
-    durationMs,
-    events,
-    finalizer: finalizerFor(environment, tier),
-  };
+  return { environment, durationMs, events, finalizer: finalizerFor(environment, tier) };
 }
 
-export function sceneDurationMs(script: SceneScript): number {
-  return script.durationMs;
-}
+export function sceneDurationMs(script: SceneScript): number { return script.durationMs; }
 
 export function catastropheSummary(script: SceneScript): readonly string[] {
   const actors = new Map(getEnvironmentDefinition(script.environment).actors.map(actor => [actor.id, actor.kind] as const));

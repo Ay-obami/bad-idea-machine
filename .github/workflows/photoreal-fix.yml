@@ -1,0 +1,18 @@
+name: Photoreal Scene Fix
+
+on:
+  push:
+    branches: [fix/photoreal-room-states]
+
+jobs:
+  scene-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+        working-directory: sdk/casino-sdk
+      - run: npm --prefix examples/bad-idea-machine test -- --run src/scene/visual-state.test.ts
+        working-directory: sdk/casino-sdk

@@ -5,6 +5,9 @@ import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import { getEnvironmentDefinition } from '../scene/environments';
 import type { EnvironmentId, SceneEvent, SceneScript } from '../scene/types';
 import '../styles/environment-stage.css';
+import '../styles/environment-ui.css';
+import '../styles/kitchen.css';
+import '../styles/garage.css';
 import { SceneActor } from './SceneActor';
 import { SceneVfx } from './SceneVfx';
 import { GarageScene } from './scenes/GarageScene';
@@ -32,15 +35,8 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
 
   const definition = getEnvironmentDefinition(environment);
   const scriptEvents = script?.events ?? [];
-  const eventsByActor = useMemo(() => eventMap(scriptEvents), [scriptEvents]);
-  const startedEvents = useMemo(
-    () => scriptEvents.filter(event => startedIds.has(event.id)),
-    [scriptEvents, startedIds],
-  );
-  const activeEvents = useMemo(
-    () => scriptEvents.filter(event => activeIds.has(event.id)),
-    [scriptEvents, activeIds],
-  );
+  const startedEvents = useMemo(() => scriptEvents.filter(event => startedIds.has(event.id)), [scriptEvents, startedIds]);
+  const activeEvents = useMemo(() => scriptEvents.filter(event => activeIds.has(event.id)), [scriptEvents, activeIds]);
   const startedByActor = useMemo(() => eventMap(startedEvents), [startedEvents]);
   const cameraImpact = activeEvents.reduce((max, event) => Math.max(max, event.intensity), 0);
 
@@ -98,12 +94,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
 
       <div className="scene-actor-layer" aria-label={`${definition.label} interactive scene`}>
         {definition.actors.map(actor => (
-          <SceneActor
-            key={actor.id}
-            actor={actor}
-            event={startedByActor.get(actor.id)}
-            revision={revision}
-          />
+          <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
         ))}
       </div>
 

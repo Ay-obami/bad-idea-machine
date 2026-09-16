@@ -20,8 +20,8 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - name: Gallery data tests
-        run: npm --prefix examples/bad-idea-machine test -- src/gallery/gallery-data.test.ts
+      - name: Bad Idea Machine tests
+        run: npm --prefix examples/bad-idea-machine test
       - name: Typecheck
         run: npm --prefix examples/bad-idea-machine run check-types
       - name: Build

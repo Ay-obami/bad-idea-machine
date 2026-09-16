@@ -1,0 +1,50 @@
+name: Import Cinematic Assets
+
+on:
+  push:
+    branches:
+      - feat/cinematic-scene-ui
+    paths:
+      - .github/workflows/import-cinematic-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/cinematic-scene-ui
+
+      - name: Download approved cinematic atlases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sdk/casino-sdk/examples/bad-idea-machine/public/scenes
+          mkdir -p sdk/casino-sdk/examples/bad-idea-machine/public/actors
+          curl --fail --location --retry 4 \
+            'https://cdn.creativeclaw.co/u/7717a39b/images/e2a57ac0-5bd6-4fa9-ab22-190029ada891.avif' \
+            --output sdk/casino-sdk/examples/bad-idea-machine/public/scenes/scene-atlas.avif
+          curl --fail --location --retry 4 \
+            'https://cdn.creativeclaw.co/u/7717a39b/images/77fdd35a-3e72-433f-9b7b-b0f29ed4d9b8.webp' \
+            --output sdk/casino-sdk/examples/bad-idea-machine/public/actors/actor-atlas.webp
+          test -s sdk/casino-sdk/examples/bad-idea-machine/public/scenes/scene-atlas.avif
+          test -s sdk/casino-sdk/examples/bad-idea-machine/public/actors/actor-atlas.webp
+
+      - name: Commit imported assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sdk/casino-sdk/examples/bad-idea-machine/public/scenes/scene-atlas.avif \
+                  sdk/casino-sdk/examples/bad-idea-machine/public/actors/actor-atlas.webp
+          if git diff --cached --quiet; then
+            echo 'Assets already present.'
+            exit 0
+          fi
+          git commit -m 'assets: add approved cinematic scene atlases'
+          git push origin HEAD:feat/cinematic-scene-ui

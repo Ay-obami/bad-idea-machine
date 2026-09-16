@@ -5,8 +5,10 @@ import { EnvironmentSelector } from './EnvironmentSelector';
 const MODES: Array<{ mode: RiskMode; label: string; sub: string }> = [
   { mode: 0, label: 'CONTROLLED', sub: 'frequent little disasters' },
   { mode: 1, label: 'SEND IT', sub: 'responsibility not included' },
-  { mode: 2, label: 'ABSOLUTELY NOT', sub: 'common sense offline' },
+  { mode: 2, label: 'ABSOLUTELY NOT', sub: 'maximum chaos offline' },
 ];
+
+const WAGER_PRESETS = ['1.00', '5.00', '10.00', '50.00', '100.00'] as const;
 
 type Props = {
   riskMode: RiskMode;
@@ -44,6 +46,11 @@ export function ControlPanel({
   onPlay,
 }: Props) {
   const controlsLocked = ctaLabel === 'BAD IDEA IN PROGRESS';
+  const displayCta = controlsLocked
+    ? 'BAD IDEA IN PROGRESS'
+    : ctaLabel === 'PRESS AGAIN'
+      ? 'LAUNCH AGAIN'
+      : 'LAUNCH CHAOS';
 
   return (
     <aside className="control-panel">
@@ -53,12 +60,12 @@ export function ControlPanel({
           <strong className="balance-readout">{balanceText} {symbol}</strong>
         </div>
         <button className="sound-button" type="button" onClick={onToggleMuted} aria-label={muted ? 'Enable sound' : 'Mute sound'}>
-          {muted ? 'SOUND OFF' : 'SOUND ON'}
+          <span aria-hidden>◖)))</span> {muted ? 'SOUND OFF' : 'SOUND ON'}
         </button>
       </div>
 
       <label className="wager-control">
-        <span>WAGER</span>
+        <span>WAGER AMOUNT</span>
         <div className="wager-control__input">
           <input
             inputMode="decimal"
@@ -70,6 +77,19 @@ export function ControlPanel({
           <b>{symbol}</b>
         </div>
       </label>
+      <div className="wager-presets" aria-label="Wager presets">
+        {WAGER_PRESETS.map(value => (
+          <button
+            key={value}
+            type="button"
+            className={Number(wagerInput) === Number(value) ? 'wager-preset wager-preset--selected' : 'wager-preset'}
+            onClick={() => onWagerInputChange(value)}
+            disabled={controlsLocked}
+          >
+            {Number(value).toFixed(value === '10.00' ? 2 : 0)}
+          </button>
+        ))}
+      </div>
 
       <fieldset className="risk-selector">
         <legend>HOW BAD AN IDEA?</legend>
@@ -93,7 +113,7 @@ export function ControlPanel({
       <EnvironmentSelector value={environment} onChange={onEnvironmentChange} disabled={controlsLocked} />
 
       <div className={`safety-readout safety-readout--${riskMode}`}>
-        <span>{riskMode === 0 ? '●' : '○'} SAFETY SYSTEMS</span>
+        <span>⚠ SAFETY SYSTEMS</span>
         <strong>{riskMode === 0 ? 'ENABLED' : riskMode === 1 ? 'OPTIONAL' : 'DISCONNECTED'}</strong>
       </div>
 
@@ -103,9 +123,9 @@ export function ControlPanel({
         onClick={onPlay}
         disabled={disabled}
       >
-        <span className="do-not-press__cap" aria-hidden />
-        <span>{ctaLabel}</span>
-        <small>{environment === 'kitchen' ? 'APPLIANCES MAY BECOME PROJECTILES' : 'POWER TOOLS HAVE BEEN UNSUPERVISED'}</small>
+        <span className="do-not-press__cap" aria-hidden>◈</span>
+        <span>{displayCta}</span>
+        <small>SAME BUTTON. DIFFERENT DISASTER.</small>
       </button>
 
       <div className="control-panel__reason" role="status">

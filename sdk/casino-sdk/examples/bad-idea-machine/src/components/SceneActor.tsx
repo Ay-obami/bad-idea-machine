@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react';
 
+import { ACTOR_ATLAS_COLUMNS, ACTOR_ATLAS_ROWS, getActorSprite } from '../scene/presentation';
 import type { SceneActorDefinition, SceneEvent } from '../scene/types';
 import { ActorArtwork } from './scenes/ActorArtwork';
 
@@ -11,6 +12,7 @@ type Props = {
 
 export function SceneActor({ actor, event, revision }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const sprite = getActorSprite(actor.id);
 
   useEffect(() => {
     const element = ref.current;
@@ -42,17 +44,28 @@ export function SceneActor({ actor, event, revision }: Props) {
     transform: `translate(-50%, -50%) rotate(${actor.rotation}deg) scale(${actor.scale})`,
   };
 
+  const spriteStyle: CSSProperties | undefined = sprite ? {
+    backgroundImage: `url(${sprite.src})`,
+    backgroundSize: `${ACTOR_ATLAS_COLUMNS * 100}% ${ACTOR_ATLAS_ROWS * 100}%`,
+    backgroundPosition: `${sprite.column * 100 / (ACTOR_ATLAS_COLUMNS - 1)}% ${sprite.row * 100 / (ACTOR_ATLAS_ROWS - 1)}%`,
+  } : undefined;
+
   return (
     <div
       ref={ref}
-      className={`scene-actor scene-actor--${actor.kind}`}
+      className={`scene-actor scene-actor--${actor.kind} ${sprite ? 'scene-actor--photo' : 'scene-actor--illustrated'}`}
       data-scene-actor={actor.id}
       data-scene-actor-kind={actor.kind}
       data-scene-moving={event ? 'true' : 'false'}
+      data-photo-actor={sprite ? 'true' : 'false'}
       aria-label={actor.ariaLabel}
       style={homeStyle}
     >
-      <ActorArtwork kind={actor.kind} />
+      {sprite ? (
+        <span className="photo-actor-sprite" aria-hidden style={spriteStyle} />
+      ) : (
+        <ActorArtwork kind={actor.kind} />
+      )}
     </div>
   );
 }

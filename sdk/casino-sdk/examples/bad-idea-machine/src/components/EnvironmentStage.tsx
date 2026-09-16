@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { playResultSound, playSceneEventSound } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import { getEnvironmentDefinition } from '../scene/environments';
+import { getOutcomePresentation, getScenePlate, SCENE_ATLAS_FRAMES } from '../scene/presentation';
 import type { EnvironmentId, SceneEvent, SceneScript } from '../scene/types';
 import '../styles/environment-stage.css';
 import '../styles/environment-ui.css';
-import '../styles/kitchen.css';
-import '../styles/garage.css';
+import { OutcomeStrip } from './OutcomeStrip';
 import { SceneActor } from './SceneActor';
 import { SceneVfx } from './SceneVfx';
-import { GarageScene } from './scenes/GarageScene';
-import { KitchenScene } from './scenes/KitchenScene';
 
 export type EnvironmentPhase = 'idle' | 'arming' | 'revealing' | 'result';
 
@@ -39,6 +37,8 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   const activeEvents = useMemo(() => scriptEvents.filter(event => activeIds.has(event.id)), [scriptEvents, activeIds]);
   const startedByActor = useMemo(() => eventMap(startedEvents), [startedEvents]);
   const cameraImpact = activeEvents.reduce((max, event) => Math.max(max, event.intensity), 0);
+  const plate = getScenePlate(environment, phase, tier);
+  const outcome = tier === undefined ? undefined : getOutcomePresentation(tier);
 
   useEffect(() => {
     if (phase !== 'revealing' || !script || script.environment !== environment) {
@@ -81,75 +81,91 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   const multiplierText = multiplierBps === undefined
     ? ''
     : `${(multiplierBps / 10_000).toFixed(multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
+  const plateStyle: CSSProperties = {
+    backgroundImage: `url(${plate.src})`,
+    backgroundSize: `100% ${SCENE_ATLAS_FRAMES * 100}%`,
+    backgroundPosition: `center ${plate.frame * 100 / (SCENE_ATLAS_FRAMES - 1)}%`,
+  };
 
   return (
-    <section
-      className={`environment-stage environment-stage--${environment} environment-stage--${modeClass} environment-stage--${phase}`}
-      data-environment={environment}
-      data-phase={phase}
-      data-camera-impact={cameraImpact}
-      aria-live="polite"
-    >
-      {environment === 'kitchen' ? <KitchenScene /> : <GarageScene />}
+    <>
+      <section
+        className={`environment-stage environment-stage--${environment} environment-stage--${modeClass} environment-stage--${phase}`}
+        data-environment={environment}
+        data-phase={phase}
+        data-camera-impact={cameraImpact}
+        aria-live="polite"
+      >
+        <div
+          key={`${environment}-${plate.frame}`}
+          className="environment-stage__plate"
+          data-scene-frame={plate.frame}
+          role="img"
+          aria-label={plate.label}
+          style={plateStyle}
+        />
+        <div className="environment-stage__cinematic-grade" aria-hidden="true" />
 
-      <div className="scene-actor-layer" aria-label={`${definition.label} interactive scene`}>
-        {definition.actors.map(actor => (
-          <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
-        ))}
-      </div>
-
-      <SceneVfx events={activeEvents} />
-
-      <div className="environment-stage__hud" aria-hidden="true">
-        <div className="environment-stage__name">
-          <small>CHAOS ENVIRONMENT</small>
-          <strong>{definition.label}</strong>
+        <div className="scene-actor-layer" aria-label={`${definition.label} interactive scene`}>
+          {definition.actors.map(actor => (
+            <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
+          ))}
         </div>
-        <div className="environment-stage__status">
-          {phase === 'revealing' && activeEvents.length > 0
-            ? `${activeEvents.at(-1)?.hazard.toUpperCase()} / ${activeEvents.length} ACTIVE FAILURE${activeEvents.length === 1 ? '' : 'S'}`
-            : phase === 'arming'
-              ? 'BAD DECISIONS ARMING…'
-              : phase === 'result'
-                ? 'DAMAGE ASSESSMENT COMPLETE'
-                : 'ROOM CURRENTLY HABITABLE'}
-        </div>
-      </div>
 
-      {phase === 'arming' && (
-        <div className="environment-stage__arming">
-          <span>{environment === 'kitchen' ? 'PREHEATING REGRETS' : 'REMOVING SAFETY GUARDS'}</span>
-          <span>{environment === 'kitchen' ? 'IGNORING FIRE CODE' : 'LOOSENING EVERY BOLT'}</span>
-          <span>CONSULTING NO PROFESSIONALS</span>
-        </div>
-      )}
+        <SceneVfx events={activeEvents} />
 
-      {phase === 'idle' && (
-        <div className="environment-stage__idle-prompt">
-          <span>{environment === 'kitchen' ? 'KITCHEN MELTDOWN READY' : 'GARAGE MAYHEM READY'}</span>
-          <strong>PRESS THE BUTTON WHEN COMMON SENSE LEAVES.</strong>
+        <div className="environment-stage__hud" aria-hidden="true">
+          <div className="environment-stage__name">
+            <small>CHAOS ENVIRONMENT</small>
+            <strong>{definition.label}</strong>
+            <span>{environment === 'kitchen'
+              ? 'Everyday appliances. Extraordinary bad ideas.'
+              : 'Power tools, heavy metal, loose tires and industrial regret.'}</span>
+          </div>
+          <div className="environment-stage__status">
+            {phase === 'revealing' && activeEvents.length > 0
+              ? `${activeEvents.at(-1)?.hazard.toUpperCase()} / ${activeEvents.length} ACTIVE FAILURE${activeEvents.length === 1 ? '' : 'S'}`
+              : phase === 'arming'
+                ? 'BAD DECISIONS ARMING…'
+                : phase === 'result'
+                  ? 'DAMAGE ASSESSMENT COMPLETE'
+                  : 'AWAITING TERRIBLE JUDGMENT'}
+          </div>
         </div>
-      )}
 
-      {phase === 'result' && tier !== undefined && script && (
-        <div className={`environment-result ${tier === 0 ? 'environment-result--failure' : 'environment-result--win'} ${tier === 4 ? 'environment-result--huge' : ''}`}>
-          <span>{script.finalizer.label}</span>
-          <strong>{multiplierText}</strong>
-          <small>{script.finalizer.flavor}</small>
+        {phase === 'arming' && (
+          <div className="environment-stage__arming">
+            <span>{environment === 'kitchen' ? 'PREHEATING REGRETS' : 'REMOVING SAFETY GUARDS'}</span>
+            <span>CONSULTING NO PROFESSIONALS</span>
+          </div>
+        )}
+
+        {phase === 'result' && tier !== undefined && script && outcome && (
+          <div className={`environment-result environment-result--${outcome.tone} ${tier === 4 ? 'environment-result--huge' : ''}`}>
+            <span>{outcome.title}</span>
+            <strong>{multiplierText}</strong>
+            <small>{environment === 'kitchen' ? outcome.kitchenCopy : outcome.garageCopy}</small>
+          </div>
+        )}
+
+        <div className="environment-stage__event-probe" aria-hidden="true">
+          {activeEvents.map(event => (
+            <i
+              key={event.id}
+              data-event-actor={event.actorId}
+              data-event-hazard={event.hazard}
+              data-event-intensity={event.intensity}
+              data-event-decoy={event.decoy ? 'true' : 'false'}
+            />
+          ))}
         </div>
-      )}
+      </section>
 
-      <div className="environment-stage__event-probe" aria-hidden="true">
-        {activeEvents.map(event => (
-          <i
-            key={event.id}
-            data-event-actor={event.actorId}
-            data-event-hazard={event.hazard}
-            data-event-intensity={event.intensity}
-            data-event-decoy={event.decoy ? 'true' : 'false'}
-          />
-        ))}
-      </div>
-    </section>
+      <OutcomeStrip
+        environment={environment}
+        riskMode={riskMode}
+        activeTier={phase === 'result' ? tier : undefined}
+      />
+    </>
   );
 }

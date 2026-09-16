@@ -1,0 +1,102 @@
+name: Cinematic Scene Smoke
+
+on:
+  push:
+    branches:
+      - feat/cinematic-scene-ui
+    paths:
+      - .github/workflows/cinematic-smoke.yml
+      - sdk/casino-sdk/examples/bad-idea-machine/src/**
+      - sdk/casino-sdk/examples/bad-idea-machine/public/**
+
+permissions:
+  contents: read
+
+jobs:
+  cinematic:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/casino-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install workspace
+        run: npm install
+      - name: Install Chromium
+        shell: bash
+        run: |
+          cd examples/bad-idea-machine
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build and serve
+        shell: bash
+        run: |
+          npm run build:bad-idea
+          npm --prefix examples/bad-idea-machine run preview -- --host 127.0.0.1 > /tmp/cinematic-preview.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:3100 >/dev/null && exit 0
+            sleep 0.25
+          done
+          cat /tmp/cinematic-preview.log
+          exit 1
+      - name: Verify approved cinematic UI contract
+        shell: bash
+        run: |
+          cd examples/bad-idea-machine
+          mkdir -p cinematic-smoke
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({ headless: true });
+          const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
+          const errors = [];
+          page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+          page.on('pageerror', error => errors.push(error.message));
+          await page.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
+
+          await page.locator('.environment-stage__plate').waitFor({ timeout: 3_000 });
+          if (await page.locator('.environment-art').count() !== 0) throw new Error('Flat SVG room art still rendered');
+          if (await page.locator('.outcome-strip__card').count() !== 5) throw new Error('Expected five multiplier outcome cards');
+          const idleFrame = await page.locator('.environment-stage__plate').getAttribute('data-scene-frame');
+          if (idleFrame !== '0') throw new Error(`Kitchen idle must use frame 0, got ${idleFrame}`);
+          await page.screenshot({ path: 'cinematic-smoke/kitchen-idle.png', fullPage: true });
+
+          await page.getByRole('button', { name: /ABSOLUTELY NOT/i }).click();
+          await page.getByRole('button', { name: /DO NOT PRESS|LAUNCH CHAOS/i }).click();
+          await page.locator('.environment-stage[data-phase="revealing"]').waitFor({ timeout: 4_000 });
+          await page.locator('.photo-actor-sprite').first().waitFor({ timeout: 4_000 });
+          const chaosFrame = await page.locator('.environment-stage__plate').getAttribute('data-scene-frame');
+          if (chaosFrame !== '1') throw new Error(`Kitchen chaos must use frame 1, got ${chaosFrame}`);
+          await page.waitForTimeout(900);
+          await page.screenshot({ path: 'cinematic-smoke/kitchen-chaos.png', fullPage: true });
+          await page.locator('.environment-result').waitFor({ timeout: 9_000 });
+          const resultFrame = Number(await page.locator('.environment-stage__plate').getAttribute('data-scene-frame'));
+          if (!(resultFrame >= 2 && resultFrame <= 6)) throw new Error(`Kitchen result frame out of range: ${resultFrame}`);
+          if (await page.locator('.outcome-strip__card--active').count() !== 1) throw new Error('Current multiplier aftermath is not highlighted');
+          await page.screenshot({ path: 'cinematic-smoke/kitchen-result.png', fullPage: true });
+
+          await page.getByRole('button', { name: /GARAGE MAYHEM/i }).click();
+          await page.locator('.environment-stage[data-environment="garage"][data-phase="idle"]').waitFor();
+          if (await page.locator('.environment-stage__plate').getAttribute('data-scene-frame') !== '7') throw new Error('Garage idle must use frame 7');
+          await page.screenshot({ path: 'cinematic-smoke/garage-idle.png', fullPage: true });
+
+          const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
+          mobile.on('console', msg => { if (msg.type() === 'error') errors.push(`mobile: ${msg.text()}`); });
+          mobile.on('pageerror', error => errors.push(`mobile: ${error.message}`));
+          await mobile.goto('http://127.0.0.1:3100', { waitUntil: 'networkidle' });
+          await mobile.locator('.environment-stage__plate').waitFor();
+          await mobile.screenshot({ path: 'cinematic-smoke/mobile-kitchen-idle.png', fullPage: true });
+
+          if (errors.length) throw new Error(`Browser errors:\n${errors.join('\n')}`);
+          await browser.close();
+          NODE
+
+      - name: Upload cinematic screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bad-idea-machine-cinematic-smoke
+          path: sdk/casino-sdk/examples/bad-idea-machine/cinematic-smoke/*.png
+          if-no-files-found: error

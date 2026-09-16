@@ -8,6 +8,8 @@ on:
       - feat/environment-scene-rebuild
       - feat/cinematic-reference-ui
       - feat/reference-locked-cinematic-rebuild
+    paths-ignore:
+      - '.art-transfer/**'
   pull_request:
     branches:
       - main

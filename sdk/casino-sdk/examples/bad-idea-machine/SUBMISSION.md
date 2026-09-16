@@ -7,7 +7,7 @@ Press one button and watch a deterministic Rube Goldberg catastrophe reveal a pa
 ## Submission form
 
 - **Game title:** Bad Idea Machine
-- **Game URL:** add the final stable HTTPS deployment URL after hosting
+- **Game URL:** https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app
 - **Declared RTP:** 96%
 - **Discord:** add your Discord handle before submitting
 - **X:** optional
@@ -72,4 +72,6 @@ The simulation verifies contract quotes and paytable boundaries, then settles **
 
 For the **Chain Jam submission form**, the public hosted game URL and source-access URL are the operational requirements.
 
-A target-chain deployed contract address is an integration-stage deliverable described by the Casino SDK documentation. It is not a field in the current Chain Jam submission form, so it should not block submitting the jam entry once the hosted demo is live.
+The Vercel production alias above is assigned to the deployed project. The connected Vercel reader in this ChatGPT session is currently denied by the personal-team scope, so public reachability should be opened once in a normal browser before final form submission.
+
+A target-chain deployed contract address is an integration-stage deliverable described by the Casino SDK documentation. It is not a field in the current Chain Jam submission form, so it should not block submitting the jam entry once the hosted demo is confirmed publicly reachable.

@@ -95,12 +95,12 @@ function decoysFor(
   index: number,
 ): readonly MachineStation[] {
   const count = 1 + (byteAt(bytes, index + 19) % 2);
+  const start = byteAt(bytes, index + 23) % STATIONS.length;
+  const stride = 1 + (byteAt(bytes, index + 24) % (STATIONS.length - 1));
   const decoys: MachineStation[] = [];
-  let cursor = index + 23;
 
-  while (decoys.length < count) {
-    const candidate = STATIONS[byteAt(bytes, cursor) % STATIONS.length];
-    cursor += 1;
+  for (let offset = 0; offset < STATIONS.length * 2 && decoys.length < count; offset += 1) {
+    const candidate = STATIONS[(start + offset * stride) % STATIONS.length];
     if (candidate !== station && !decoys.includes(candidate)) decoys.push(candidate);
   }
 
@@ -128,7 +128,8 @@ export function buildVisualRoute(tier: OutcomeTier, visualSeed: Hex): readonly R
   const bytes = bytesFor(visualSeed);
   const count = 8 + (byteAt(bytes, 31) % 3);
   const stations = shuffledStations(bytes).slice(0, count);
-  const targetDuration = 4_700 + (byteAt(bytes, 30) % 1_500);
+  const durationRoll = (byteAt(bytes, 30) << 8) | byteAt(bytes, 29);
+  const targetDuration = 4_700 + (durationRoll % 1_500);
   const baseDuration = Math.floor(targetDuration / count);
 
   return stations.map((station, index) => {

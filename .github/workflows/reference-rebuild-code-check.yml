@@ -1,0 +1,28 @@
+name: Reference Rebuild Code Check
+
+on:
+  push:
+    branches:
+      - feat/reference-locked-cinematic-rebuild
+
+permissions:
+  contents: read
+
+jobs:
+  code-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/casino-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Gallery data tests
+        run: npm --prefix examples/bad-idea-machine test -- src/gallery/gallery-data.test.ts
+      - name: Typecheck
+        run: npm --prefix examples/bad-idea-machine run check-types
+      - name: Build
+        run: npm run build:bad-idea

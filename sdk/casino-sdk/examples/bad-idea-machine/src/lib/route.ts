@@ -14,10 +14,18 @@ export type MachineStation =
   | 'safe'
   | 'core';
 
+export type ChaosHazard = 'sparks' | 'fire' | 'smoke' | 'debris' | 'blast' | 'alarm';
+export type ChaosIntensity = 1 | 2 | 3;
+
 export type RouteStep = Readonly<{
   station: MachineStation;
   variant: string;
   durationMs: number;
+  intensity: ChaosIntensity;
+  hazard: ChaosHazard;
+  decoys: readonly MachineStation[];
+  effectSeed: number;
+  terminal: boolean;
 }>;
 
 const STATIONS: readonly MachineStation[] = [
@@ -34,63 +42,109 @@ const STATIONS: readonly MachineStation[] = [
 ];
 
 const VARIANTS: Record<MachineStation, readonly string[]> = {
-  button: ['slam', 'double-tap', 'hesitant'],
-  toaster: ['launch', 'double-launch', 'burnt-launch', 'jam'],
-  cat: ['jump-right', 'wire-attack', 'cup-swipe', 'refuse'],
-  hammer: ['clean-hit', 'ricochet', 'wild-swing', 'miss'],
-  ball: ['fast-roll', 'wobble-roll', 'bank-shot'],
-  fan: ['spin-up', 'reverse-spin', 'overdrive'],
-  dominoes: ['clean-cascade', 'zigzag', 'split-cascade'],
-  rocket: ['vertical', 'sideways', 'sputter'],
-  safe: ['clean-drop', 'chain-snap', 'bounce'],
-  core: ['impossible-sync', 'overload', 'catastrophic-success'],
+  button: ['slam', 'double-tap', 'hesitant', 'panic-slap'],
+  toaster: ['launch', 'double-launch', 'burnt-launch', 'jam', 'flameout'],
+  cat: ['jump-right', 'wire-attack', 'cup-swipe', 'refuse', 'panic-sprint'],
+  hammer: ['clean-hit', 'ricochet', 'wild-swing', 'miss', 'handle-snap'],
+  ball: ['fast-roll', 'wobble-roll', 'bank-shot', 'derail'],
+  fan: ['spin-up', 'reverse-spin', 'overdrive', 'blade-eject'],
+  dominoes: ['clean-cascade', 'zigzag', 'split-cascade', 'backfire'],
+  rocket: ['vertical', 'sideways', 'sputter', 'premature-ignition'],
+  safe: ['clean-drop', 'chain-snap', 'bounce', 'wall-hit'],
+  core: ['impossible-sync', 'overload', 'catastrophic-success', 'meltdown'],
 };
 
-const STEP_COUNTS: Record<Exclude<OutcomeTier, 0>, number> = {
-  1: 4,
-  2: 6,
-  3: 8,
-  4: 10,
-};
+const HAZARDS: readonly ChaosHazard[] = ['sparks', 'fire', 'smoke', 'debris', 'blast', 'alarm'];
 
-const TARGET_DURATION_MS: Record<OutcomeTier, number> = {
-  0: 2_400,
-  1: 3_200,
-  2: 4_200,
-  3: 5_100,
-  4: 6_400,
-};
+function bytesFor(seed: Hex): Uint8Array {
+  return hexToBytes(seed);
+}
 
-function byteAt(seed: Hex, index: number): number {
-  const bytes = hexToBytes(seed);
+function byteAt(bytes: Uint8Array, index: number): number {
   return bytes[index % bytes.length];
 }
 
-function variantFor(station: MachineStation, seed: Hex, index: number): string {
+function variantFor(station: MachineStation, bytes: Uint8Array, index: number): string {
   const choices = VARIANTS[station];
-  return choices[byteAt(seed, index + 7) % choices.length];
+  return choices[byteAt(bytes, index + 7) % choices.length];
+}
+
+function shuffledStations(bytes: Uint8Array): MachineStation[] {
+  const rest = STATIONS.slice(1);
+  let cursor = 3;
+
+  for (let index = rest.length - 1; index > 0; index -= 1) {
+    const random = byteAt(bytes, cursor) + byteAt(bytes, cursor + 11) * 257;
+    const swapWith = random % (index + 1);
+    [rest[index], rest[swapWith]] = [rest[swapWith], rest[index]];
+    cursor += 1;
+  }
+
+  const route = ['button', ...rest] as MachineStation[];
+  const isSerial = route.every((station, index) => station === STATIONS[index]);
+  if (isSerial) {
+    const tail = route.slice(1).reverse();
+    return ['button', ...tail];
+  }
+  return route;
+}
+
+function decoysFor(
+  station: MachineStation,
+  bytes: Uint8Array,
+  index: number,
+): readonly MachineStation[] {
+  const count = 1 + (byteAt(bytes, index + 19) % 2);
+  const decoys: MachineStation[] = [];
+  let cursor = index + 23;
+
+  while (decoys.length < count) {
+    const candidate = STATIONS[byteAt(bytes, cursor) % STATIONS.length];
+    cursor += 1;
+    if (candidate !== station && !decoys.includes(candidate)) decoys.push(candidate);
+  }
+
+  return decoys;
+}
+
+function effectSeedFor(bytes: Uint8Array, index: number): number {
+  return (
+    (byteAt(bytes, index + 2) << 16) |
+    (byteAt(bytes, index + 13) << 8) |
+    byteAt(bytes, index + 27)
+  );
 }
 
 /**
- * Cosmetic-only deterministic route. The tier has already been settled by the
- * contract; visualSeed can alter variants and early-failure punchlines but can
- * never change the economic result.
+ * Cosmetic-only deterministic choreography. The economic tier has already been
+ * settled by the contract. The visible route deliberately does not encode that
+ * tier: route length and early path are driven only by the domain-separated
+ * visual seed, so a player cannot infer the payout by watching how "far" the
+ * machine has progressed.
  */
 export function buildVisualRoute(tier: OutcomeTier, visualSeed: Hex): readonly RouteStep[] {
-  const count = tier === 0 ? 2 + (byteAt(visualSeed, 0) % 3) : STEP_COUNTS[tier];
-  const stations = STATIONS.slice(0, count);
-  const target = TARGET_DURATION_MS[tier];
-  const baseDuration = Math.floor(target / count);
+  void tier;
+
+  const bytes = bytesFor(visualSeed);
+  const count = 8 + (byteAt(bytes, 31) % 3);
+  const stations = shuffledStations(bytes).slice(0, count);
+  const targetDuration = 4_700 + (byteAt(bytes, 30) % 1_500);
+  const baseDuration = Math.floor(targetDuration / count);
 
   return stations.map((station, index) => {
-    const isFailureStop = tier === 0 && index === stations.length - 1;
-    const failureVariant =
-      station === 'toaster' ? 'jam' : station === 'cat' ? 'refuse' : station === 'hammer' ? 'miss' : null;
+    const jitter = (byteAt(bytes, index + 15) % 181) - 90;
+    const intensity = (1 + (byteAt(bytes, index + 9) % 3)) as ChaosIntensity;
+    const terminal = index === stations.length - 1;
 
     return {
       station,
-      variant: isFailureStop && failureVariant ? failureVariant : variantFor(station, visualSeed, index),
-      durationMs: baseDuration,
+      variant: variantFor(station, bytes, index),
+      durationMs: Math.max(360, baseDuration + jitter),
+      intensity: terminal ? 3 : intensity,
+      hazard: HAZARDS[byteAt(bytes, index + 17) % HAZARDS.length],
+      decoys: decoysFor(station, bytes, index),
+      effectSeed: effectSeedFor(bytes, index),
+      terminal,
     };
   });
 }
@@ -104,5 +158,11 @@ export function failureCaption(route: readonly RouteStep[]): string {
   if (stop === 'toaster') return 'BREAKFAST-BASED FAILURE';
   if (stop === 'cat') return 'UNCOOPERATIVE PERSONNEL';
   if (stop === 'hammer') return 'CALIBRATION WAS A SUGGESTION';
+  if (stop === 'rocket') return 'SIDEWAYS DETONATION';
+  if (stop === 'safe') return 'WEAPONIZED SAFE DROP';
+  if (stop === 'ball') return 'UNSCHEDULED BALLISTICS';
+  if (stop === 'fan') return 'FAN BECAME A PROJECTILE';
+  if (stop === 'dominoes') return 'CHAIN REACTION REGRETTED';
+  if (stop === 'core') return 'CORE ACHIEVED SENTIENCE';
   return 'GOOD START.';
 }

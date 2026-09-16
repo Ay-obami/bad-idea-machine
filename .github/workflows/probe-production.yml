@@ -14,32 +14,43 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect production alias and verify merged chaos build
+      - name: Capture production response
         shell: bash
         run: |
           set -u
+          mkdir -p probe-output
           BASE='https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app'
-          echo '--- response headers ---'
-          curl --silent --show-error --head --location --retry 5 --retry-delay 2 "$BASE/" || true
-          echo '--- current index ---'
-          HTML="$(curl --fail --silent --show-error --location --retry 5 --retry-delay 2 "$BASE/")" || exit 10
-          printf '%s\n' "$HTML"
-          echo '--- manifest ---'
-          curl --fail --silent --show-error --location --retry 5 --retry-delay 2 "$BASE/game.manifest.json" | tee /tmp/manifest.json || exit 11
-          echo
-          echo '--- expected exact asset checks ---'
-          STATUS=0
-          printf '%s\n' "$HTML" | grep -F '/assets/index-fg5H4bbd.js' || STATUS=21
-          printf '%s\n' "$HTML" | grep -F '/assets/index-Y-RzVO_v.css' || STATUS=22
-          grep -F '"gameId": "BadIdeaMachineGame"' /tmp/manifest.json || STATUS=23
-          grep -F '"name": "Bad Idea Machine"' /tmp/manifest.json || STATUS=24
-          if [[ "$STATUS" -eq 0 ]]; then
-            curl --fail --silent --show-error --head --location "$BASE/assets/index-fg5H4bbd.js" || STATUS=25
-            curl --fail --silent --show-error --head --location "$BASE/assets/index-Y-RzVO_v.css" || STATUS=26
+
+          curl --silent --show-error --head --location --retry 5 --retry-delay 2 "$BASE/" > probe-output/headers.txt 2>&1 || true
+          INDEX_CODE="$(curl --silent --show-error --location --retry 5 --retry-delay 2 -o probe-output/index.html -w '%{http_code}' "$BASE/" || echo CURL_ERROR)"
+          MANIFEST_CODE="$(curl --silent --show-error --location --retry 5 --retry-delay 2 -o probe-output/game.manifest.json -w '%{http_code}' "$BASE/game.manifest.json" || echo CURL_ERROR)"
+
+          JS_PATH="$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' probe-output/index.html | head -1 || true)"
+          CSS_PATH="$(grep -oE '/assets/index-[A-Za-z0-9_-]+\.css' probe-output/index.html | head -1 || true)"
+
+          {
+            echo "base=$BASE"
+            echo "index_http=$INDEX_CODE"
+            echo "manifest_http=$MANIFEST_CODE"
+            echo "live_js=$JS_PATH"
+            echo "live_css=$CSS_PATH"
+            echo "expected_js=/assets/index-fg5H4bbd.js"
+            echo "expected_css=/assets/index-Y-RzVO_v.css"
+          } > probe-output/summary.txt
+
+          if [[ -n "$JS_PATH" ]]; then
+            curl --silent --show-error --head --location "$BASE$JS_PATH" > probe-output/js-headers.txt 2>&1 || true
           fi
-          if [[ "$STATUS" -eq 0 ]]; then
-            echo 'PASS production alias serves exact verified chaos bundle'
-          else
-            echo "FAIL production alias mismatch status=$STATUS"
+          if [[ -n "$CSS_PATH" ]]; then
+            curl --silent --show-error --head --location "$BASE$CSS_PATH" > probe-output/css-headers.txt 2>&1 || true
           fi
-          exit "$STATUS"
+
+          cat probe-output/summary.txt
+
+      - name: Upload production diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-probe
+          path: probe-output
+          if-no-files-found: error

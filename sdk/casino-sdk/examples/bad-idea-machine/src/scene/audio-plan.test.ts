@@ -86,4 +86,13 @@ describe('sample-driven catastrophe sound plans', () => {
     expect(kitchen[0].gain).toBeLessThanOrEqual(.2);
     expect(garage[0].gain).toBeLessThanOrEqual(.2);
   });
+
+  it('does not reveal payout tier through aftermath loudness', () => {
+    for (const environment of ['kitchen', 'garage'] as const) {
+      const baseline = buildAftermathSoundPlan(environment, 0);
+      for (const tier of [1, 2, 3, 4] as const) {
+        expect(buildAftermathSoundPlan(environment, tier)).toEqual(baseline);
+      }
+    }
+  });
 });

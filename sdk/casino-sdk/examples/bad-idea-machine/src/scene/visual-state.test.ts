@@ -1,28 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
+import { getEnvironmentArt } from '../environments';
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
-import { damageStateForTier, outcomeCardsForMode, outcomeLabelForTier } from './visual-state';
+import { aftermathKeyForTier, outcomeCardsForMode, outcomeLabelForTier } from './visual-state';
 
 const TIERS: readonly OutcomeTier[] = [0, 1, 2, 3, 4];
 const MODES: readonly RiskMode[] = [0, 1, 2];
 
-describe('cinematic damage states', () => {
-  it('maps every payout tier to a distinct persistent room state', () => {
-    const states = TIERS.map(damageStateForTier);
-    expect(new Set(states).size).toBe(5);
-    expect(states).toEqual(['failure', 'minor', 'controlled', 'major', 'legendary']);
+describe('authored aftermath states', () => {
+  it('maps every payout tier to the approved aftermath ladder', () => {
+    expect(TIERS.map(aftermathKeyForTier)).toEqual([
+      'failure',
+      'minor',
+      'moderate',
+      'severe',
+      'legendary',
+    ]);
   });
 
-  it('keeps the damage ladder ordered from rubble to legendary destruction', () => {
-    expect(damageStateForTier(0)).toBe('failure');
-    expect(damageStateForTier(1)).toBe('minor');
-    expect(damageStateForTier(2)).toBe('controlled');
-    expect(damageStateForTier(3)).toBe('major');
-    expect(damageStateForTier(4)).toBe('legendary');
+  it('resolves five distinct authored plates in each environment', () => {
+    for (const environment of ['kitchen', 'garage'] as const) {
+      const art = getEnvironmentArt(environment);
+      const paths = TIERS.map(tier => art.aftermaths[aftermathKeyForTier(tier)]);
+      expect(new Set(paths).size).toBe(5);
+      expect(paths.every(path => path.startsWith(`/rooms/${environment}/aftermath/`))).toBe(true);
+    }
   });
 });
 
-describe('possible outcome cards', () => {
+describe('possible outcome metadata', () => {
   it('uses the real multiplier for each risk mode and tier', () => {
     for (const mode of MODES) {
       const cards = outcomeCardsForMode(mode);
@@ -30,17 +36,17 @@ describe('possible outcome cards', () => {
       cards.forEach((card, tier) => {
         expect(card.tier).toBe(tier);
         expect(card.multiplierBps).toBe(multiplierBpsForTier(mode, tier as OutcomeTier));
-        expect(card.damageState).toBe(damageStateForTier(tier as OutcomeTier));
+        expect(card.aftermathKey).toBe(aftermathKeyForTier(tier as OutcomeTier));
       });
     }
   });
 
-  it('gives each result tier a judge-readable damage label', () => {
+  it('keeps judge-readable labels aligned with the reference gallery', () => {
     expect(TIERS.map(outcomeLabelForTier)).toEqual([
       'TOTAL FAILURE',
       'MINOR SUCCESS',
       'CONTROLLED CHAOS',
-      'MAJOR PAYOUT',
+      'MAJOR JACKPOT',
       'LEGENDARY CHAOS',
     ]);
   });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { playResultSound, playStationSound } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
@@ -13,6 +13,14 @@ type Props = {
   tier?: OutcomeTier;
   multiplierBps?: number;
 };
+
+type ParticleKind = 'spark' | 'ember' | 'smoke' | 'debris';
+type ChaosStyle = CSSProperties & { [key: `--${string}`]: string };
+
+type ParticleSpec = Readonly<{
+  kind: ParticleKind;
+  style: ChaosStyle;
+}>;
 
 const ALL_STATIONS: readonly MachineStation[] = [
   'button',
@@ -53,6 +61,52 @@ function StationGlyph({ station }: { station: MachineStation }) {
   return <span className="glyph glyph--core"><i /></span>;
 }
 
+function seededRandom(seed: number) {
+  let state = (seed || 0x51f15e) >>> 0;
+  return () => {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return state / 0x1_0000_0000;
+  };
+}
+
+function particleKindsFor(step: RouteStep): readonly ParticleKind[] {
+  if (step.hazard === 'fire') return ['ember', 'spark', 'ember', 'smoke'];
+  if (step.hazard === 'smoke') return ['smoke', 'smoke', 'ember', 'debris'];
+  if (step.hazard === 'debris') return ['debris', 'spark', 'debris', 'ember'];
+  if (step.hazard === 'blast') return ['spark', 'debris', 'ember', 'smoke'];
+  if (step.hazard === 'alarm') return ['spark', 'ember', 'debris'];
+  return ['spark', 'spark', 'ember', 'debris'];
+}
+
+function buildParticles(step: RouteStep): readonly ParticleSpec[] {
+  const random = seededRandom(step.effectSeed);
+  const kinds = particleKindsFor(step);
+  const count = 9 + step.intensity * 9 + (step.hazard === 'blast' ? 8 : 0);
+
+  return Array.from({ length: count }, (_, index) => {
+    const kind = kinds[index % kinds.length];
+    const smoke = kind === 'smoke';
+    const x = 8 + random() * 84;
+    const y = 13 + random() * 72;
+    const dx = (random() - .5) * (smoke ? 100 : 330);
+    const dy = smoke ? -(75 + random() * 150) : (random() - .68) * 260;
+    const size = smoke ? 18 + random() * 38 : 5 + random() * (step.intensity * 5 + 8);
+    const rotation = (random() - .5) * 760;
+
+    return {
+      kind,
+      style: {
+        '--particle-x': `${x}%`,
+        '--particle-y': `${y}%`,
+        '--particle-dx': `${dx}px`,
+        '--particle-dy': `${dy}px`,
+        '--particle-size': `${size}px`,
+        '--particle-rot': `${rotation}deg`,
+      },
+    };
+  });
+}
+
 export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Props) {
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -67,7 +121,7 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
     route.forEach((step, index) => {
       const timer = window.setTimeout(() => {
         setActiveIndex(index);
-        playStationSound(step.station, step.variant);
+        playStationSound(step);
       }, elapsed);
       timers.push(timer);
       elapsed += step.durationMs;
@@ -84,13 +138,19 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
     () => new Map(route.map((step, index) => [step.station, index] as const)),
     [route],
   );
+  const activeStep = activeIndex >= 0 ? route[activeIndex] : undefined;
+  const decoys = useMemo(() => new Set(activeStep?.decoys ?? []), [activeStep]);
+  const particles = useMemo(() => activeStep ? buildParticles(activeStep) : [], [activeStep]);
 
   const modeClass = riskMode === 0 ? 'controlled' : riskMode === 1 ? 'send-it' : 'absolutely-not';
   const resultText = multiplierBps === undefined ? '' : `${(multiplierBps / 10_000).toFixed(multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
   const isFailure = tier === 0;
+  const machineIntensity = phase === 'revealing' && activeStep ? `machine--intensity-${activeStep.intensity}` : '';
+  const burstX = activeStep ? 18 + (activeStep.effectSeed % 65) : 50;
+  const burstY = activeStep ? 18 + ((activeStep.effectSeed >>> 7) % 60) : 50;
 
   return (
-    <section className={`machine machine--${modeClass} machine--${phase}`} aria-live="polite">
+    <section className={`machine machine--${modeClass} machine--${phase} ${machineIntensity}`} aria-live="polite">
       <div className="machine__header">
         <div>
           <span className="eyebrow">UNLICENSED DECISION ENGINE / MK.IV</span>
@@ -98,7 +158,9 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
         </div>
         <div className="machine__status">
           <span className="status-light" />
-          {riskMode === 0 ? 'STABILITY ONLINE' : riskMode === 1 ? 'LIMITERS BYPASSED' : 'WARRANTY VOID'}
+          {phase === 'revealing' && activeStep
+            ? `${activeStep.hazard.toUpperCase()} CASCADE / LEVEL ${activeStep.intensity}`
+            : riskMode === 0 ? 'STABILITY ONLINE' : riskMode === 1 ? 'LIMITERS BYPASSED' : 'WARRANTY VOID'}
         </div>
       </div>
 
@@ -107,27 +169,53 @@ export function MachineStage({ riskMode, phase, route, tier, multiplierBps }: Pr
           const currentRouteIndex = routeIndex.get(station);
           const isReached = reached.has(station);
           const isActive = phase === 'revealing' && currentRouteIndex === activeIndex;
+          const isDecoy = phase === 'revealing' && decoys.has(station) && !isActive;
           const isComplete =
             (phase === 'revealing' && currentRouteIndex !== undefined && currentRouteIndex < activeIndex) ||
             (phase === 'result' && isReached);
           const variant = currentRouteIndex === undefined ? '' : route[currentRouteIndex]?.variant ?? '';
+          const showFire = isActive && (activeStep?.hazard === 'fire' || activeStep?.hazard === 'blast');
+          const showSmoke = isActive && ['fire', 'smoke', 'blast'].includes(activeStep?.hazard ?? '');
+          const dangerousDecoy = isDecoy && (activeStep?.intensity ?? 0) >= 2;
+
           return (
             <div className="machine__station-wrap" key={station}>
               <article
-                className={`station ${isReached ? 'station--reached' : ''} ${isActive ? 'station--active' : ''} ${isComplete ? 'station--complete' : ''}`}
+                className={`station ${isReached ? 'station--reached' : ''} ${isActive ? 'station--active' : ''} ${isComplete ? 'station--complete' : ''} ${isDecoy ? 'station--decoy' : ''} ${dangerousDecoy ? 'station--danger' : ''}`}
                 data-station={station}
                 data-variant={variant}
+                data-hazard={isActive ? activeStep?.hazard : undefined}
+                style={isActive ? ({ '--chaos-tilt': `${((activeStep?.effectSeed ?? 0) % 7) - 3}deg` } as ChaosStyle) : undefined}
               >
                 <div className="station__number">{String(index + 1).padStart(2, '0')}</div>
                 <StationGlyph station={station} />
                 <strong>{LABEL[station]}</strong>
-                <small>{isActive ? variant.replaceAll('-', ' ') : 'STANDBY'}</small>
+                <small>{isActive ? variant.replaceAll('-', ' ') : isDecoy ? 'FALSE ALARM' : 'STANDBY'}</small>
+                {showFire && <i className="station__fire" aria-hidden />}
+                {showSmoke && <i className="station__smoke" aria-hidden />}
               </article>
               {index < ALL_STATIONS.length - 1 && <span className="machine__wire" aria-hidden />}
             </div>
           );
         })}
       </div>
+
+      {phase === 'revealing' && activeStep && (
+        <div className={`chaos-layer chaos-layer--${activeStep.hazard}`} aria-hidden>
+          <span
+            className="chaos-flash"
+            key={`flash-${activeIndex}-${activeStep.effectSeed}`}
+            style={{ '--burst-x': `${burstX}%`, '--burst-y': `${burstY}%` } as ChaosStyle}
+          />
+          {particles.map((particle, index) => (
+            <span
+              className={`chaos-particle chaos-particle--${particle.kind}`}
+              key={`${activeStep.effectSeed}-${activeIndex}-${index}`}
+              style={particle.style}
+            />
+          ))}
+        </div>
+      )}
 
       {phase === 'arming' && (
         <div className="machine__arming">

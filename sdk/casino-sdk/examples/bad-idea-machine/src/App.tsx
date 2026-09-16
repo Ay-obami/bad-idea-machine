@@ -3,10 +3,8 @@ import { bytesToHex, formatUnits, parseUnits, type Hex } from 'viem';
 import type { RandomnessVerificationV1 } from '@chain/casino-sdk';
 import { computeMaxWager } from '@chain/casino-sdk/guest';
 
-import { ControlPanel } from './components/ControlPanel';
-import { EnvironmentStage, type EnvironmentPhase } from './components/EnvironmentStage';
+import type { EnvironmentPhase } from './components/EnvironmentStage';
 import { FairnessReceipt } from './components/FairnessReceipt';
-import { OutcomeStrip } from './components/OutcomeStrip';
 import {
   EMPTY_HEX,
   PHASE_SETTLED,
@@ -25,6 +23,7 @@ import {
 } from './lib/badIdea';
 import { isMachineMuted, primeAudio, setMachineMuted } from './lib/audio';
 import { useCasinoHost } from './lib/useCasinoHost';
+import { GameScreen } from './play/GameScreen';
 import { buildSceneScript } from './scene/scene-script';
 import type { EnvironmentId, SceneScript } from './scene/types';
 
@@ -53,6 +52,10 @@ type Round = {
   verification?: RandomnessVerificationV1 | null;
 };
 
+type AppProps = Readonly<{
+  onBackToGallery?: () => void;
+}>;
+
 function browserRandomness(): Hex {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
@@ -75,7 +78,7 @@ function inferTierFromPayout(wager: bigint, payout: bigint, riskMode: RiskMode):
   return null;
 }
 
-export function App() {
+export function App({ onBackToGallery }: AppProps = {}) {
   const { hostApi, snapshot } = useCasinoHost();
   const standalone = useMemo(() => typeof window !== 'undefined' && window.self === window.top, []);
 
@@ -352,6 +355,12 @@ export function App() {
     if (!next) primeAudio();
   };
 
+  const handleBackToGallery = () => {
+    if (roundInFlight || !onBackToGallery) return;
+    if (round?.status === 'done') clearFinishedPresentation();
+    onBackToGallery();
+  };
+
   if (!ready) {
     return (
       <main className="boot-screen">
@@ -378,56 +387,8 @@ export function App() {
     ? '—'
     : `${(round.multiplierBps / 10_000).toFixed(round.multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
 
-  return (
-    <main className={`app-shell app-shell--mode-${displayMode} app-shell--environment-${displayEnvironment}`}>
-      <div className="hazard-stripe" aria-hidden />
-      <header className="game-header">
-        <div className="game-header__brand">
-          <span className="brand-badge">BIM</span>
-          <div><strong>BAD IDEA MACHINE</strong><small>CHOOSE YOUR ROOM. DESTROY IT RESPONSIBLY.</small></div>
-        </div>
-        <div className="game-header__network">
-          <span className="network-dot" />
-          {demoMode ? 'STANDALONE DEMO' : `CHAIN ${snapshot?.integration.chainId ?? ''}`}
-        </div>
-      </header>
-
-      <div className="game-layout game-layout--environment">
-        <EnvironmentStage
-          environment={displayEnvironment}
-          riskMode={displayMode}
-          phase={environmentPhase}
-          script={round?.script}
-          tier={round?.tier}
-          multiplierBps={round?.multiplierBps}
-        />
-
-        <ControlPanel
-          riskMode={riskMode}
-          onRiskModeChange={handleRiskModeChange}
-          environment={environment}
-          onEnvironmentChange={handleEnvironmentChange}
-          wagerInput={wagerInput}
-          onWagerInputChange={setWagerInput}
-          balanceText={balanceText}
-          symbol={symbol}
-          ctaLabel={roundInFlight ? 'BAD IDEA IN PROGRESS' : round?.status === 'done' ? 'LAUNCH AGAIN' : 'LAUNCH CHAOS'}
-          disabled={!canPlay}
-          reason={reason}
-          demoMode={demoMode}
-          muted={muted}
-          onToggleMuted={toggleMuted}
-          onPlay={handlePlay}
-        />
-      </div>
-
-      <OutcomeStrip
-        environment={displayEnvironment}
-        riskMode={displayMode}
-        settledTier={round?.status === 'done' ? round.tier : undefined}
-      />
-
-      {round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && round.script && (
+  const receipt = round?.status === 'done' && round.tier !== undefined && round.multiplierBps !== undefined && round.script
+    ? (
         <FairnessReceipt
           open={receiptOpen}
           onToggle={() => setReceiptOpen(current => !current)}
@@ -444,14 +405,37 @@ export function App() {
           verification={round.verification}
           demoMode={round.source === 'demo'}
         />
-      )}
+      )
+    : undefined;
 
-      <footer className="game-footer">
-        <span>96.00% RTP</span>
-        <span>CHAIN VRF</span>
-        <span>2 CHAOS ENVIRONMENTS</span>
-        <span>THE ROOM CHANGES. THE MATH DOES NOT.</span>
-      </footer>
-    </main>
+  return (
+    <GameScreen
+      networkLabel={demoMode ? 'STANDALONE DEMO' : `CHAIN ${snapshot?.integration.chainId ?? ''}`}
+      displayEnvironment={displayEnvironment}
+      displayMode={displayMode}
+      environmentPhase={environmentPhase}
+      script={round?.script}
+      tier={round?.tier}
+      multiplierBps={round?.multiplierBps}
+      riskMode={riskMode}
+      onRiskModeChange={handleRiskModeChange}
+      environment={environment}
+      onEnvironmentChange={handleEnvironmentChange}
+      wagerInput={wagerInput}
+      onWagerInputChange={setWagerInput}
+      balanceText={balanceText}
+      symbol={symbol}
+      ctaLabel={roundInFlight ? 'BAD IDEA IN PROGRESS' : round?.status === 'done' ? 'DO IT AGAIN' : 'DO NOT PRESS'}
+      disabled={!canPlay}
+      reason={reason}
+      demoMode={demoMode}
+      muted={muted}
+      onToggleMuted={toggleMuted}
+      onPlay={handlePlay}
+      settledTier={round?.status === 'done' ? round.tier : undefined}
+      receipt={receipt}
+      onBackToGallery={onBackToGallery ? handleBackToGallery : undefined}
+      canLeave={!roundInFlight}
+    />
   );
 }

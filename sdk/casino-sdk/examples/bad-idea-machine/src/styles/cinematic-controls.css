@@ -271,8 +271,53 @@
   .cinematic-controls .control-panel__topline { padding-bottom:9px; }
   .cinematic-controls .wager-control__input { height:54px; }
   .wager-presets { gap:5px; }
-  .cinematic-controls .risk-card { min-height:49px; }
+  .cinematic-controls .cinematic-risk-selector {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    grid-column: 1 / -1;
+    grid-row: auto;
+  }
+  .cinematic-controls .risk-card {
+    min-width:0;
+    min-height:64px;
+    gap:7px;
+    padding:8px;
+  }
+  .cinematic-controls .risk-card > span:last-child { min-width:0; }
+  .cinematic-controls .risk-card strong {
+    font-size:.66rem;
+    line-height:1.08;
+    letter-spacing:.05em;
+    overflow-wrap:anywhere;
+  }
+  .cinematic-controls .risk-card small {
+    font-size:.5rem;
+    line-height:1.15;
+  }
   .cinematic-controls .environment-choice { min-height:76px; }
   .cinematic-launch { min-height:72px; grid-template-columns:38px 1fr; padding:10px 12px !important; }
   .cinematic-launch__icon { width:36px;height:36px;font-size:1rem; }
+}
+
+@media (max-width: 480px) {
+  .cinematic-controls .cinematic-risk-selector { gap:6px; }
+  .cinematic-controls .risk-card {
+    min-height:58px;
+    flex-direction:column;
+    justify-content:center;
+    gap:5px;
+    padding:7px 5px;
+    text-align:center;
+  }
+  .cinematic-controls .risk-card__indicator {
+    width:18px;
+    height:18px;
+    flex-basis:18px;
+    font-size:.65rem;
+  }
+  .cinematic-controls .risk-card strong {
+    font-size:.6rem;
+    line-height:1.08;
+    letter-spacing:.035em;
+  }
+  .cinematic-controls .risk-card small { display:none; }
 }

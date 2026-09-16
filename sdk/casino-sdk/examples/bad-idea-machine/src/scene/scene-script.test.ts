@@ -6,6 +6,7 @@ import { getEnvironmentDefinition } from './environments';
 import { visualByte, visualU16 } from './random';
 import { buildSceneScript, sceneDurationMs } from './scene-script';
 import type { EnvironmentId, SceneEvent } from './types';
+import { actorPhotoFor } from './visual-state';
 
 const SEED = `0x${'00112233445566778899aabbccddeeff'.repeat(2)}` as Hex;
 const ZERO_SEED = `0x${'00'.repeat(32)}` as Hex;
@@ -85,6 +86,7 @@ describe('deterministic environment catastrophe scripts', () => {
           expect(script.events.length).toBeGreaterThanOrEqual(8);
           expect(script.events.length).toBeLessThanOrEqual(12);
           expect(new Set(script.events.map(event => event.actorId)).size).toBeGreaterThanOrEqual(4);
+          expect(script.events.some(event => actorPhotoFor(event.actorId))).toBe(true);
           expect(script.events.some(event => event.decoy)).toBe(true);
           expect(script.events.some(event => event.hazard === 'fire' || event.hazard === 'blast')).toBe(true);
           expect(script.events.some(event => ['debris', 'smoke', 'steam', 'shards'].includes(event.hazard))).toBe(true);

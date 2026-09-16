@@ -10,7 +10,7 @@ Make Bad Idea Machine look like the approved cinematic reference: a believable, 
 2. The live stage must use environment-native photographic imagery, not flat SVG/card artwork.
 3. Animated actors may only use transparent photographic cutouts that visually belong to the room. Unsupported cartoon/SVG actors are hidden rather than shown.
 4. Result damage is represented by five separately authored photographic room states per environment, one for each payout tier. CSS smoke/scorch/crack overlays may add atmosphere but may not be the primary damage mechanism.
-5. The five `POSSIBLE OUTCOMES` cards use the same photographic aftermath frames that can appear in the main stage.
+5. The five `POSSIBLE OUTCOMES` cards use the same photographic aftermath files that can appear in the main stage.
 6. The settled room remains on its tier-specific aftermath until the player changes environment or launches again.
 7. The result card must not obscure the core destruction. Keep it compact in a corner.
 8. Kitchen and Garage must remain materially different physical spaces, not recolors.
@@ -18,36 +18,28 @@ Make Bad Idea Machine look like the approved cinematic reference: a believable, 
 
 ## Asset contract
 
-The fourteen authored full-room states are packed losslessly by meaning into one local `public/cinematic/scene-atlas.avif` for delivery efficiency. The atlas is a vertical sequence of fourteen equal 16:9 frames in this exact order:
+Each environment ships seven local room-state assets:
 
-0. Kitchen idle
-1. Kitchen chaos
-2. Kitchen result tier 0
-3. Kitchen result tier 1
-4. Kitchen result tier 2
-5. Kitchen result tier 3
-6. Kitchen result tier 4
-7. Garage idle
-8. Garage chaos
-9. Garage result tier 0
-10. Garage result tier 1
-11. Garage result tier 2
-12. Garage result tier 3
-13. Garage result tier 4
+- `public/cinematic/kitchen/idle.webp`
+- `public/cinematic/kitchen/chaos.webp`
+- `public/cinematic/kitchen/result-0.webp` through `result-4.webp`
+- `public/cinematic/garage/idle.webp`
+- `public/cinematic/garage/chaos.webp`
+- `public/cinematic/garage/result-0.webp` through `result-4.webp`
 
-Packing is only storage optimization: every state remains separately authored and the runtime selects exactly one frame at a time. The same result frames are used in the main stage and outcome strip.
+Every result file is separately authored. The runtime selects exactly one room-state file at a time, and the outcome strip reuses the same result files as the main stage.
 
 Photographic actor cutouts live under `public/cinematic/actors/` and are keyed by exact scene actor ID, for example `kitchen-toaster.webp`, `garage-hammer.webp`.
 
 ## Stage state model
 
-`idle` -> room uses the environment idle frame.
+`idle` -> room uses `idle.webp`.
 
-`arming` -> room stays on the idle frame; only HUD/arming copy changes.
+`arming` -> room stays on `idle.webp`; only HUD/arming copy changes.
 
-`revealing` -> room crossfades into the environment chaos frame, camera movement/VFX remain subtle, and only photographic actor cutouts animate over the scene.
+`revealing` -> room crossfades into `chaos.webp`, camera movement/VFX remain subtle, and only photographic actor cutouts animate over the scene.
 
-`result` -> room crossfades to that environment's `result tier` frame and stays there. Tier changes the final photographic room only; it does not change settlement math or the shared reveal script.
+`result` -> room crossfades to `result-{tier}.webp` and stays there. Tier changes the final photographic room only; it does not change settlement math or the shared reveal script.
 
 ## Actor model
 
@@ -61,10 +53,10 @@ No contract, paytable, RTP, risk-mode encoding, VRF request, settlement, or payo
 
 The browser gate must prove:
 
-- idle room selects the correct environment idle frame;
-- reveal selects the correct authored chaos frame;
-- result selects exactly that environment's result frame for the settled tier and never automatically returns to idle;
-- all five outcome cards select five distinct result frames;
+- idle room uses the environment-specific authored `idle.webp`;
+- reveal switches to the authored `chaos.webp`;
+- result switches to exactly `result-{tier}.webp` and never back to idle automatically;
+- all five outcome cards point to five distinct result files;
 - no `.actor-art` SVG is rendered in the live stage;
 - at least one photographic actor cutout moves during a reveal;
 - Kitchen and Garage both pass desktop and 390px mobile smoke tests;

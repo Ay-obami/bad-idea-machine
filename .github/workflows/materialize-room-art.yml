@@ -44,10 +44,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find .art-transfer -maxdepth 1 -name 'part-*.b64' | wc -l)" -eq 28
+          test "$(find .art-transfer -maxdepth 1 -name 'part-*.b64' | wc -l)" -eq 12
           cat .art-transfer/part-*.b64 > /tmp/room-art-seed.b64
           base64 --decode /tmp/room-art-seed.b64 > /tmp/room-art-seed.tar.gz
-          echo 'b9a3bea68a9f477a65add727849e68fac9fbbb9fddc56967eb0a1a46908c47b6  /tmp/room-art-seed.tar.gz' | sha256sum -c -
+          echo 'f36880bbf367540f27049fe9e79f5c7f58592813c1a29c9537bc668a210d3bf5  /tmp/room-art-seed.tar.gz' | sha256sum -c -
           mkdir -p /tmp/room-art-seed
           tar -xzf /tmp/room-art-seed.tar.gz -C /tmp/room-art-seed
           test -s /tmp/room-art-seed/rooms.mkv

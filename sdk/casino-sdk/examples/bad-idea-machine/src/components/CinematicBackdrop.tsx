@@ -5,7 +5,7 @@ import type { EnvironmentId } from '../scene/types';
 import { damageStateForTier, type DamageState } from '../scene/visual-state';
 
 const ROOM_PHOTOS: Record<EnvironmentId, string> = {
-  kitchen: 'https://images.unsplash.com/photo-1767706508438-0665b65a1ae9?auto=format&fit=crop&q=86&w=2200',
+  kitchen: 'https://images.unsplash.com/photo-1784039534969-26e424548f3e?auto=format&fit=crop&q=86&w=2200',
   garage: 'https://images.unsplash.com/photo-1763202282638-371d7060ee51?auto=format&fit=crop&q=86&w=2200',
 };
 

@@ -1,0 +1,53 @@
+name: Publish Bad Idea Machine Static Bundle
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install workspace
+        working-directory: sdk/casino-sdk
+        run: npm install
+
+      - name: Build verified static game
+        working-directory: sdk/casino-sdk
+        run: |
+          npm run test:bad-idea
+          npm --prefix examples/bad-idea-machine run check-types
+          npm run build:bad-idea
+          npm --prefix examples/bad-idea-machine run verify-build
+
+      - name: Publish dist to static branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/bad-idea-static
+          mkdir -p /tmp/bad-idea-static
+          cp -R sdk/casino-sdk/examples/bad-idea-machine/dist/. /tmp/bad-idea-static/
+          cd /tmp/bad-idea-static
+          git init
+          git checkout -b vercel-static
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "deploy: static bundle ${GITHUB_SHA}"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push --force origin vercel-static
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

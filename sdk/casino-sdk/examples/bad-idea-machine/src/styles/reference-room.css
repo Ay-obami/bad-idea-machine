@@ -37,6 +37,12 @@
   filter: saturate(.92) brightness(.92);
 }
 
+.scene-shockwave.scene-impact__delayed,
+.scene-flame.scene-impact__delayed {
+  opacity: 0;
+  animation-delay: var(--impact-delay) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .room-object { will-change: auto; }
 }

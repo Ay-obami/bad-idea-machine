@@ -9,6 +9,10 @@ type Props = {
   revision: number;
 };
 
+/**
+ * Legacy actor renderer retained only until the reference-locked migration is
+ * fully verified. Production EnvironmentStage now renders RoomObject sprites.
+ */
 export function SceneActor({ actor, event, revision }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -45,14 +49,14 @@ export function SceneActor({ actor, event, revision }: Props) {
   return (
     <div
       ref={ref}
-      className={`scene-actor scene-actor--${actor.kind}`}
+      className={`scene-actor scene-actor--${actor.assetId}`}
       data-scene-actor={actor.id}
-      data-scene-actor-kind={actor.kind}
+      data-scene-actor-kind={actor.assetId}
       data-scene-moving={event ? 'true' : 'false'}
       aria-label={actor.ariaLabel}
       style={homeStyle}
     >
-      <ActorArtwork kind={actor.kind} />
+      <ActorArtwork kind={actor.assetId} />
     </div>
   );
 }

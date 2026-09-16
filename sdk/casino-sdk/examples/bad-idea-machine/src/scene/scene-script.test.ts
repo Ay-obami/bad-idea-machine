@@ -38,15 +38,15 @@ describe('scene environment definitions', () => {
   it('uses materially different kitchen and garage actor sets', () => {
     const kitchen = getEnvironmentDefinition('kitchen');
     const garage = getEnvironmentDefinition('garage');
-    const kitchenKinds = new Set(kitchen.actors.map(actor => actor.kind));
-    const garageKinds = new Set(garage.actors.map(actor => actor.kind));
+    const kitchenAssets = new Set(kitchen.actors.map(actor => actor.assetId));
+    const garageAssets = new Set(garage.actors.map(actor => actor.assetId));
 
-    expect(kitchenKinds.has('toaster')).toBe(true);
-    expect(kitchenKinds.has('kettle')).toBe(true);
-    expect(garageKinds.has('drill')).toBe(true);
-    expect(garageKinds.has('tire')).toBe(true);
-    expect(kitchenKinds.has('drill')).toBe(false);
-    expect(garageKinds.has('kettle')).toBe(false);
+    expect(kitchenAssets.has('toaster')).toBe(true);
+    expect(kitchenAssets.has('kettle')).toBe(true);
+    expect(garageAssets.has('drill')).toBe(true);
+    expect(garageAssets.has('tire')).toBe(true);
+    expect(kitchenAssets.has('drill')).toBe(false);
+    expect(garageAssets.has('kettle')).toBe(false);
   });
 
   it('places every actor inside the 1000x600 logical stage', () => {

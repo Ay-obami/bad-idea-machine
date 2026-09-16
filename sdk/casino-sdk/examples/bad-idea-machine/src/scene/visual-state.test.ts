@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
-import { damageStateForTier, outcomeCardsForMode, outcomeLabelForTier } from './visual-state';
+import {
+  actorAtlasCellFor,
+  actorPhotoFor,
+  damageStateForTier,
+  outcomeCardsForMode,
+  outcomeLabelForTier,
+  roomFrameFor,
+} from './visual-state';
 
 const TIERS: readonly OutcomeTier[] = [0, 1, 2, 3, 4];
 const MODES: readonly RiskMode[] = [0, 1, 2];
@@ -19,6 +26,44 @@ describe('cinematic damage states', () => {
     expect(damageStateForTier(2)).toBe('controlled');
     expect(damageStateForTier(3)).toBe('major');
     expect(damageStateForTier(4)).toBe('legendary');
+  });
+});
+
+describe('authored photographic room frames', () => {
+  it('uses intact and chaos frames without consulting payout tier', () => {
+    expect(roomFrameFor('kitchen', 'idle')).toBe(0);
+    expect(roomFrameFor('kitchen', 'arming')).toBe(0);
+    expect(roomFrameFor('kitchen', 'revealing')).toBe(1);
+    expect(roomFrameFor('garage', 'idle')).toBe(7);
+    expect(roomFrameFor('garage', 'arming')).toBe(7);
+    expect(roomFrameFor('garage', 'revealing')).toBe(8);
+  });
+
+  it('maps every result tier to its own authored aftermath frame', () => {
+    expect(TIERS.map(tier => roomFrameFor('kitchen', 'result', tier))).toEqual([2, 3, 4, 5, 6]);
+    expect(TIERS.map(tier => roomFrameFor('garage', 'result', tier))).toEqual([9, 10, 11, 12, 13]);
+  });
+
+  it('requires a settled tier for the result frame', () => {
+    expect(() => roomFrameFor('kitchen', 'result')).toThrow(/tier/i);
+  });
+});
+
+describe('photographic actor atlas', () => {
+  it('resolves exact environment-native actor cells', () => {
+    expect(actorPhotoFor('kitchen-toaster')).toBe('/cinematic/actor-atlas.webp');
+    expect(actorAtlasCellFor('kitchen-toaster')).toEqual({ col: 0, row: 0 });
+    expect(actorAtlasCellFor('kitchen-cat')).toEqual({ col: 1, row: 0 });
+    expect(actorAtlasCellFor('kitchen-rocket')).toEqual({ col: 1, row: 1 });
+    expect(actorAtlasCellFor('garage-hammer')).toEqual({ col: 3, row: 1 });
+    expect(actorAtlasCellFor('garage-tire')).toEqual({ col: 1, row: 2 });
+    expect(actorAtlasCellFor('garage-toolbox')).toEqual({ col: 0, row: 3 });
+  });
+
+  it('hides actors that do not have authored photographic art', () => {
+    expect(actorPhotoFor('kitchen-toast')).toBeUndefined();
+    expect(actorPhotoFor('garage-chain')).toBeUndefined();
+    expect(actorAtlasCellFor('garage-core')).toBeUndefined();
   });
 });
 

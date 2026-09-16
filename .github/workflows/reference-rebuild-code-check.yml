@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - feat/reference-locked-cinematic-rebuild
+    paths-ignore:
+      - '.art-transfer/**'
 
 permissions:
   contents: read

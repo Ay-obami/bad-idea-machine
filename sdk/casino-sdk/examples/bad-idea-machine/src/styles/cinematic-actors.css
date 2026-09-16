@@ -28,7 +28,8 @@
   vector-effect: non-scaling-stroke;
 }
 .cinematic-stage .actor-window {
-  fill: radial-gradient(circle,#8fe2f1,#276778);
+  fill: #63aabb;
+  stroke: #193d47;
 }
 .cinematic-stage .scene-actor--rocket .actor-art,
 .cinematic-stage .scene-actor--safe .actor-art,

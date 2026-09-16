@@ -1,0 +1,56 @@
+name: Probe Cinematic Production
+
+on:
+  push:
+    branches:
+      - feat/cinematic-reference-ui
+    paths:
+      - .github/workflows/probe-production.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public production
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://bad-idea-machine-oyebisiayobami26-7089s-projects.vercel.app"
+
+          READY=0
+          for attempt in $(seq 1 30); do
+            code="$(curl -L -sS -o /tmp/index.html -w '%{http_code}' "$BASE/" || true)"
+            if [[ "$code" == "200" ]] && grep -q 'index-4bEsGfUQ.js' /tmp/index.html; then
+              READY=1
+              break
+            fi
+            echo "attempt=$attempt root_http=$code waiting for cinematic release"
+            sleep 2
+          done
+
+          if [[ "$READY" != "1" ]]; then
+            echo "Production never served the expected cinematic JS release"
+            cat /tmp/index.html 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "PASS / -> HTTP 200 and expected release hash index-4bEsGfUQ.js"
+
+          manifest_code="$(curl -L -sS -o /tmp/manifest.json -w '%{http_code}' "$BASE/game.manifest.json")"
+          test "$manifest_code" = "200"
+          grep -q 'BadIdeaMachineGame' /tmp/manifest.json
+          grep -q '96% RTP' /tmp/manifest.json
+          echo "PASS /game.manifest.json -> HTTP 200 with BadIdeaMachineGame manifest"
+
+          for asset in kitchen.webp garage.webp blast.webp; do
+            code="$(curl -L -sS -o "/tmp/$asset" -w '%{http_code}' "$BASE/cinematic/$asset")"
+            test "$code" = "200"
+            bytes="$(wc -c < "/tmp/$asset")"
+            test "$bytes" -gt 10000
+            echo "PASS /cinematic/$asset -> HTTP 200 bytes=$bytes"
+          done
+
+          echo "PASS public cinematic production probe"

@@ -39,6 +39,10 @@ it('keeps the upper hinge anchored while the door turns in depth and the loose s
   const [a, b, c, d, e, f] = final.door.matrix;
   expect(a * 606 + c * 14 + e).toBeCloseTo(606);
   expect(b * 606 + d * 14 + f).toBeCloseTo(14);
+  expect(final.upperHinge.attached).toBe(true);
+  expect(final.upperHinge.x).toBe(initial.upperHinge.x);
+  expect(final.upperHinge.y).toBe(initial.upperHinge.y);
+  expect(final.upperHinge.load).toBeGreaterThan(.5);
   expect(final.hingeScrew.y).toBeGreaterThan(initial.hingeScrew.y + 100);
 });
 
@@ -51,12 +55,38 @@ it('makes the lower hinge visibly tear away before the door reaches the plates',
   expect(released.shadowOpacity).toBeGreaterThan(.2);
 });
 
+it('requires visible door-to-plate contact before any plate begins its flight', () => {
+  const before = kitchenFrame(1600);
+  expect(before.doorPlateContact.progress).toBe(0);
+  expect(before.individualPlates.every(plate => plate.flightProgress === 0)).toBe(true);
+
+  const contact = kitchenFrame(1660);
+  expect(contact.doorPlateContact.active).toBe(true);
+  expect(contact.doorPlateContact.progress).toBeGreaterThan(0);
+  expect(contact.individualPlates.every(plate => plate.flightProgress === 0)).toBe(true);
+  expect(contact.individualPlates[3].x).toBeLessThan(471.5);
+
+  const after = kitchenFrame(1720);
+  expect(after.doorPlateContact.progress).toBe(1);
+  expect(after.individualPlates[3].flightProgress).toBeGreaterThan(0);
+});
+
+it('keeps falling plates visibly ceramic instead of collapsing into paper-thin strips', () => {
+  const samples = [1760, 1900, 2100]
+    .flatMap(time => kitchenFrame(time).individualPlates)
+    .filter(plate => !plate.shattered);
+  expect(samples.length).toBeGreaterThan(0);
+  expect(samples.every(plate => plate.faceHeight >= 11)).toBe(true);
+  expect(samples.every(plate => plate.bodyDepth >= 3.5)).toBe(true);
+  expect(samples.every(plate => Math.abs(plate.rotation) <= 15)).toBe(true);
+});
+
 it('separates the plates before impact and scatters each from its own contact', () => {
   const falling = kitchenFrame(1850).individualPlates;
   expect(falling).toHaveLength(4);
   expect(new Set(falling.map(plate => plate.rotation)).size).toBeGreaterThan(1);
   expect(new Set(falling.map(plate => plate.impactMs)).size).toBe(4);
-  expect(new Set(falling.map(plate => plate.depthScale.toFixed(3))).size).toBeGreaterThan(1);
+  expect(new Set(falling.map(plate => plate.faceHeight.toFixed(3))).size).toBeGreaterThan(1);
   const firstImpact = Math.min(...falling.map(plate => plate.impactMs));
   expect(kitchenFrame(firstImpact - 1).individualPlates.filter(plate => plate.shattered)).toHaveLength(0);
   const contact = kitchenFrame(firstImpact + 1);

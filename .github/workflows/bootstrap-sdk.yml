@@ -7,6 +7,9 @@ on:
       - feat/bad-idea-machine-game
       - feat/environment-scene-rebuild
       - feat/cinematic-reference-ui
+      - feat/reference-locked-cinematic-rebuild
+    paths-ignore:
+      - '.art-transfer/**'
   pull_request:
     branches:
       - main
@@ -44,6 +47,12 @@ jobs:
 
       - name: Run Bad Idea Machine tests
         run: npm run test:bad-idea
+
+      - name: Verify room art assets
+        run: npm --prefix examples/bad-idea-machine run verify-room-assets
+
+      - name: Verify foley assets
+        run: npm --prefix examples/bad-idea-machine run verify-audio-assets
 
       - name: Typecheck Bad Idea Machine
         run: npm --prefix examples/bad-idea-machine run check-types

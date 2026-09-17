@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { playResultSound, playSceneEventSound } from '../lib/audio';
+import { playAftermathAmbience, playSceneEventSound, stopAftermathAmbience } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
+import { AftermathController } from '../play/AftermathController';
+import { ResultOverlay } from '../play/ResultOverlay';
+import { RoomStage } from '../play/RoomStage';
 import { getEnvironmentDefinition } from '../scene/environments';
 import type { EnvironmentId, SceneEvent, SceneScript } from '../scene/types';
 import '../styles/environment-stage.css';
@@ -9,11 +12,10 @@ import '../styles/environment-ui.css';
 import '../styles/kitchen.css';
 import '../styles/garage.css';
 import '../styles/cinematic-stage.css';
-import { CinematicBackdrop } from './CinematicBackdrop';
-import { SceneActor } from './SceneActor';
 import { SceneVfx } from './SceneVfx';
 
 export type EnvironmentPhase = 'idle' | 'arming' | 'revealing' | 'result';
+type AftermathStatus = 'pending' | 'visible' | 'error';
 
 type Props = {
   environment: EnvironmentId;
@@ -32,6 +34,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   const [startedIds, setStartedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [activeIds, setActiveIds] = useState<ReadonlySet<string>>(() => new Set());
   const [revision, setRevision] = useState(0);
+  const [aftermathStatus, setAftermathStatus] = useState<AftermathStatus>('pending');
 
   const definition = getEnvironmentDefinition(environment);
   const scriptEvents = script?.events ?? [];
@@ -39,6 +42,10 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   const activeEvents = useMemo(() => scriptEvents.filter(event => activeIds.has(event.id)), [scriptEvents, activeIds]);
   const startedByActor = useMemo(() => eventMap(startedEvents), [startedEvents]);
   const cameraImpact = activeEvents.reduce((max, event) => Math.max(max, event.intensity), 0);
+
+  useEffect(() => {
+    if (phase !== 'result') setAftermathStatus('pending');
+  }, [environment, phase, script, tier]);
 
   useEffect(() => {
     if (phase !== 'revealing' || !script || script.environment !== environment) {
@@ -74,13 +81,15 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   }, [environment, phase, script]);
 
   useEffect(() => {
-    if (phase === 'result' && multiplierBps !== undefined) playResultSound(multiplierBps);
-  }, [phase, multiplierBps]);
+    if (phase === 'result' && aftermathStatus === 'visible' && tier !== undefined) {
+      playAftermathAmbience(environment, tier);
+      return () => stopAftermathAmbience();
+    }
+    stopAftermathAmbience();
+    return undefined;
+  }, [aftermathStatus, environment, phase, tier]);
 
   const modeClass = riskMode === 0 ? 'controlled' : riskMode === 1 ? 'send-it' : 'absolutely-not';
-  const multiplierText = multiplierBps === undefined
-    ? ''
-    : `${(multiplierBps / 10_000).toFixed(multiplierBps % 10_000 === 0 ? 0 : 1)}×`;
 
   return (
     <section
@@ -88,23 +97,26 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       data-environment={environment}
       data-phase={phase}
       data-camera-impact={cameraImpact}
+      data-aftermath-status={aftermathStatus}
       aria-live="polite"
     >
-      <CinematicBackdrop environment={environment} phase={phase} tier={tier} />
-
-      <div className="scene-actor-layer cinematic-stage__actors" aria-label={`${definition.label} interactive scene`}>
-        {definition.actors.map(actor => (
-          <SceneActor key={actor.id} actor={actor} event={startedByActor.get(actor.id)} revision={revision} />
-        ))}
-      </div>
+      <RoomStage environment={environment} startedByActor={startedByActor} revision={revision} />
 
       <SceneVfx events={activeEvents} />
+
+      <AftermathController
+        environment={environment}
+        tier={tier}
+        phase={phase}
+        onVisible={() => setAftermathStatus('visible')}
+        onError={() => setAftermathStatus('error')}
+      />
 
       <div className="environment-stage__hud cinematic-stage__hud" aria-hidden="true">
         <div className="environment-stage__name">
           <small>CHAOS ENVIRONMENT</small>
           <strong>{definition.label}</strong>
-          <i>{environment === 'kitchen' ? 'EVERYDAY APPLIANCES. EXTRAORDINARY BAD IDEAS.' : 'POWER TOOLS, HEAVY METAL, LOOSE TIRES AND INDUSTRIAL REGRET.'}</i>
+          <i>{environment === 'kitchen' ? 'EVERYDAY APPLIANCES. EXTRAORDINARILY BAD IDEAS.' : 'POWER TOOLS, HEAVY METAL, LOOSE TIRES AND INDUSTRIAL REGRET.'}</i>
         </div>
         <div className="environment-stage__status">
           {phase === 'revealing' && activeEvents.length > 0
@@ -112,7 +124,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
             : phase === 'arming'
               ? 'BAD DECISIONS ARMING…'
               : phase === 'result'
-                ? 'DAMAGE ASSESSMENT COMPLETE'
+                ? aftermathStatus === 'pending' ? 'DAMAGE ASSESSMENT LOADING…' : 'DAMAGE ASSESSMENT COMPLETE'
                 : 'ROOM CURRENTLY HABITABLE'}
         </div>
       </div>
@@ -132,12 +144,14 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
         </div>
       )}
 
-      {phase === 'result' && tier !== undefined && script && (
-        <div className={`environment-result ${tier === 0 ? 'environment-result--failure' : 'environment-result--win'} ${tier === 4 ? 'environment-result--huge' : ''}`}>
-          <span>{script.finalizer.label}</span>
-          <strong>{multiplierText}</strong>
-          <small>{script.finalizer.flavor}</small>
-        </div>
+      {phase === 'result' && tier !== undefined && script && multiplierBps !== undefined && aftermathStatus !== 'pending' && (
+        <ResultOverlay
+          tier={tier}
+          multiplierBps={multiplierBps}
+          label={script.finalizer.label}
+          flavor={script.finalizer.flavor}
+          visualUnavailable={aftermathStatus === 'error'}
+        />
       )}
 
       <div className="environment-stage__event-probe" aria-hidden="true">

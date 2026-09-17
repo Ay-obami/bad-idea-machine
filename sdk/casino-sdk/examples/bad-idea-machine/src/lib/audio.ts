@@ -1,28 +1,11 @@
-import { buildEventSoundPlan, type SceneSoundLayer } from '../scene/audio-plan';
+import { ALL_FOLEY_SAMPLE_IDS, getFoleySamplePath, type FoleySampleId } from '../scene/audio-samples';
+import { buildAftermathSoundPlan, buildEventSoundPlan, type SceneSoundLayer } from '../scene/audio-plan';
 import type { EnvironmentId, SceneEvent } from '../scene/types';
 
 let context: AudioContext | null = null;
 let muted = false;
-
-type ToneEvent = Readonly<{
-  kind: 'tone';
-  atMs: number;
-  durationMs: number;
-  frequency: number;
-  endFrequency?: number;
-  volume: number;
-  wave: OscillatorType;
-}>;
-
-type NoiseEvent = Readonly<{
-  kind: 'noise';
-  atMs: number;
-  durationMs: number;
-  volume: number;
-  filterHz: number;
-}>;
-
-export type SoundEvent = ToneEvent | NoiseEvent;
+let ambienceSource: AudioBufferSourceNode | null = null;
+const bufferCache = new Map<FoleySampleId, Promise<AudioBuffer | null>>();
 
 function getContext(): AudioContext | null {
   if (typeof window === 'undefined' || !('AudioContext' in window)) return null;
@@ -31,98 +14,95 @@ function getContext(): AudioContext | null {
   return context;
 }
 
-function toneEvent(
-  frequency: number,
-  durationMs: number,
-  atMs = 0,
-  volume = .05,
-  wave: OscillatorType = 'square',
-  endFrequency?: number,
-): ToneEvent {
-  return { kind: 'tone', frequency, durationMs, atMs, volume, wave, endFrequency };
+async function loadSample(ctx: AudioContext, sampleId: FoleySampleId): Promise<AudioBuffer | null> {
+  const cached = bufferCache.get(sampleId);
+  if (cached) return cached;
+
+  const pending = fetch(getFoleySamplePath(sampleId), { cache: 'force-cache' })
+    .then(response => {
+      if (!response.ok) throw new Error(`foley ${sampleId} returned ${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then(bytes => ctx.decodeAudioData(bytes))
+    .catch(() => null);
+
+  bufferCache.set(sampleId, pending);
+  return pending;
 }
 
-function noiseEvent(
-  durationMs: number,
-  atMs = 0,
-  volume = .05,
-  filterHz = 260,
-): NoiseEvent {
-  return { kind: 'noise', durationMs, atMs, volume, filterHz };
-}
-
-function sceneLayerToSoundEvent(layer: SceneSoundLayer): SoundEvent {
-  if (layer.kind === 'noise') {
-    return noiseEvent(layer.durationMs, layer.delayMs, layer.gain, layer.filterHz ?? 260);
-  }
-  return toneEvent(
-    layer.frequency ?? 220,
-    layer.durationMs,
-    layer.delayMs,
-    layer.gain,
-    layer.waveform ?? 'triangle',
-    layer.endFrequency,
-  );
-}
-
-function playTone(event: ToneEvent, baseTime: number, ctx: AudioContext): void {
-  const start = baseTime + event.atMs / 1_000;
-  const end = start + event.durationMs / 1_000;
-  const oscillator = ctx.createOscillator();
-  const gain = ctx.createGain();
-
-  oscillator.type = event.wave;
-  oscillator.frequency.setValueAtTime(event.frequency, start);
-  if (event.endFrequency !== undefined) oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, event.endFrequency), end);
-
-  gain.gain.setValueAtTime(.0001, start);
-  gain.gain.exponentialRampToValueAtTime(event.volume, start + .01);
-  gain.gain.exponentialRampToValueAtTime(.0001, end);
-  oscillator.connect(gain).connect(ctx.destination);
-  oscillator.start(start);
-  oscillator.stop(end + .02);
-}
-
-function playNoise(event: NoiseEvent, baseTime: number, ctx: AudioContext): void {
-  const start = baseTime + event.atMs / 1_000;
-  const duration = event.durationMs / 1_000;
+function fallbackNoise(ctx: AudioContext, layer: SceneSoundLayer, start: number): void {
+  const duration = layer.role === 'ambience' ? .8 : layer.role === 'impact' ? .22 : .14;
   const frameCount = Math.max(1, Math.floor(ctx.sampleRate * duration));
   const buffer = ctx.createBuffer(1, frameCount, ctx.sampleRate);
   const data = buffer.getChannelData(0);
+  let state = 0x9e3779b9 ^ Math.floor(layer.playbackRate * 10_000);
 
   for (let index = 0; index < frameCount; index += 1) {
-    const envelope = 1 - index / frameCount;
-    data[index] = (Math.random() * 2 - 1) * envelope;
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    const noise = (state / 0x1_0000_0000) * 2 - 1;
+    const envelope = layer.role === 'ambience' ? .18 : Math.pow(1 - index / frameCount, 2.2);
+    data[index] = noise * envelope;
   }
 
   const source = ctx.createBufferSource();
   const filter = ctx.createBiquadFilter();
   const gain = ctx.createGain();
-  filter.type = 'highpass';
-  filter.frequency.setValueAtTime(event.filterHz, start);
-  gain.gain.setValueAtTime(.0001, start);
-  gain.gain.exponentialRampToValueAtTime(event.volume, start + .008);
-  gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+  const panner = ctx.createStereoPanner();
+  filter.type = 'bandpass';
+  filter.frequency.value = layer.role === 'impact' ? 430 : 920;
+  filter.Q.value = .7;
+  gain.gain.value = Math.min(.12, layer.gain * .22);
+  panner.pan.value = layer.pan;
   source.buffer = buffer;
-  source.connect(filter).connect(gain).connect(ctx.destination);
+  source.connect(filter).connect(gain).connect(panner).connect(ctx.destination);
   source.start(start);
-  source.stop(start + duration + .02);
 }
 
-function playPlan(plan: readonly SoundEvent[]): void {
+async function playLayer(layer: SceneSoundLayer, baseTime: number, ctx: AudioContext, trackAmbience = false): Promise<void> {
+  const buffer = await loadSample(ctx, layer.sampleId);
+  const scheduled = baseTime + layer.delayMs / 1_000;
+  const start = Math.max(ctx.currentTime + .008, scheduled);
+
+  if (!buffer) {
+    fallbackNoise(ctx, layer, start);
+    return;
+  }
+
+  const source = ctx.createBufferSource();
+  const gain = ctx.createGain();
+  const panner = ctx.createStereoPanner();
+  source.buffer = buffer;
+  source.playbackRate.value = layer.playbackRate;
+  source.loop = layer.loop ?? false;
+  gain.gain.value = layer.gain;
+  panner.pan.value = layer.pan;
+  source.connect(gain).connect(panner).connect(ctx.destination);
+  source.start(start);
+
+  if (trackAmbience) {
+    ambienceSource?.stop();
+    ambienceSource = source;
+    source.addEventListener('ended', () => {
+      if (ambienceSource === source) ambienceSource = null;
+    }, { once: true });
+  }
+}
+
+function playPlan(plan: readonly SceneSoundLayer[], trackAmbience = false): void {
   if (muted) return;
   const ctx = getContext();
   if (!ctx) return;
   const baseTime = ctx.currentTime;
+  for (const sound of plan) void playLayer(sound, baseTime, ctx, trackAmbience && sound.role === 'ambience');
+}
 
-  for (const event of plan) {
-    if (event.kind === 'tone') playTone(event, baseTime, ctx);
-    else playNoise(event, baseTime, ctx);
-  }
+function preloadSamples(ctx: AudioContext): void {
+  for (const sampleId of ALL_FOLEY_SAMPLE_IDS) void loadSample(ctx, sampleId);
 }
 
 export function setMachineMuted(next: boolean): void {
   muted = next;
+  if (muted) stopAftermathAmbience();
 }
 
 export function isMachineMuted(): boolean {
@@ -131,37 +111,30 @@ export function isMachineMuted(): boolean {
 
 export function primeAudio(): void {
   if (muted) return;
-  getContext();
+  const ctx = getContext();
+  if (ctx) preloadSamples(ctx);
 }
 
 export function playSceneEventSound(environment: EnvironmentId, event: SceneEvent): void {
-  playPlan(buildEventSoundPlan(environment, event).map(sceneLayerToSoundEvent));
+  playPlan(buildEventSoundPlan(environment, event));
 }
 
-export function playResultSound(multiplierBps: number): void {
-  if (muted) return;
+export function playAftermathAmbience(environment: EnvironmentId, tier: 0 | 1 | 2 | 3 | 4): void {
+  stopAftermathAmbience();
+  playPlan(buildAftermathSoundPlan(environment, tier), true);
+}
 
-  if (multiplierBps === 0) {
-    playPlan([
-      noiseEvent(240, 0, .05, 170),
-      toneEvent(130, 340, 0, .05, 'sawtooth', 72),
-      toneEvent(48, 220, 180, .08, 'square'),
-    ]);
-    return;
+export function stopAftermathAmbience(): void {
+  if (!ambienceSource) return;
+  try {
+    ambienceSource.stop();
+  } catch {
+    // A source may already have ended between render phases.
   }
+  ambienceSource = null;
+}
 
-  const huge = multiplierBps >= 80_000;
-  const scale = huge ? [220, 330, 440, 660, 880, 1_100] : [330, 495, 660, 825];
-  const plan: SoundEvent[] = [noiseEvent(huge ? 420 : 180, 0, huge ? .08 : .045, huge ? 105 : 260)];
-
-  scale.forEach((frequency, index) => {
-    plan.push(toneEvent(frequency, huge ? 280 : 220, index * (huge ? 80 : 90), huge ? .052 : .04, index % 2 === 0 ? 'triangle' : 'sine'));
-  });
-
-  if (huge) {
-    plan.push(toneEvent(52, 520, 0, .1, 'sawtooth', 34));
-    plan.push(noiseEvent(260, 290, .065, 1_400));
-  }
-
-  playPlan(plan);
+/** @deprecated Result audio is now the restrained room aftermath ambience. */
+export function playResultSound(_multiplierBps: number): void {
+  // Deliberately no casino jingle. Kept as a compatibility no-op for older callers.
 }

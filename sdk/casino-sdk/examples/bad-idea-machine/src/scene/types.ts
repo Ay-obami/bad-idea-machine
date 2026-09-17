@@ -3,10 +3,22 @@ export type ScenePoint = Readonly<{ x: number; y: number }>;
 export type SceneHazard = 'sparks' | 'fire' | 'smoke' | 'debris' | 'blast' | 'alarm' | 'steam' | 'shards';
 export type SceneAction = 'launch' | 'drop' | 'swing' | 'roll' | 'ricochet' | 'ignite' | 'explode' | 'collapse' | 'vent' | 'shatter' | 'near-miss';
 export type SceneIntensity = 1 | 2 | 3;
+export type Material = 'metal' | 'wood' | 'ceramic' | 'glass' | 'masonry' | 'appliance';
+export type ImpactEffect = 'spark' | 'shatter' | 'fire' | 'dust' | 'debris' | 'blast';
+
+export type ImpactEvent = Readonly<{
+  atMs: number;
+  point: ScenePoint;
+  materialA: Material;
+  materialB: Material;
+  strength: 1 | 2 | 3 | 4;
+  effect: ImpactEffect;
+  persistentDamage: readonly string[];
+}>;
 
 export type SceneActorDefinition = Readonly<{
   id: string;
-  kind: string;
+  assetId: string;
   home: ScenePoint;
   rotation: number;
   scale: number;
@@ -29,7 +41,7 @@ export type SceneEvent = Readonly<{
   startMs: number;
   durationMs: number;
   path: readonly MotionKeyframe[];
-  impact?: ScenePoint;
+  impacts: readonly ImpactEvent[];
   hazard: SceneHazard;
   intensity: SceneIntensity;
   decoy: boolean;

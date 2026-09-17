@@ -1,0 +1,50 @@
+name: Reference Rebuild Code Check
+
+on:
+  push:
+    branches:
+      - feat/reference-locked-cinematic-rebuild
+    paths-ignore:
+      - '.art-transfer/**'
+
+permissions:
+  contents: read
+
+jobs:
+  code-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: sdk/casino-sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Reject retired presentation system
+        shell: bash
+        run: |
+          set -euo pipefail
+          app=examples/bad-idea-machine
+          for retired in \
+            src/components/CinematicBackdrop.tsx \
+            src/components/OutcomeStrip.tsx \
+            src/components/SceneActor.tsx \
+            src/components/scenes/ActorArtwork.tsx \
+            src/components/scenes/KitchenScene.tsx \
+            src/components/scenes/GarageScene.tsx \
+            src/styles/cinematic-actors.css; do
+            test ! -e "$app/$retired"
+          done
+          test ! -d "$app/public/cinematic"
+          if grep -R -n -E 'CinematicBackdrop|ActorArtwork|cinematic-backdrop--damage|actor-art' "$app/src"; then
+            echo 'Retired presentation code is still referenced.' >&2
+            exit 1
+          fi
+      - name: Bad Idea Machine tests
+        run: npm --prefix examples/bad-idea-machine test
+      - name: Typecheck
+        run: npm --prefix examples/bad-idea-machine run check-types
+      - name: Build
+        run: npm run build:bad-idea

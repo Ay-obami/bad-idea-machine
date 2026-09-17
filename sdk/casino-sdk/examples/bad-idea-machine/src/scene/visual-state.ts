@@ -1,27 +1,34 @@
+import type { AftermathKey } from '../environments/types';
 import { multiplierBpsForTier, type OutcomeTier, type RiskMode } from '../lib/badIdea';
 
-export type DamageState = 'failure' | 'minor' | 'controlled' | 'major' | 'legendary';
+export type DamageState = AftermathKey;
 
 export type OutcomeCard = {
   tier: OutcomeTier;
   multiplierBps: number;
+  aftermathKey: AftermathKey;
   damageState: DamageState;
   label: string;
   shortCopy: string;
 };
 
-const DAMAGE_STATES: readonly DamageState[] = ['failure', 'minor', 'controlled', 'major', 'legendary'];
-const LABELS = ['TOTAL FAILURE', 'MINOR SUCCESS', 'CONTROLLED CHAOS', 'MAJOR PAYOUT', 'LEGENDARY CHAOS'] as const;
+const AFTERMATHS: readonly AftermathKey[] = ['failure', 'minor', 'moderate', 'severe', 'legendary'];
+const LABELS = ['TOTAL FAILURE', 'MINOR SUCCESS', 'CONTROLLED CHAOS', 'MAJOR JACKPOT', 'LEGENDARY CHAOS'] as const;
 const COPY = [
-  'Nothing worked. Just rubble.',
-  'A little destruction. Something survived.',
-  'Things got wild, but the machine delivered.',
-  'Serious damage. The room is barely recognizable.',
-  'Total annihilation. This room will never be the same.',
+  'Everything broke and you still got nothing.',
+  'A little destruction. Most of the room survived.',
+  'Multiple systems failed. The room is still standing.',
+  'Serious cascading damage. The room is no longer functional.',
+  'Architecture changed. Common sense did not survive.',
 ] as const;
 
+export function aftermathKeyForTier(tier: OutcomeTier): AftermathKey {
+  return AFTERMATHS[tier];
+}
+
+/** @deprecated Use aftermathKeyForTier. Kept until legacy preview code is removed. */
 export function damageStateForTier(tier: OutcomeTier): DamageState {
-  return DAMAGE_STATES[tier];
+  return aftermathKeyForTier(tier);
 }
 
 export function outcomeLabelForTier(tier: OutcomeTier): string {
@@ -29,13 +36,17 @@ export function outcomeLabelForTier(tier: OutcomeTier): string {
 }
 
 export function outcomeCardsForMode(mode: RiskMode): OutcomeCard[] {
-  return ([0, 1, 2, 3, 4] as const).map(tier => ({
-    tier,
-    multiplierBps: multiplierBpsForTier(mode, tier),
-    damageState: damageStateForTier(tier),
-    label: outcomeLabelForTier(tier),
-    shortCopy: COPY[tier],
-  }));
+  return ([0, 1, 2, 3, 4] as const).map(tier => {
+    const aftermathKey = aftermathKeyForTier(tier);
+    return {
+      tier,
+      multiplierBps: multiplierBpsForTier(mode, tier),
+      aftermathKey,
+      damageState: aftermathKey,
+      label: outcomeLabelForTier(tier),
+      shortCopy: COPY[tier],
+    };
+  });
 }
 
 export function multiplierDisplay(multiplierBps: number): string {

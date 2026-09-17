@@ -21,6 +21,18 @@ function travel(event: SceneEvent) {
   return { dx: Math.abs(last.x - first.x), dy: Math.abs(last.y - first.y) };
 }
 
+function earlySignature(script: ReturnType<typeof buildSceneScript>) {
+  return script.events
+    .filter(event => event.startMs < script.durationMs * 0.6)
+    .map(event => [event.actorId, event.action, event.startMs]);
+}
+
+function terminalSignature(script: ReturnType<typeof buildSceneScript>) {
+  return script.events
+    .filter(event => event.startMs >= script.durationMs * 0.6)
+    .map(event => [event.actorId, event.action, event.hazard, event.intensity]);
+}
+
 describe('scene visual randomness helpers', () => {
   it('reads visual bytes deterministically with wrapping', () => {
     expect(visualByte(SEED, 0)).toBe(0x00);
@@ -38,15 +50,15 @@ describe('scene environment definitions', () => {
   it('uses materially different kitchen and garage actor sets', () => {
     const kitchen = getEnvironmentDefinition('kitchen');
     const garage = getEnvironmentDefinition('garage');
-    const kitchenKinds = new Set(kitchen.actors.map(actor => actor.kind));
-    const garageKinds = new Set(garage.actors.map(actor => actor.kind));
+    const kitchenAssets = new Set(kitchen.actors.map(actor => actor.assetId));
+    const garageAssets = new Set(garage.actors.map(actor => actor.assetId));
 
-    expect(kitchenKinds.has('toaster')).toBe(true);
-    expect(kitchenKinds.has('kettle')).toBe(true);
-    expect(garageKinds.has('drill')).toBe(true);
-    expect(garageKinds.has('tire')).toBe(true);
-    expect(kitchenKinds.has('drill')).toBe(false);
-    expect(garageKinds.has('kettle')).toBe(false);
+    expect(kitchenAssets.has('toaster')).toBe(true);
+    expect(kitchenAssets.has('kettle')).toBe(true);
+    expect(garageAssets.has('drill')).toBe(true);
+    expect(garageAssets.has('tire')).toBe(true);
+    expect(kitchenAssets.has('drill')).toBe(false);
+    expect(garageAssets.has('kettle')).toBe(false);
   });
 
   it('places every actor inside the 1000x600 logical stage', () => {
@@ -98,16 +110,34 @@ describe('deterministic environment catastrophe scripts', () => {
     }
   });
 
-  it('does not encode payout tier in the visible choreography', () => {
+  it('keeps the first sixty percent payout-blind for every tier', () => {
     for (const environment of ENVIRONMENTS) {
       for (const seed of SEEDS) {
-        const failure = buildSceneScript(environment, 0, seed);
-        const huge = buildSceneScript(environment, 4, seed);
-        expect(failure.events).toEqual(huge.events);
-        expect(failure.durationMs).toBe(huge.durationMs);
-        expect(failure.finalizer.tier).toBe(0);
-        expect(huge.finalizer.tier).toBe(4);
+        const scripts = TIERS.map(tier => buildSceneScript(environment, tier, seed));
+        const expected = earlySignature(scripts[0]);
+        for (const script of scripts.slice(1)) expect(earlySignature(script)).toEqual(expected);
+        expect(scripts.map(script => script.durationMs)).toEqual(Array(TIERS.length).fill(scripts[0].durationMs));
       }
+    }
+  });
+
+  it('uses a distinct terminal catastrophe for each settled tier', () => {
+    for (const environment of ENVIRONMENTS) {
+      for (const seed of SEEDS.slice(0, 16)) {
+        const signatures = TIERS.map(tier => JSON.stringify(terminalSignature(buildSceneScript(environment, tier, seed))));
+        expect(new Set(signatures).size).toBe(TIERS.length);
+      }
+    }
+  });
+
+  it('keeps zero-x destructive and gives legendary chaos the largest terminal chain', () => {
+    for (const environment of ENVIRONMENTS) {
+      const failure = buildSceneScript(environment, 0, SEED);
+      const legendary = buildSceneScript(environment, 4, SEED);
+      expect(terminalSignature(failure).length).toBeGreaterThanOrEqual(2);
+      expect(terminalSignature(legendary).length).toBeGreaterThan(terminalSignature(failure).length);
+      expect(failure.finalizer.tier).toBe(0);
+      expect(legendary.finalizer.tier).toBe(4);
     }
   });
 

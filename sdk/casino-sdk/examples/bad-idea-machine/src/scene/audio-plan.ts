@@ -1,14 +1,17 @@
-import type { EnvironmentId, SceneEvent, SceneHazard } from './types';
+import { type FoleySampleId } from './audio-samples';
+import type { EnvironmentId, ImpactEvent, SceneEvent, ScenePoint } from './types';
+
+export type SceneSoundRole = 'action' | 'impact' | 'hazard' | 'debris' | 'ambience';
 
 export type SceneSoundLayer = Readonly<{
-  kind: 'tone' | 'noise';
+  kind: 'sample';
+  sampleId: FoleySampleId;
+  role: SceneSoundRole;
   delayMs: number;
-  durationMs: number;
   gain: number;
-  frequency?: number;
-  endFrequency?: number;
-  waveform?: OscillatorType;
-  filterHz?: number;
+  pan: number;
+  playbackRate: number;
+  loop?: boolean;
 }>;
 
 function seededRandom(seed: number) {
@@ -19,68 +22,159 @@ function seededRandom(seed: number) {
   };
 }
 
-function tone(
-  frequency: number,
-  durationMs: number,
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+function naturalRate(random: () => number): number {
+  return Number((.92 + random() * .16).toFixed(3));
+}
+
+function panFor(point: ScenePoint): number {
+  return Number(clamp(((point.x - 500) / 500) * .7, -.7, .7).toFixed(3));
+}
+
+function layer(
+  sampleId: FoleySampleId,
+  role: SceneSoundRole,
   delayMs: number,
   gain: number,
-  waveform: OscillatorType = 'triangle',
-  endFrequency?: number,
+  pan: number,
+  playbackRate: number,
+  loop = false,
 ): SceneSoundLayer {
-  return { kind: 'tone', frequency, durationMs, delayMs, gain, waveform, endFrequency };
+  return {
+    kind: 'sample',
+    sampleId,
+    role,
+    delayMs: Math.max(0, Math.round(delayMs)),
+    gain: Number(clamp(gain, 0, .82).toFixed(3)),
+    pan: Number(clamp(pan, -.7, .7).toFixed(3)),
+    playbackRate: Number(clamp(playbackRate, .88, 1.12).toFixed(3)),
+    ...(loop ? { loop: true } : {}),
+  };
 }
 
-function noise(durationMs: number, delayMs: number, gain: number, filterHz: number): SceneSoundLayer {
-  return { kind: 'noise', durationMs, delayMs, gain, filterHz };
-}
-
-function palettePlan(environment: EnvironmentId, event: SceneEvent): SceneSoundLayer[] {
-  const cue = event.soundCue;
+function actionSample(environment: EnvironmentId, cue: string): FoleySampleId | undefined {
   if (environment === 'kitchen') {
-    if (cue.includes('toaster')) return [tone(1_080, 70, 0, .035, 'sine'), tone(1_520, 95, 60, .03, 'triangle')];
-    if (cue.includes('kettle')) return [noise(460, 0, .035, 1_150), tone(1_240, 300, 40, .02, 'sine', 1_620)];
-    if (cue.includes('ceramic')) return [noise(120, 0, .045, 1_900), tone(1_420, 80, 25, .025, 'square'), tone(1_860, 60, 72, .018, 'triangle')];
-    if (cue.includes('pan')) return [tone(320, 170, 0, .055, 'triangle'), tone(680, 110, 28, .035, 'sine')];
-    if (cue.includes('cat')) return [tone(510, 190, 0, .032, 'triangle', 730), tone(790, 100, 95, .024, 'sine')];
-    return [tone(180, 220, 0, .035, 'triangle'), noise(105, 35, .025, 720)];
+    if (cue.includes('toaster') || cue.includes('toast')) return 'kitchen-toaster-pop';
+    if (cue.includes('kettle') || cue.includes('steam')) return 'kitchen-steam-hiss';
+    if (cue.includes('ceramic') || cue.includes('plate') || cue.includes('dish')) return 'kitchen-ceramic-break';
+    if (cue.includes('pan')) return 'kitchen-pan-hit';
+    if (cue.includes('rocket')) return 'rocket-whoosh';
+    if (cue.includes('safe') || cue.includes('ball')) return 'heavy-crash';
+    return undefined;
   }
 
-  if (cue.includes('drill')) return [tone(170, 420, 0, .04, 'sawtooth', 410), tone(340, 310, 20, .02, 'square', 720)];
-  if (cue.includes('saw')) return [tone(230, 430, 0, .042, 'sawtooth', 690), noise(160, 55, .03, 1_300)];
-  if (cue.includes('chain')) return [tone(145, 120, 0, .055, 'square'), noise(110, 35, .04, 650), tone(230, 90, 92, .03, 'triangle')];
-  if (cue.includes('tire')) return [tone(72, 430, 0, .04, 'sine', 46), noise(170, 150, .025, 170)];
-  if (cue.includes('wrench') || cue.includes('hammer')) return [tone(105, 130, 0, .065, 'square'), tone(285, 95, 24, .04, 'triangle'), noise(80, 18, .025, 900)];
-  return [tone(92, 240, 0, .04, 'sawtooth'), noise(120, 28, .03, 380)];
+  if (cue.includes('drill')) return 'garage-drill';
+  if (cue.includes('saw')) return 'garage-saw';
+  if (cue.includes('chain')) return 'garage-chain';
+  if (cue.includes('tire')) return 'garage-tire';
+  if (cue.includes('rocket')) return 'rocket-whoosh';
+  if (cue.includes('safe') || cue.includes('shelf') || cue.includes('toolbox')) return 'heavy-crash';
+  if (cue.includes('wrench') || cue.includes('hammer')) return 'metal-impact';
+  return undefined;
 }
 
-function hazardPlan(hazard: SceneHazard, event: SceneEvent): SceneSoundLayer[] {
-  const random = seededRandom(event.effectSeed ^ 0x9e3779b9);
-  const at = () => Math.floor(random() * Math.max(70, event.durationMs * .48));
-  switch (hazard) {
-    case 'fire': return [noise(420, 0, .055, 380), tone(86, 330, 28, .03, 'sawtooth', 132), noise(100, at(), .032, 1_250)];
-    case 'blast': return [noise(390, 0, .09, 85), tone(46, 440, 0, .1, 'sawtooth', 31), noise(150, 20, .06, 1_600)];
-    case 'smoke': return [noise(520, 0, .038, 590), noise(170, at(), .025, 1_080)];
-    case 'debris': return [tone(64 + Math.floor(random() * 90), 110, at(), .052, 'square'), noise(100, at(), .04, 420), tone(130, 80, at(), .03, 'triangle')];
-    case 'sparks': return [noise(58, at(), .035, 1_650), tone(900 + Math.floor(random() * 1_200), 45, at(), .02, 'square'), tone(1_250, 40, at(), .016, 'triangle')];
-    case 'alarm': return [tone(420, 170, 0, .034, 'triangle'), tone(690, 170, 145, .038, 'triangle'), tone(420, 170, 290, .034, 'triangle')];
-    case 'steam': return [noise(560, 0, .04, 1_300), tone(1_100, 360, 45, .018, 'sine', 1_480)];
-    case 'shards': return [noise(135, 0, .045, 1_850), tone(1_480, 70, 18, .024, 'square'), tone(1_950, 55, 70, .018, 'triangle')];
+function impactSample(environment: EnvironmentId, impact: ImpactEvent, cue: string): FoleySampleId {
+  if (impact.effect === 'shatter' || impact.materialA === 'ceramic' || impact.materialB === 'ceramic' || impact.materialA === 'glass' || impact.materialB === 'glass') {
+    return environment === 'kitchen' ? 'kitchen-ceramic-break' : 'debris-fall';
   }
+  if (impact.materialA === 'wood' || impact.materialB === 'wood') return 'wood-crack';
+  if (impact.strength >= 3 || impact.effect === 'blast') return 'heavy-crash';
+  if (environment === 'kitchen' && cue.includes('pan')) return 'kitchen-pan-hit';
+  if (environment === 'garage' && cue.includes('tire')) return 'garage-tire';
+  if (environment === 'garage' && cue.includes('chain')) return 'garage-chain';
+  return 'metal-impact';
+}
+
+function hazardSample(environment: EnvironmentId, event: SceneEvent): FoleySampleId | undefined {
+  switch (event.hazard) {
+    case 'fire': return 'fire-crackle';
+    case 'sparks': return 'sparks-burst';
+    case 'steam': return environment === 'kitchen' ? 'kitchen-steam-hiss' : 'debris-fall';
+    case 'shards': return environment === 'kitchen' ? 'kitchen-ceramic-break' : 'debris-fall';
+    case 'blast': return 'debris-fall';
+    case 'debris': return 'debris-fall';
+    case 'smoke': return 'debris-fall';
+    case 'alarm': return undefined;
+  }
+}
+
+function fallbackImpact(event: SceneEvent): ImpactEvent {
+  const final = event.path.at(-1) ?? { at: 1, x: 500, y: 300, rotation: 0 };
+  return {
+    atMs: Math.round(event.durationMs * .72),
+    point: { x: final.x, y: final.y },
+    materialA: 'metal',
+    materialB: 'masonry',
+    strength: event.intensity,
+    effect: event.hazard === 'fire' ? 'fire' : event.hazard === 'sparks' ? 'spark' : 'debris',
+    persistentDamage: [],
+  };
 }
 
 export function buildEventSoundPlan(environment: EnvironmentId, event: SceneEvent): readonly SceneSoundLayer[] {
   const random = seededRandom(event.effectSeed ^ (environment === 'kitchen' ? 0x51f15e : 0xa5a5a5a5));
-  const plan = [...palettePlan(environment, event), ...hazardPlan(event.hazard, event)];
+  const impact = event.impacts[0] ?? fallbackImpact(event);
+  const impactAt = clamp(impact.atMs, 0, event.durationMs);
+  const impactPan = panFor(impact.point);
+  const plan: SceneSoundLayer[] = [];
 
-  for (let layer = 1; layer < event.intensity; layer += 1) {
-    const delayMs = Math.floor(random() * Math.max(80, event.durationMs * .55));
-    plan.push(noise(75 + Math.floor(random() * 115), delayMs, .027 + layer * .014, 180 + Math.floor(random() * 1_350)));
-    plan.push(tone(52 + Math.floor(random() * 590), 80 + Math.floor(random() * 150), delayMs + 16, .021 + layer * .014, layer === 2 ? 'sawtooth' : 'square'));
+  const action = actionSample(environment, event.soundCue);
+  if (action) {
+    plan.push(layer(action, 'action', 0, .26, panFor(event.path[0] ?? impact.point), naturalRate(random)));
+  }
+
+  plan.push(layer(
+    impactSample(environment, impact, event.soundCue),
+    'impact',
+    impactAt,
+    impact.strength >= 4 ? .74 : impact.strength === 3 ? .66 : .56,
+    impactPan,
+    naturalRate(random),
+  ));
+
+  const hazard = hazardSample(environment, event);
+  if (hazard) {
+    plan.push(layer(
+      hazard,
+      'hazard',
+      clamp(impactAt + 24, 0, event.durationMs),
+      event.hazard === 'fire' ? .28 : .32,
+      impactPan,
+      naturalRate(random),
+    ));
+  }
+
+  for (let index = 1; index < event.intensity; index += 1) {
+    const delay = clamp(impactAt + 70 + random() * 150 + index * 42, 0, event.durationMs);
+    const offsetPan = clamp(impactPan + (random() - .5) * .3, -.7, .7);
+    plan.push(layer('debris-fall', 'debris', delay, .24 + index * .06, offsetPan, naturalRate(random)));
   }
 
   if (event.decoy) {
-    plan.push(tone(environment === 'kitchen' ? 760 : 520, 120, Math.floor(event.durationMs * .55), .02, 'triangle'));
+    plan.push(layer(
+      environment === 'kitchen' ? 'kitchen-pan-hit' : 'metal-impact',
+      'action',
+      clamp(event.durationMs * .45, 0, event.durationMs),
+      .18,
+      clamp(-impactPan * .6, -.7, .7),
+      naturalRate(random),
+    ));
   }
 
-  return plan.sort((a, b) => a.delayMs - b.delayMs);
+  return plan.sort((a, b) => a.delayMs - b.delayMs || a.role.localeCompare(b.role));
+}
+
+export function buildAftermathSoundPlan(environment: EnvironmentId, _tier: 0 | 1 | 2 | 3 | 4): readonly SceneSoundLayer[] {
+  return [layer(
+    environment === 'kitchen' ? 'kitchen-aftermath' : 'garage-aftermath',
+    'ambience',
+    0,
+    .12,
+    0,
+    1,
+    true,
+  )];
 }

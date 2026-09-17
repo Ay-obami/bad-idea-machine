@@ -13,6 +13,7 @@ import '@fontsource/rubik/latin-500.css';
 import { App } from './App';
 import { GalleryScreen } from './gallery/GalleryScreen';
 import { useCasinoHost } from './lib/useCasinoHost';
+import { KitchenNativeProof } from './play/KitchenNativeProof';
 import { hasRecoverableRound, visibleView, type AppView } from './play/view-state';
 import type { EnvironmentId } from './scene/types';
 import './styles.css';
@@ -63,8 +64,12 @@ function ExperienceRoot() {
   return <App onBackToGallery={embedded ? undefined : () => setRequestedView('gallery')} />;
 }
 
+const proofScene = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('scene')
+  : null;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ExperienceRoot />
+    {proofScene === 'kitchen-native-proof' ? <KitchenNativeProof /> : <ExperienceRoot />}
   </StrictMode>,
 );

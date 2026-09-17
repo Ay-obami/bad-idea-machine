@@ -58,6 +58,9 @@ export function kitchenFrame(elapsedMs: number) {
   const rotation = 1.5 * smooth(give) + 13.5 * sag * sag + 3 * smooth(settle) + Math.sin(settle * Math.PI * 4) * 2.5 * (1 - settle);
   const yaw = 22 * smooth(door) + 10 * smooth(settle);
   const screwFall = clamp((time - 1230) / 580);
+  // The bracket itself tears away before the door reaches the plates; this must be visually readable,
+  // otherwise the toast appears to magically cause a cabinet failure.
+  const hingeFailure = smooth(clamp((time - 1160) / 420));
   const individualPlates = plateFlights.map((flight, index) => {
     const event = events.get(`plate-${index}-contact`)!;
     const p = progress(event.id, time);
@@ -69,7 +72,11 @@ export function kitchenFrame(elapsedMs: number) {
     const impactY = 311 - support;
     return {
       id: index, x: 471.5 + flight.travel * p, y: restY + (impactY - restY) * p * p,
-      rotation: angle, impactX, impactY, impactMs: event.startMs + event.durationMs,
+      rotation: angle,
+      // A changing apparent depth makes each ceramic plate read as a rigid shallow dish rotating in 3D,
+      // rather than a paper-thin sprite translating down the screen.
+      depthScale: .72 + .42 * Math.abs(Math.sin(radians(angle + index * 7))),
+      impactX, impactY, impactMs: event.startMs + event.durationMs,
       shattered: time >= event.startMs + event.durationMs,
     };
   });
@@ -97,11 +104,18 @@ export function kitchenFrame(elapsedMs: number) {
     toaster: { ...objects.toaster.rest, rotation: spring > 0 && spring < 1 ? -1.5 * Math.sin(spring * Math.PI) : 0 },
     toast,
     door: { ...objects.door.rest, rotation, yaw, matrix: doorMatrix(rotation, yaw) },
+    lowerHinge: {
+      x: 607 + 14 * hingeFailure,
+      y: 144 + 18 * hingeFailure,
+      separation: 14 * hingeFailure,
+      rotation: 14 * hingeFailure,
+      shadowOpacity: .06 + .34 * hingeFailure,
+    },
     hingeScrew: { x: 608 + 13 * screwFall, y: 149 + 163 * screwFall * screwFall, rotation: 15 + 430 * screwFall, released: time >= 1230 },
     individualPlates, ceramicFragments,
     platesVisible: individualPlates.some(plate => !plate.shattered),
     shardsVisible: ceramicFragments.length > 0,
     damageIds: damage.damageIds,
-    label: time < 650 ? 'A backed-out screw is all that holds the lower hinge.' : time < 1050 ? 'The toaster spring releases.' : time < 1500 ? 'The loose screw drops. The door sags on its upper hinge.' : time < 2005 ? 'The door knocks the plates off their shelf.' : time < 2915 ? 'The plates hit one after another.' : 'The damage stays until you reset the room.',
+    label: time < 650 ? 'A backed-out screw is all that holds the lower hinge.' : time < 1050 ? 'The toaster spring releases.' : time < 1500 ? 'The lower bracket tears free. The door drops onto its upper hinge.' : time < 2005 ? 'The falling door catches the plate stack.' : time < 2915 ? 'The plates hit one after another.' : 'The damage stays until you reset the room.',
   };
 }

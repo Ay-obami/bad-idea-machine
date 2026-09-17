@@ -13,149 +13,78 @@
   justify-content: space-between;
   gap: 24px;
 }
-.kitchen-native-proof__header small {
-  color: #f5c94d;
-  font: 800 11px/1 Poppins, sans-serif;
-  letter-spacing: .13em;
-}
-.kitchen-native-proof__header h1 {
-  margin: 8px 0 4px;
-  font: 800 clamp(22px, 3vw, 36px)/1.05 Poppins, sans-serif;
-}
-.kitchen-native-proof__header p { max-width: 74ch; margin: 0; color: #aeb8ba; line-height: 1.5; }
-.kitchen-native-proof__status { display: grid; gap: 5px; text-align: right; color: #c5cecf; font-size: 12px; }
+.kitchen-native-proof__header small { color:#f5c94d; font:800 11px/1 Poppins,sans-serif; letter-spacing:.13em; }
+.kitchen-native-proof__header h1 { margin:8px 0 4px; font:800 clamp(22px,3vw,36px)/1.05 Poppins,sans-serif; }
+.kitchen-native-proof__header p { max-width:74ch; margin:0; color:#aeb8ba; line-height:1.5; }
+.kitchen-native-proof__status { display:grid; gap:5px; text-align:right; color:#c5cecf; font-size:12px; }
 .kitchen-native-proof__stage-shell {
-  width: min(1180px, 100%);
-  margin: auto;
-  border: 1px solid #35454a;
-  background: #020405;
-  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  width:min(1180px,100%); margin:auto; border:1px solid #35454a; background:#020405; box-shadow:0 18px 60px rgba(0,0,0,.45);
 }
 .kitchen-native-proof__canvas {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 5 / 3;
-  overflow: hidden;
-  container-type: size;
-  background: #0b0d0d;
+  position:relative; width:100%; aspect-ratio:5/3; overflow:hidden; container-type:size; background:#0b0d0d;
 }
 .kitchen-native-proof__master {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-  user-select: none;
-  pointer-events: none;
+  position:absolute; inset:0; width:100%; height:100%; object-fit:fill; user-select:none; pointer-events:none;
 }
-.kitchen-native-proof__clip {
-  position: absolute;
-  overflow: hidden;
-  pointer-events: none;
-}
+.kitchen-native-proof__clip { position:absolute; overflow:hidden; pointer-events:none; }
 .kitchen-native-proof__clip > img {
-  position: absolute;
-  max-width: none;
-  user-select: none;
-  pointer-events: none;
+  position:absolute; max-width:none; user-select:none; pointer-events:none;
 }
-.kitchen-native-proof__patch {
-  z-index: 11;
-  transition: opacity 40ms linear;
+.kitchen-native-proof__patch { z-index:11; transition:opacity 40ms linear; }
+.kitchen-native-proof__door-reveal,
+.kitchen-native-proof__plate-reveal {
+  position:absolute; z-index:11; pointer-events:none;
 }
-.kitchen-native-proof__door-patch { box-shadow: inset 0 0 16px rgba(92,54,27,.12); }
-.kitchen-native-proof__moving { z-index: 20; will-change: transform; }
-.kitchen-native-proof__toast {
-  width: 3.4% !important;
-  height: 4% !important;
-  filter: drop-shadow(0 7px 5px rgba(0,0,0,.24));
+.kitchen-native-proof__door-reveal {
+  background:
+    linear-gradient(92deg, rgba(62,38,22,.14), transparent 17%),
+    linear-gradient(90deg,#9b7048 0%,#a97d52 48%,#8d633f 100%);
+  box-shadow:inset 0 0 22px rgba(51,31,17,.24);
 }
-.kitchen-native-proof__door { z-index: 19; }
+.kitchen-native-proof__plate-reveal {
+  border-radius:3px;
+  background:linear-gradient(180deg,#9c7048,#a97a4d 70%,#865d3c);
+  box-shadow:inset 0 8px 12px rgba(57,35,20,.12);
+}
+.kitchen-native-proof__moving { z-index:20; will-change:transform; }
+.kitchen-native-proof__toast { filter:drop-shadow(0 5px 4px rgba(0,0,0,.24)); }
+.kitchen-native-proof__door { z-index:19; }
 .kitchen-native-proof__plate {
-  width: 7.3% !important;
-  height: 2.7% !important;
-  filter: drop-shadow(0 5px 3px rgba(0,0,0,.24));
+  filter:drop-shadow(0 4px 3px rgba(0,0,0,.28));
 }
 .kitchen-native-proof__contact {
-  position: absolute;
-  z-index: 30;
-  width: 19px;
-  height: 7px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) rotate(-16deg);
-  background: rgba(242,225,186,.55);
-  box-shadow: 0 0 8px rgba(255,232,174,.48);
-  pointer-events: none;
+  position:absolute; z-index:30; width:13px; height:5px; border-radius:50%; transform:translate(-50%,-50%) rotate(-9deg);
+  background:rgba(235,222,194,.38); box-shadow:0 0 5px rgba(255,236,195,.35); pointer-events:none;
 }
 .kitchen-native-proof__hinge-damage {
-  position: absolute;
-  left: 75.2%;
-  top: 5.4%;
-  z-index: 31;
-  width: 12px;
-  height: 45px;
-  pointer-events: none;
+  position:absolute; left:74.2%; top:5.7%; z-index:31; width:10px; height:36px; pointer-events:none;
 }
 .kitchen-native-proof__hinge-damage::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 0;
-  width: 3px;
-  height: 26px;
-  border-radius: 2px;
-  background: linear-gradient(#d1c7ad,#766c59);
-  box-shadow: 0 0 3px rgba(0,0,0,.5);
+  content:''; position:absolute; left:4px; top:0; width:3px; height:21px; border-radius:2px;
+  background:linear-gradient(#d1c7ad,#766c59); box-shadow:0 0 3px rgba(0,0,0,.5);
 }
 .kitchen-native-proof__hinge-damage i {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #5d5547;
-  box-shadow: 0 1px 2px rgba(0,0,0,.65);
+  position:absolute; width:4px; height:4px; border-radius:50%; background:#5d5547; box-shadow:0 1px 2px rgba(0,0,0,.65);
 }
-.kitchen-native-proof__hinge-damage i:first-child { left: 0; top: 30px; }
-.kitchen-native-proof__hinge-damage i:last-child { left: 8px; top: 38px; }
-.kitchen-native-proof__controls {
-  width: min(1180px, 100%);
-  margin: 14px auto 0;
-  display: grid;
-  gap: 10px;
-}
-.kitchen-native-proof__transport { display: flex; gap: 8px; }
+.kitchen-native-proof__hinge-damage i:first-child { left:0; top:25px; }
+.kitchen-native-proof__hinge-damage i:last-child { left:7px; top:31px; }
+.kitchen-native-proof__controls { width:min(1180px,100%); margin:14px auto 0; display:grid; gap:10px; }
+.kitchen-native-proof__transport { display:flex; gap:8px; }
 .kitchen-native-proof button {
-  border: 1px solid #43555a;
-  background: #101a1e;
-  color: #f2efe7;
-  min-height: 42px;
-  padding: 0 14px;
-  font: 700 12px Poppins, sans-serif;
-  cursor: pointer;
+  border:1px solid #43555a; background:#101a1e; color:#f2efe7; min-height:42px; padding:0 14px;
+  font:700 12px Poppins,sans-serif; cursor:pointer;
 }
-.kitchen-native-proof button:hover,
-.kitchen-native-proof button:focus-visible { border-color: #f5c94d; outline: none; }
-.kitchen-native-proof__transport button:first-child { background: #f5c94d; border-color: #f5c94d; color: #151612; }
-.kitchen-native-proof__marks {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 7px;
+.kitchen-native-proof button:hover,.kitchen-native-proof button:focus-visible { border-color:#f5c94d; outline:none; }
+.kitchen-native-proof__transport button:first-child { background:#f5c94d; border-color:#f5c94d; color:#151612; }
+.kitchen-native-proof__marks { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:7px; }
+.kitchen-native-proof__marks button { display:grid; align-content:center; gap:2px; text-align:left; }
+.kitchen-native-proof__marks small { color:#869397; font-size:9px; }
+.kitchen-native-proof__controls p { margin:0; color:#9eaaad; font-size:12px; line-height:1.5; }
+@media (max-width:760px) {
+  .kitchen-native-proof { padding:10px; }
+  .kitchen-native-proof__header { display:grid; gap:8px; }
+  .kitchen-native-proof__status { text-align:left; }
+  .kitchen-native-proof__marks { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:5px; }
+  .kitchen-native-proof__marks button { min-width:132px; scroll-snap-align:start; }
 }
-.kitchen-native-proof__marks button { display: grid; align-content: center; gap: 2px; text-align: left; }
-.kitchen-native-proof__marks small { color: #869397; font-size: 9px; }
-.kitchen-native-proof__controls p { margin: 0; color: #9eaaad; font-size: 12px; line-height: 1.5; }
-@media (max-width: 760px) {
-  .kitchen-native-proof { padding: 10px; }
-  .kitchen-native-proof__header { display: grid; gap: 8px; }
-  .kitchen-native-proof__status { text-align: left; }
-  .kitchen-native-proof__marks {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 5px;
-  }
-  .kitchen-native-proof__marks button { min-width: 132px; scroll-snap-align: start; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .kitchen-native-proof__moving { will-change: auto; }
-}
+@media (prefers-reduced-motion:reduce) { .kitchen-native-proof__moving { will-change:auto; } }

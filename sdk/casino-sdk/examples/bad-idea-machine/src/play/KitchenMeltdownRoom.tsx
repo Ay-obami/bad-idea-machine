@@ -1,18 +1,11 @@
 import { useId } from 'react';
 
 import type { OutcomeTier } from '../lib/badIdea';
-import {
-  kitchenMeltdownFrame,
-  type KitchenVariant,
-} from '../scene/kitchen-meltdown';
+import { kitchenMeltdownFrame, type KitchenVariant } from '../scene/kitchen-meltdown';
 import { KitchenRoom } from './KitchenRoom';
 import '../styles/kitchen-meltdown.css';
 
-type Props = Readonly<{
-  elapsedMs: number;
-  variant: KitchenVariant;
-  tier: OutcomeTier;
-}>;
+type Props = Readonly<{ elapsedMs: number; variant: KitchenVariant; tier: OutcomeTier }>;
 
 const base = import.meta.env.BASE_URL;
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
@@ -29,18 +22,14 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
   const rocketProgress = tier === 4 ? clamp((outcome - .08) / .48) : 0;
   const safeProgress = tier === 0 ? clamp((outcome - .3) / .45) : 0;
 
-  // Both props are present in every intact room. Variant selection changes motion, never room inventory.
-  const panActive = frame.secondaryObject.kind === 'pan';
-  const kettleActive = frame.secondaryObject.kind === 'kettle';
-  const panSparkCorrection = variant === 'pan-spark' && panActive
-    ? -50 * (1 - frame.secondaryObject.motion)
-    : 0;
-  const pan = panActive
-    ? { x: frame.secondaryObject.x + panSparkCorrection, y: frame.secondaryObject.y, rotation: frame.secondaryObject.rotation }
-    : { x: 585, y: 302, rotation: -8 };
-  const kettle = kettleActive
+  // The pan always starts on the real left stove and the kettle on the right counter.
+  // Variant selection only changes which prop moves after the visible trigger shard hits it.
+  const pan = frame.secondaryObject.kind === 'pan'
     ? { x: frame.secondaryObject.x, y: frame.secondaryObject.y, rotation: frame.secondaryObject.rotation }
-    : { x: 730, y: 287, rotation: 0 };
+    : { x: 165, y: 300, rotation: -6 };
+  const kettle = frame.secondaryObject.kind === 'kettle'
+    ? { x: frame.secondaryObject.x, y: frame.secondaryObject.y, rotation: frame.secondaryObject.rotation }
+    : { x: 790, y: 290, rotation: 0 };
 
   return (
     <div
@@ -72,86 +61,49 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           </linearGradient>
         </defs>
 
-        {/* Stable room inventory: pan and kettle exist before the random chain is selected. */}
-        <ellipse cx={pan.x} cy="332" rx="37" ry="4" fill="#24160e" opacity={.2 + (panActive ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
-        <image
-          href={`${base}rooms/kitchen/objects/pan.webp`}
-          x={pan.x - 47}
-          y={pan.y - 31}
-          width="94"
-          height="62"
-          preserveAspectRatio="xMidYMid meet"
-          transform={`rotate(${pan.rotation} ${pan.x} ${pan.y})`}
-        />
-        <ellipse cx={kettle.x} cy="326" rx="25" ry="4" fill="#24160e" opacity={.18 + (kettleActive ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
-        <image
-          href={`${base}rooms/kitchen/objects/kettle.webp`}
-          x={kettle.x - 30}
-          y={kettle.y - 36}
-          width="60"
-          height="72"
-          preserveAspectRatio="xMidYMid meet"
-          transform={`rotate(${kettle.rotation} ${kettle.x} ${kettle.y})`}
-        />
+        {/* Stable room inventory exists before the random chain is selected. */}
+        <ellipse cx={pan.x} cy="332" rx="37" ry="4" fill="#24160e" opacity={.2 + (frame.secondaryObject.kind === 'pan' ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
+        <image href={`${base}rooms/kitchen/objects/pan.webp`} x={pan.x - 47} y={pan.y - 31} width="94" height="62" preserveAspectRatio="xMidYMid meet" transform={`rotate(${pan.rotation} ${pan.x} ${pan.y})`} />
+        <ellipse cx={kettle.x} cy="326" rx="25" ry="4" fill="#24160e" opacity={.18 + (frame.secondaryObject.kind === 'kettle' ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
+        <image href={`${base}rooms/kitchen/objects/kettle.webp`} x={kettle.x - 30} y={kettle.y - 36} width="60" height="72" preserveAspectRatio="xMidYMid meet" transform={`rotate(${kettle.rotation} ${kettle.x} ${kettle.y})`} />
+
+        {/* This shard visibly connects the approved plate break to the next physical cause. */}
+        {frame.triggerShard.visible && <g data-room-object="trigger-shard" transform={`translate(${frame.triggerShard.x} ${frame.triggerShard.y}) rotate(${frame.triggerShard.rotation})`}>
+          <ellipse cx="0" cy="9" rx="7" ry="1.8" fill="#2a1b12" opacity=".2" filter={`url(#${id}-soft)`} />
+          <path d="M-9-5L10-2L4 8L-7 5Z" fill="#e9dfcc" stroke="#766b58" strokeWidth=".9" />
+          <path d="M-6-3L5-1" stroke="#fff7e8" strokeWidth="1" opacity=".8" />
+        </g>}
 
         {frame.secondaryObject.contactPulse > 0 && <g opacity={.22 + frame.secondaryObject.contactPulse * .55}>
           <circle cx={frame.secondaryObject.contact.x} cy={frame.secondaryObject.contact.y} r={5 + 9 * frame.secondaryObject.contactPulse} fill="none" stroke="#f0d6a0" strokeWidth="2" />
           <path d={`M${frame.secondaryObject.contact.x - 10} ${frame.secondaryObject.contact.y + 5}l-8 7m20-10 7 8`} stroke="#e8c581" strokeWidth="1.5" />
         </g>}
 
-        {/* Spill grows along the actual countertop from the collision source. */}
+        {/* Spill follows the supported surface from the moved object to the eventual ignition point. */}
         {frame.spill.progress > 0 && <g data-room-damage="counter-spill">
-          <path
-            d={`M${frame.spill.from.x} ${frame.spill.from.y} C${frame.spill.from.x + 26} ${frame.spill.from.y + 8}, ${spillEndX - 30} ${spillEndY - 7}, ${spillEndX} ${spillEndY}`}
-            fill="none"
-            stroke={`url(#${id}-spill)`}
-            strokeWidth={6 + 14 * frame.spill.progress}
-            strokeLinecap="round"
-            opacity={frame.spill.opacity}
-          />
+          <path d={`M${frame.spill.from.x} ${frame.spill.from.y} C${frame.spill.from.x + 26} ${frame.spill.from.y + 8}, ${spillEndX - 30} ${spillEndY - 7}, ${spillEndX} ${spillEndY}`} fill="none" stroke={`url(#${id}-spill)`} strokeWidth={6 + 14 * frame.spill.progress} strokeLinecap="round" opacity={frame.spill.opacity} />
           <ellipse cx={spillEndX} cy={spillEndY} rx={9 + 22 * frame.spill.progress} ry={2 + 5 * frame.spill.progress} fill={variant === 'steam-short' ? '#b9d2c8' : '#6f431d'} opacity={.2 + .42 * frame.spill.progress} />
         </g>}
 
-        {/* Scorch and flame originate at the same physical point as ignition. */}
+        {/* Fire begins at the exact end of the spill/short path. */}
         {frame.ignition.progress > 0 && <g data-room-damage="localized-fire">
-          <ellipse
-            cx={frame.ignition.x}
-            cy={frame.ignition.y + 5}
-            rx={18 + 42 * frame.ignition.progress + 44 * damage.scorch * outcome}
-            ry={6 + 13 * frame.ignition.progress + 10 * damage.scorch * outcome}
-            fill={`url(#${id}-scorch)`}
-            opacity={.35 + .5 * frame.ignition.progress}
-          />
+          <ellipse cx={frame.ignition.x} cy={frame.ignition.y + 5} rx={18 + 42 * frame.ignition.progress + 44 * damage.scorch * outcome} ry={6 + 13 * frame.ignition.progress + 10 * damage.scorch * outcome} fill={`url(#${id}-scorch)`} opacity={.35 + .5 * frame.ignition.progress} />
           {[0, 1, 2].map(index => {
             const offset = (index - 1) * (10 + 7 * finalFire);
             const height = 26 + finalFire * (35 + index * 8);
-            return <path
-              key={index}
-              d={`M${frame.ignition.x + offset - 10} ${frame.ignition.y + 4} Q${frame.ignition.x + offset - 4} ${frame.ignition.y - height * .48} ${frame.ignition.x + offset} ${frame.ignition.y - height} Q${frame.ignition.x + offset + 14} ${frame.ignition.y - height * .35} ${frame.ignition.x + offset + 9} ${frame.ignition.y + 4}Z`}
-              fill={`url(#${id}-flame)`}
-              opacity={clamp(.12 + finalFire * .86 - index * .06)}
-            />;
+            return <path key={index} d={`M${frame.ignition.x + offset - 10} ${frame.ignition.y + 4} Q${frame.ignition.x + offset - 4} ${frame.ignition.y - height * .48} ${frame.ignition.x + offset} ${frame.ignition.y - height} Q${frame.ignition.x + offset + 14} ${frame.ignition.y - height * .35} ${frame.ignition.x + offset + 9} ${frame.ignition.y + 4}Z`} fill={`url(#${id}-flame)`} opacity={clamp(.12 + finalFire * .86 - index * .06)} />;
           })}
         </g>}
 
-        {/* Smoke rises only from the ignition point and accumulates into the final room. */}
+        {/* Smoke is physically rooted in that same ignition location. */}
         {finalSmoke > 0 && <g data-room-damage="smoke-staining" filter={`url(#${id}-smoke)`}>
           {[0, 1, 2, 3, 4].map(index => {
             const rise = 34 + index * 37 + finalSmoke * 60;
             const sway = Math.sin(index * 1.7 + frame.time / 650) * (12 + index * 3);
-            return <ellipse
-              key={index}
-              cx={frame.smoke.x + sway}
-              cy={frame.smoke.y - rise}
-              rx={24 + index * 9 + finalSmoke * 24}
-              ry={18 + index * 11 + finalSmoke * 28}
-              fill={index < 2 ? '#514b43' : '#353735'}
-              opacity={clamp(finalSmoke * (.34 - index * .035))}
-            />;
+            return <ellipse key={index} cx={frame.smoke.x + sway} cy={frame.smoke.y - rise} rx={24 + index * 9 + finalSmoke * 24} ry={18 + index * 11 + finalSmoke * 28} fill={index < 2 ? '#514b43' : '#353735'} opacity={clamp(finalSmoke * (.34 - index * .035))} />;
           })}
         </g>}
 
-        {/* Common settled debris comes from the same plate/counter zone; structural damage below is tier-specific. */}
         {outcome > 0 && <g opacity={outcome}>
           {Array.from({ length: Math.round(3 + damage.debris * 9) }, (_, index) => {
             const x = 360 + ((index * 53) % 365);
@@ -161,21 +113,21 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           })}
         </g>}
 
-        {/* Tier 1: small, localized repairable damage. */}
+        {/* Tier 1: small localized repairable damage. */}
         {tier === 1 && outcome > 0 && <g data-room-damage="minor-localized-scorch" opacity={outcome}>
-          <path d="M648 286l-8 8 7 8-9 7" fill="none" stroke="#5c4330" strokeWidth="1.4" />
+          <path d={`M${frame.ignition.x + 18} ${frame.ignition.y - 26}l-8 8 7 8-9 7`} fill="none" stroke="#5c4330" strokeWidth="1.4" />
           <ellipse cx={frame.ignition.x + 12} cy={frame.ignition.y + 3} rx="24" ry="7" fill="#392319" opacity=".28" />
-          <path d="M660 316l12 2-7 5-13-2z" fill="#c8b89b" stroke="#765b41" strokeWidth=".7" />
+          <path d={`M${frame.ignition.x + 20} 316l12 2-7 5-13-2z`} fill="#c8b89b" stroke="#765b41" strokeWidth=".7" />
         </g>}
 
-        {/* Tier 2: cracked counter edge and damaged backsplash, without upper-cabinet collapse. */}
+        {/* Tier 2: cracked counter edge and backsplash; upper cabinetry remains supported. */}
         {tier === 2 && outcome > 0 && <g data-room-damage="moderate-counter-cabinet-damage" opacity={outcome}>
           <path d="M555 324l24-7 18 9 31-8 24 10 30-6" fill="none" stroke="#493426" strokeWidth="2.6" />
           <path d="M617 268l-11 14 9 12-16 13m45-42 9 15-8 12 13 12" fill="none" stroke="#6d5240" strokeWidth="1.8" />
           <path d="M604 280h24v17h-24zM636 274h20v19h-20z" fill="#8f9e8f" opacity=".42" stroke="#4c584d" />
         </g>}
 
-        {/* Tier 3: the upper cabinet itself sags and burns; a separate silhouette from tier 2. */}
+        {/* Tier 3: a distinct burned and sagging upper-cabinet silhouette. */}
         {tier === 3 && outcome > 0 && <g data-room-damage="severe-upper-cabinet-burn" opacity={outcome}>
           <path d="M372 62h102v112l-15 22-82-7z" fill="#cbb898" stroke="#62472f" strokeWidth="2.3" transform={`rotate(${9 * outcome} 472 64)`} />
           <path d="M390 84h65v76h-65z" fill="none" stroke="#7a6043" strokeWidth="3" />
@@ -183,7 +135,7 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           <ellipse cx="430" cy="105" rx="72" ry="40" fill="#2b1d15" opacity=".36" filter={`url(#${id}-soft)`} />
         </g>}
 
-        {/* Tier 0: failed round leaves a charred local collapse plus a heavy impact crater. */}
+        {/* Tier 0: charred collapse plus a heavy final impact crater. */}
         {tier === 0 && outcome > 0 && <g data-room-damage="loss-charred-collapse" opacity={outcome}>
           <path d="M390 48h98v136l-32 33-72-23z" fill="#5f4938" stroke="#2b211a" strokeWidth="3" transform={`rotate(${15 * outcome} 488 50)`} />
           <path d="M405 73h58v83h-58z" fill="#28211c" opacity=".8" />
@@ -197,7 +149,7 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           <image href={`${base}rooms/kitchen/objects/safe.webp`} x={690 - safeProgress * 70} y={62 + safeProgress * safeProgress * 420} width="92" height="92" transform={`rotate(${safeProgress * 16} ${736 - safeProgress * 70} ${108 + safeProgress * safeProgress * 420})`} />
         </g>}
 
-        {/* Tier 4: unique cross-room rocket event and blast-damaged architecture. */}
+        {/* Tier 4: unique cross-room rocket trajectory and blast-damaged architecture. */}
         {tier === 4 && outcome > 0 && <g data-room-damage="legendary-rocket-cinematic-devastation" opacity={outcome}>
           <path d="M118 92l31 17-13 31 28 18-24 33 32 26" fill="none" stroke="#3b291f" strokeWidth="4" />
           <path d="M170 126l-26 18 18 23-23 22 31 18-16 30" fill="none" stroke="#5b3b2b" strokeWidth="3" />

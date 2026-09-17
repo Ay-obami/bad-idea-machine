@@ -112,26 +112,28 @@ function proofEvents(seed: Hex): readonly SceneEvent[] {
 
 function variantEvents(variant: KitchenVariant, seed: Hex): readonly SceneEvent[] {
   const base = (visualByte(seed, 10) << 8) | visualByte(seed, 11);
+
   if (variant === 'grease-fire') {
     return [
       event({
-        id: 'grease-pan-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 3_050, durationMs: 420,
-        start: { x: 585, y: 302 }, end: { x: 548, y: 309 }, rotation: 18,
-        hazard: 'debris', intensity: 2, soundCue: 'pan-clang', materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
+        id: 'grease-pan-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 2_710, durationMs: 500,
+        start: { x: 418, y: 307 }, end: { x: 188, y: 302 }, rotation: 30,
+        hazard: 'debris', intensity: 2, soundCue: 'ceramic-pan', impactAt: 490,
+        materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
       }),
       event({
-        id: 'grease-spill', actorId: 'kitchen-pan', action: 'roll', startMs: 3_470, durationMs: 900,
-        start: { x: 548, y: 309 }, end: { x: 675, y: 316 }, rotation: 24,
+        id: 'grease-spill', actorId: 'kitchen-pan', action: 'roll', startMs: 3_210, durationMs: 900,
+        start: { x: 165, y: 300 }, end: { x: 250, y: 316 }, rotation: 28,
         hazard: 'debris', intensity: 1, soundCue: 'pan-clang', materialA: 'metal', materialB: 'masonry', effect: 'debris', damage: ['counter-spill'], seed: base + 2,
       }),
       event({
-        id: 'grease-ignite', actorId: 'kitchen-pan', action: 'ignite', startMs: 4_650, durationMs: 620,
-        start: { x: 675, y: 316 }, end: { x: 690, y: 313 },
+        id: 'grease-ignite', actorId: 'kitchen-pan', action: 'ignite', startMs: 4_500, durationMs: 700,
+        start: { x: 180, y: 314 }, end: { x: 164, y: 307 },
         hazard: 'fire', intensity: 2, soundCue: 'pan-ignite', materialA: 'metal', materialB: 'appliance', effect: 'fire', damage: ['localized-fire'], seed: base + 3,
       }),
       event({
-        id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_270, durationMs: 320,
-        start: { x: 690, y: 313 }, end: { x: 690, y: 260 },
+        id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_200, durationMs: 399,
+        start: { x: 164, y: 307 }, end: { x: 164, y: 250 },
         hazard: 'smoke', intensity: 2, soundCue: 'steam-hiss', materialA: 'appliance', materialB: 'masonry', effect: 'fire', damage: ['smoke-staining'], seed: base + 4,
       }),
     ];
@@ -140,23 +142,24 @@ function variantEvents(variant: KitchenVariant, seed: Hex): readonly SceneEvent[
   if (variant === 'steam-short') {
     return [
       event({
-        id: 'steam-kettle-hit', actorId: 'kitchen-kettle', action: 'ricochet', startMs: 3_050, durationMs: 420,
-        start: { x: 730, y: 287 }, end: { x: 690, y: 304 }, rotation: -28,
-        hazard: 'debris', intensity: 2, soundCue: 'kettle-hit', materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
+        id: 'steam-kettle-hit', actorId: 'kitchen-kettle', action: 'ricochet', startMs: 2_710, durationMs: 500,
+        start: { x: 418, y: 307 }, end: { x: 766, y: 299 }, rotation: 330,
+        hazard: 'debris', intensity: 2, soundCue: 'ceramic-kettle', impactAt: 490,
+        materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
       }),
       event({
-        id: 'steam-spill', actorId: 'kitchen-kettle', action: 'vent', startMs: 3_470, durationMs: 900,
-        start: { x: 690, y: 304 }, end: { x: 625, y: 325 }, rotation: -42,
+        id: 'steam-spill', actorId: 'kitchen-kettle', action: 'vent', startMs: 3_210, durationMs: 900,
+        start: { x: 790, y: 290 }, end: { x: 744, y: 321 }, rotation: -42,
         hazard: 'steam', intensity: 2, soundCue: 'kettle-steam', materialA: 'metal', materialB: 'appliance', effect: 'debris', damage: ['counter-spill'], seed: base + 2,
       }),
       event({
-        id: 'steam-short', actorId: 'kitchen-toaster', action: 'ignite', startMs: 4_650, durationMs: 620,
-        start: { x: 625, y: 325 }, end: { x: 626, y: 313 },
+        id: 'steam-short', actorId: 'kitchen-toaster', action: 'ignite', startMs: 4_500, durationMs: 700,
+        start: { x: 610, y: 324 }, end: { x: 600, y: 309 },
         hazard: 'sparks', intensity: 2, soundCue: 'sparks-short', materialA: 'appliance', materialB: 'metal', effect: 'spark', damage: ['localized-fire'], seed: base + 3,
       }),
       event({
-        id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_270, durationMs: 320,
-        start: { x: 626, y: 313 }, end: { x: 626, y: 258 },
+        id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_200, durationMs: 399,
+        start: { x: 600, y: 309 }, end: { x: 600, y: 252 },
         hazard: 'smoke', intensity: 2, soundCue: 'steam-hiss', materialA: 'appliance', materialB: 'masonry', effect: 'fire', damage: ['smoke-staining'], seed: base + 4,
       }),
     ];
@@ -164,23 +167,24 @@ function variantEvents(variant: KitchenVariant, seed: Hex): readonly SceneEvent[
 
   return [
     event({
-      id: 'pan-shard-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 3_050, durationMs: 420,
-      start: { x: 635, y: 299 }, end: { x: 570, y: 310 }, rotation: -18,
-      hazard: 'debris', intensity: 2, soundCue: 'pan-clang', materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
+      id: 'pan-shard-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 2_710, durationMs: 500,
+      start: { x: 418, y: 307 }, end: { x: 188, y: 302 }, rotation: 30,
+      hazard: 'debris', intensity: 2, soundCue: 'ceramic-pan', impactAt: 490,
+      materialA: 'ceramic', materialB: 'metal', effect: 'debris', seed: base + 1,
     }),
     event({
-      id: 'pan-cord-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 3_470, durationMs: 900,
-      start: { x: 570, y: 310 }, end: { x: 603, y: 318 }, rotation: -31,
+      id: 'pan-cord-hit', actorId: 'kitchen-pan', action: 'ricochet', startMs: 3_210, durationMs: 1_240,
+      start: { x: 165, y: 300 }, end: { x: 535, y: 314 }, rotation: -35,
       hazard: 'sparks', intensity: 2, soundCue: 'pan-clang', materialA: 'metal', materialB: 'appliance', effect: 'spark', damage: ['counter-spill'], seed: base + 2,
     }),
     event({
-      id: 'pan-ignite', actorId: 'kitchen-toaster', action: 'ignite', startMs: 4_650, durationMs: 620,
-      start: { x: 603, y: 318 }, end: { x: 580, y: 307 },
+      id: 'pan-ignite', actorId: 'kitchen-toaster', action: 'ignite', startMs: 4_500, durationMs: 700,
+      start: { x: 558, y: 321 }, end: { x: 568, y: 306 },
       hazard: 'fire', intensity: 2, soundCue: 'toaster-sparks', materialA: 'appliance', materialB: 'metal', effect: 'fire', damage: ['localized-fire'], seed: base + 3,
     }),
     event({
-      id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_270, durationMs: 320,
-      start: { x: 580, y: 307 }, end: { x: 580, y: 252 },
+      id: 'shared-smoke', actorId: 'kitchen-kettle', action: 'vent', startMs: 5_200, durationMs: 399,
+      start: { x: 568, y: 306 }, end: { x: 568, y: 250 },
       hazard: 'smoke', intensity: 2, soundCue: 'steam-hiss', materialA: 'appliance', materialB: 'masonry', effect: 'fire', damage: ['smoke-staining'], seed: base + 4,
     }),
   ];
@@ -205,13 +209,13 @@ function terminalEvents(tier: OutcomeTier, seed: Hex): readonly SceneEvent[] {
     case 1:
       return [event({
         id: 'outcome-1-local-settle', actorId: 'kitchen-pan', action: 'drop', startMs: 6_050, durationMs: 720,
-        start: { x: 650, y: 310 }, end: { x: 640, y: 326 }, rotation: 8,
+        start: { x: 250, y: 316 }, end: { x: 240, y: 326 }, rotation: 8,
         hazard: 'smoke', intensity: 1, soundCue: 'pan-settle', materialA: 'metal', materialB: 'masonry', effect: 'debris', damage: ['minor-localized-scorch'], seed: base + 1,
       })];
     case 2:
       return [event({
         id: 'outcome-2-counter-break', actorId: 'kitchen-kettle', action: 'drop', startMs: 6_000, durationMs: 820,
-        start: { x: 700, y: 300 }, end: { x: 665, y: 338 }, rotation: -22,
+        start: { x: 744, y: 321 }, end: { x: 700, y: 338 }, rotation: -22,
         hazard: 'debris', intensity: 2, soundCue: 'kettle-crash', materialA: 'metal', materialB: 'masonry', effect: 'debris', damage: ['moderate-counter-cabinet-damage'], seed: base + 1,
       })];
     case 3:

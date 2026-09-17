@@ -19,6 +19,7 @@ import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
 const KitchenProof = lazy(() => import('./play/KitchenProof'));
+const KitchenMeltdownPreview = lazy(() => import('./play/KitchenMeltdownPreview'));
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -64,10 +65,14 @@ function ExperienceRoot() {
   return <App onBackToGallery={embedded ? undefined : () => setRequestedView('gallery')} />;
 }
 
+const standaloneScene = window.self === window.top ? new URLSearchParams(window.location.search).get('scene') : null;
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {window.self === window.top && new URLSearchParams(window.location.search).get('scene') === 'kitchen-proof'
+    {standaloneScene === 'kitchen-proof'
       ? <Suspense fallback={<p>Loading kitchen preview…</p>}><KitchenProof /></Suspense>
-      : <ExperienceRoot />}
+      : standaloneScene === 'kitchen-meltdown'
+        ? <Suspense fallback={<p>Loading complete kitchen…</p>}><KitchenMeltdownPreview /></Suspense>
+        : <ExperienceRoot />}
   </StrictMode>,
 );

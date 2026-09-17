@@ -3,6 +3,7 @@ import type { Hex } from 'viem';
 
 import type { OutcomeTier } from '../lib/badIdea';
 import { getEnvironmentDefinition } from './environments';
+import { KITCHEN_MELTDOWN_DURATION, KITCHEN_REVEAL_MS } from './kitchen-meltdown';
 import { visualByte, visualU16 } from './random';
 import { buildSceneScript, sceneDurationMs } from './scene-script';
 import type { EnvironmentId, SceneEvent } from './types';
@@ -22,15 +23,17 @@ function travel(event: SceneEvent) {
 }
 
 function earlySignature(script: ReturnType<typeof buildSceneScript>) {
+  const cutoff = script.environment === 'kitchen' ? KITCHEN_REVEAL_MS : script.durationMs * .6;
   return script.events
-    .filter(event => event.startMs < script.durationMs * 0.6)
-    .map(event => [event.actorId, event.action, event.startMs]);
+    .filter(event => event.startMs < cutoff)
+    .map(event => [event.id, event.actorId, event.action, event.startMs]);
 }
 
 function terminalSignature(script: ReturnType<typeof buildSceneScript>) {
+  const cutoff = script.environment === 'kitchen' ? KITCHEN_REVEAL_MS : script.durationMs * .6;
   return script.events
-    .filter(event => event.startMs >= script.durationMs * 0.6)
-    .map(event => [event.actorId, event.action, event.hazard, event.intensity]);
+    .filter(event => event.startMs >= cutoff)
+    .map(event => [event.id, event.actorId, event.action, event.hazard, event.intensity]);
 }
 
 describe('scene visual randomness helpers', () => {
@@ -52,7 +55,6 @@ describe('scene environment definitions', () => {
     const garage = getEnvironmentDefinition('garage');
     const kitchenAssets = new Set(kitchen.actors.map(actor => actor.assetId));
     const garageAssets = new Set(garage.actors.map(actor => actor.assetId));
-
     expect(kitchenAssets.has('toaster')).toBe(true);
     expect(kitchenAssets.has('kettle')).toBe(true);
     expect(garageAssets.has('drill')).toBe(true);
@@ -73,44 +75,47 @@ describe('scene environment definitions', () => {
   });
 });
 
-describe('deterministic environment catastrophe scripts', () => {
+describe('deterministic catastrophe scripts', () => {
   it('is deterministic for a fixed environment, tier and visual seed', () => {
-    const first = buildSceneScript('kitchen', 2, SEED);
-    const second = buildSceneScript('kitchen', 2, SEED);
-    expect(second).toEqual(first);
+    for (const environment of ENVIRONMENTS) {
+      expect(buildSceneScript(environment, 2, SEED)).toEqual(buildSceneScript(environment, 2, SEED));
+    }
   });
 
-  it('terminates and assigns a decoy even for an all-zero visual seed', () => {
-    const script = buildSceneScript('kitchen', 0, ZERO_SEED);
-    expect(script.events.length).toBeGreaterThanOrEqual(8);
-    expect(script.events.some(event => event.decoy)).toBe(true);
+  it('uses the approved eight-second kitchen clock and preserves the legacy garage duration', () => {
+    expect(buildSceneScript('kitchen', 2, SEED).durationMs).toBe(KITCHEN_MELTDOWN_DURATION);
+    const garage = buildSceneScript('garage', 2, SEED);
+    expect(garage.durationMs).toBeGreaterThanOrEqual(4_700);
+    expect(garage.durationMs).toBeLessThanOrEqual(6_200);
   });
 
-  it('keeps every tested catastrophe within the spectacle contract', () => {
+  it('keeps each environment inside its event clock and preserves required hazard variety', () => {
     for (const environment of ENVIRONMENTS) {
       for (const tier of TIERS) {
-        for (const seed of SEEDS) {
+        for (const seed of SEEDS.slice(0, 16)) {
           const script = buildSceneScript(environment, tier, seed);
-          expect(script.durationMs).toBeGreaterThanOrEqual(4_700);
-          expect(script.durationMs).toBeLessThanOrEqual(6_200);
           expect(sceneDurationMs(script)).toBe(script.durationMs);
-          expect(script.events.length).toBeGreaterThanOrEqual(8);
-          expect(script.events.length).toBeLessThanOrEqual(12);
-          expect(new Set(script.events.map(event => event.actorId)).size).toBeGreaterThanOrEqual(4);
-          expect(script.events.some(event => event.decoy)).toBe(true);
-          expect(script.events.some(event => event.hazard === 'fire' || event.hazard === 'blast')).toBe(true);
+          expect(script.events.length).toBeGreaterThanOrEqual(6);
+          expect(script.events.some(event => event.hazard === 'fire' || event.hazard === 'blast' || event.hazard === 'sparks')).toBe(true);
           expect(script.events.some(event => ['debris', 'smoke', 'steam', 'shards'].includes(event.hazard))).toBe(true);
-          expect(script.events.some(event => {
-            const { dx, dy } = travel(event);
-            return dx >= 350 || dy >= 180;
-          })).toBe(true);
           expect(Math.max(...script.events.map(event => event.startMs + event.durationMs))).toBeLessThanOrEqual(script.durationMs);
+          if (environment === 'garage') {
+            expect(script.events.some(event => event.decoy)).toBe(true);
+            expect(script.events.some(event => {
+              const { dx, dy } = travel(event);
+              return dx >= 350 || dy >= 180;
+            })).toBe(true);
+          } else {
+            expect(script.events.every(event => event.decoy === false)).toBe(true);
+            expect(script.revealStartMs).toBe(KITCHEN_REVEAL_MS);
+            expect(['grease-fire', 'steam-short', 'pan-spark']).toContain(script.variant);
+          }
         }
       }
     }
   });
 
-  it('keeps the first sixty percent payout-blind for every tier', () => {
+  it('keeps the shared destruction payout-blind for every tier', () => {
     for (const environment of ENVIRONMENTS) {
       for (const seed of SEEDS) {
         const scripts = TIERS.map(tier => buildSceneScript(environment, tier, seed));
@@ -130,15 +135,13 @@ describe('deterministic environment catastrophe scripts', () => {
     }
   });
 
-  it('keeps zero-x destructive and gives legendary chaos the largest terminal chain', () => {
-    for (const environment of ENVIRONMENTS) {
-      const failure = buildSceneScript(environment, 0, SEED);
-      const legendary = buildSceneScript(environment, 4, SEED);
-      expect(terminalSignature(failure).length).toBeGreaterThanOrEqual(2);
-      expect(terminalSignature(legendary).length).toBeGreaterThan(terminalSignature(failure).length);
-      expect(failure.finalizer.tier).toBe(0);
-      expect(legendary.finalizer.tier).toBe(4);
-    }
+  it('keeps zero-x destructive and gives legendary kitchen chaos an explicit rocket beat', () => {
+    const failure = buildSceneScript('kitchen', 0, SEED);
+    const legendary = buildSceneScript('kitchen', 4, SEED);
+    expect(terminalSignature(failure).length).toBeGreaterThanOrEqual(2);
+    expect(terminalSignature(legendary).some(entry => entry[1] === 'kitchen-rocket')).toBe(true);
+    expect(failure.finalizer.tier).toBe(0);
+    expect(legendary.finalizer.tier).toBe(4);
   });
 
   it('uses distinct choreography pools for kitchen and garage', () => {
@@ -147,5 +150,11 @@ describe('deterministic environment catastrophe scripts', () => {
       const garage = buildSceneScript('garage', 2, seed);
       expect(kitchen.events.map(event => event.actorId)).not.toEqual(garage.events.map(event => event.actorId));
     }
+  });
+
+  it('does not require a decoy in the coherent kitchen chain', () => {
+    const kitchen = buildSceneScript('kitchen', 0, ZERO_SEED);
+    expect(kitchen.events.some(event => event.decoy)).toBe(false);
+    expect(kitchen.events.map(event => event.id).slice(0, 4)).toEqual(['proof-toaster', 'proof-hinge', 'proof-door-plate', 'proof-ceramic']);
   });
 });

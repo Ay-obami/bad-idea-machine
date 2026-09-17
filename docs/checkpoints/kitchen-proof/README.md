@@ -65,3 +65,17 @@ Changes in this revision:
 - Four new regression tests were observed failing before correction, then passing. They cover flat toast landing, anchored depth projection and screw fall, separate plate impacts, and flat debris settlement. Updated offline contact sheet and motion clip are generated from the actual renderer.
 
 These changes address the recorded defects but are **not a claim that the final realism requirement is passed**. Inspect the revised deployed motion before checkpoint 3.
+
+## Realism revision 2 after the second deployed recording
+
+Reviewed `Screencast from 2026-09-17 22-00-41.webm`. The second recording showed real improvement: plates no longer fell as one rigid stack, toast settled flat, fragments persisted, and reset restored the room. The visual gate still remained open because the lower-hinge failure was hard to read, the door still lacked enough visible mass at the failure point, and the individual plates still read as thin image cutouts during flight.
+
+Revision 2 keeps the same causal sequence and changes only those failed cues:
+
+- The lower hinge now has an explicit bracket that tears away from visible mounting scars before the door reaches the plates. The bracket separates, rotates, casts a displaced shadow, and the loose screw continues falling independently. This makes the pre-existing hardware failure—not the toast alone—the visible cause of the cabinet collapse.
+- Each unbroken plate now carries a shallow ceramic underside/rim and a time-varying apparent depth derived from its rotation. The plate artwork, rim, contact shadow, trajectory, and eventual fragments remain in the same 1000×600 room coordinate system.
+- The scene model exposes `lowerHinge` and per-plate `depthScale` geometry. Regression expectations were added first for visible bracket separation and distinct plate depth cues, then the model and renderer were changed to satisfy those requirements.
+
+Source commits: test requirement `5a082714f9f8d740d97ebe30e9af95aa782e99e8`, model `91d4f050350d21318c7d522ec9a53e79c0805e2f`, renderer `f9fa33b01c7c5935841ebd68c4817c4ce09cecd3`. GitHub/Vercel reports the renderer commit build as successful. This session could not clone the repository because the sandbox could not resolve `github.com`, so the full Vitest suite and local visual renderer were **not** rerun here; do not carry forward the earlier 72-test claim as evidence for revision 2 until a fresh test run is observed. The deployed visual quality gate is still pending.
+
+Revision-2 inspection: watch the lower mounting point before the door drops, confirm the bracket visibly separates from the cabinet, confirm the door remains attached at the upper hinge, watch the four plates for shallow-dish depth rather than paper-thin translation, then confirm persistent fragments and reset. Do not begin Checkpoint 3 unless this sequence now reads as one believable physical accident.

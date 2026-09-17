@@ -54,6 +54,8 @@ The room changes. The math does not.
 
 The application opens on the gallery, not directly inside the betting UI.
 
+The approved header subtitle is exactly **CHOOSE YOUR ROOM. DESTROY IT RESPONSIBLY.**
+
 Desktop hierarchy:
 
 1. BIM header and compact navigation/control area.
@@ -140,7 +142,7 @@ Approved editorial quote style:
 Footer CTA:
 
 - **CHOOSE YOUR CHAOS →**
-- supporting line: **PRESS THE BUTTON. REGRET IT IN STYLE.**
+- supporting line: **SAME BUTTON. DIFFERENT DISASTER.**
 
 CTA styling follows the reference: warm yellow/gold, dark text, restrained shadow/glow, wide horizontal proportions, no gradient pill treatment.
 
@@ -767,11 +769,13 @@ Initial page:
 After selecting an environment:
 
 - load that environment's clean stage and critical actor assets;
+- uniformly preload **all five** aftermath plates for that selected environment before the launch control becomes enabled;
 - lazy-load the unselected environment.
 
-When a round begins:
+Before and during a round:
 
-- preload that environment's aftermath plates and required audio;
+- reuse the already-uniformly-cached aftermath set so network requests cannot disclose the settled tier;
+- load/cache required audio without coupling asset requests to the payout tier;
 - cache decoded audio buffers after first load where practical.
 
 Use WebP/AVIF where appropriate, preserve visible texture quality, and avoid aggressive compression that introduces banding or muddy debris/metal detail.

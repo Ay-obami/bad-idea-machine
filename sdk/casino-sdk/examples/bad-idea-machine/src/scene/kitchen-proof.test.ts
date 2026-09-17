@@ -13,7 +13,8 @@ it('keeps the toaster supported and places toast contact on the cabinet lower ed
 
 it('leaves broken ceramic and a displaced door until reset, including after a skipped frame', () => {
   const final = kitchenFrame(KITCHEN_PROOF_DURATION);
-  expect(final.damageIds).toEqual(['loose-hinge', 'broken-plates']);
+  expect(final.damageIds).toContain('loose-hinge');
+  expect(final.damageIds).toContain('broken-plates');
   expect(final.platesVisible).toBe(false);
   expect(final.shardsVisible).toBe(true);
   expect(final.door.rotation).toBeGreaterThan(0);
@@ -100,4 +101,48 @@ it('settles the fragments flat instead of leaving upright shard cutouts', () => 
   const pieces = kitchenFrame(4000).ceramicFragments;
   expect(pieces).toHaveLength(24);
   expect(pieces.every(piece => piece.scaleY <= .5)).toBe(true);
+});
+
+it('keeps the pan grounded on the stove until the ceramic trigger physically reaches it', () => {
+  const before = kitchenFrame(2380);
+  expect(before.pan.x).toBeCloseTo(142);
+  expect(before.pan.y).toBeCloseTo(292);
+  expect(before.pan.motion).toBe(0);
+  expect(before.panTrigger.visible).toBe(false);
+
+  const inFlight = kitchenFrame(2750);
+  expect(inFlight.panTrigger.visible).toBe(true);
+  expect(inFlight.panTrigger.progress).toBeGreaterThan(0);
+  expect(inFlight.pan.motion).toBe(0);
+
+  const contact = kitchenFrame(3300);
+  expect(contact.panTrigger.progress).toBe(1);
+  expect(contact.pan.contact).toBeGreaterThan(0);
+  expect(contact.pan.motion).toBeGreaterThan(0);
+});
+
+it('starts the oil spill only after the pan is displaced, then ignites only after oil reaches the hot burner', () => {
+  expect(kitchenFrame(3300).oil.progress).toBe(0);
+  const tilted = kitchenFrame(3700);
+  expect(tilted.pan.motion).toBeGreaterThan(.4);
+  expect(tilted.oil.progress).toBeGreaterThan(0);
+  expect(tilted.fire.progress).toBe(0);
+
+  const wetBurner = kitchenFrame(4500);
+  expect(wetBurner.oil.progress).toBe(1);
+  expect(wetBurner.fire.progress).toBeGreaterThan(0);
+  expect(wetBurner.fire.x).toBeCloseTo(wetBurner.oil.to.x);
+  expect(wetBurner.fire.y).toBeCloseTo(wetBurner.oil.to.y);
+});
+
+it('persists the physical pan displacement, grease mark and localized burner damage until reset', () => {
+  const final = kitchenFrame(KITCHEN_PROOF_DURATION);
+  expect(final.pan.motion).toBe(1);
+  expect(final.oil.progress).toBe(1);
+  expect(final.fire.progress).toBe(1);
+  expect(final.damageIds).toContain('grease-spill');
+  expect(final.damageIds).toContain('localized-burner-fire');
+  expect(kitchenFrame(0).pan.motion).toBe(0);
+  expect(kitchenFrame(0).oil.progress).toBe(0);
+  expect(kitchenFrame(0).fire.progress).toBe(0);
 });

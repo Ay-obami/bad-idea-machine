@@ -3,7 +3,6 @@ import { mkdir } from 'node:fs/promises';
 
 const baseUrl = process.env.BIM_BASE_URL ?? 'http://127.0.0.1:3100';
 const outputDir = process.env.BIM_VISUAL_DIR ?? 'visual-regression';
-const galleryStates = ['before', '0x', '1_2x', '3x', '10x', '100x'];
 const aftermathStates = new Set(['failure', 'minor', 'moderate', 'severe', 'legendary']);
 const aftermathFiles = ['0x.webp', '1_2x.webp', '3x.webp', '10x.webp', '100x.webp'];
 
@@ -32,56 +31,47 @@ async function assertImageLoaded(locator, expectedPath) {
 
 async function verifyGallery(page, viewportName) {
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
-  await page.getByText('BAD IDEA MACHINE', { exact: true }).first().waitFor();
-  await page.getByText('CHOOSE YOUR ROOM. DESTROY IT RESPONSIBLY.', { exact: true }).waitFor();
-  await page.getByText('SAME BUTTON. DIFFERENT DISASTER.', { exact: true }).waitFor();
-  await page.getByRole('button', { name: /CHOOSE YOUR CHAOS/i }).waitFor();
-
-  const rows = page.locator('.gallery-room');
-  if (await rows.count() !== 2) throw new Error('Reference gallery must render exactly two room rows');
-
+  await page.getByRole('heading', { name: 'Choose your chaos.' }).waitFor();
+  const choices = page.locator('.room-choice');
+  if (await choices.count() !== 2) throw new Error('Room selector must contain exactly two choices');
+  if (await page.getByRole('button').count() !== 2) throw new Error('Room selector contains extra actions');
   for (const environment of ['kitchen', 'garage']) {
-    const row = page.locator(`.gallery-room[data-environment="${environment}"]`);
-    await row.waitFor();
-    const cards = row.locator('.gallery-card');
-    if (await cards.count() !== 6) throw new Error(`${environment} must render six authored state cards`);
-    for (let index = 0; index < galleryStates.length; index += 1) {
-      const state = galleryStates[index];
-      const card = cards.nth(index);
-      const actualState = await card.getAttribute('data-gallery-state');
-      if (actualState !== (state === '0x' ? 'failure' : state === '1_2x' ? 'minor' : state === '3x' ? 'moderate' : state === '10x' ? 'severe' : state === '100x' ? 'legendary' : 'before')) {
-        throw new Error(`${environment} card ${index} state order regressed: ${actualState}`);
-      }
-      await assertImageLoaded(card.locator('img'), `/rooms/${environment}/gallery/${state}.webp`);
-    }
+    const room = page.locator(`.gallery-room[data-environment="${environment}"]`);
+    await assertImageLoaded(room.locator('img'), `/rooms/${environment}/gallery/before.webp`);
   }
+  const text = await page.locator('main').innerText();
+  if (/100[.,]00×|LEGENDARY CHAOS|LEADERBOARD|WALLET/.test(text)) {
+    throw new Error('Obsolete outcomes or unavailable actions remain in room selector');
+  }
+  await page.locator('.game-rules summary').click();
+  await page.getByText('The room changes the scene, never the odds.', { exact: false }).waitFor();
+  await page.locator('.game-rules summary').click();
+  const boxes = await choices.evaluateAll(nodes => nodes.map(node => {
+    const box = node.getBoundingClientRect();
+    return { x: box.x, y: box.y, right: box.right, height: box.height };
+  }));
+  const width = page.viewportSize().width;
+  if (boxes.some(box => box.x < 0 || box.right > width + 1 || box.height < 44)) {
+    throw new Error('Room choice overflows or is not touchable');
+  }
+  if (viewportName === 'desktop' && Math.abs(boxes[0].y - boxes[1].y) > 2) {
+    throw new Error('Desktop room choices should be side by side');
+  }
+  if (viewportName === 'mobile' && boxes[1].y <= boxes[0].y) {
+    throw new Error('Mobile room choices should stack');
+  }
+}
 
-  if (viewportName === 'desktop') {
-    for (const environment of ['kitchen', 'garage']) {
-      const items = page.locator(`.gallery-room[data-environment="${environment}"] .gallery-room__rail-item`);
-      const boxes = await items.evaluateAll(nodes => nodes.map(node => {
-        const box = node.getBoundingClientRect();
-        return { x: box.x, y: box.y, right: box.right, width: box.width };
-      }));
-      if (boxes.length !== 6) throw new Error(`${environment} desktop rail missing cards`);
-      const baselineY = boxes[0].y;
-      if (!boxes.every(box => Math.abs(box.y - baselineY) < 2)) throw new Error(`${environment} cards no longer sit in one desktop row`);
-      const viewportWidth = page.viewportSize()?.width ?? 0;
-      if (!boxes.every(box => box.x >= 0 && box.right <= viewportWidth + 1)) throw new Error(`${environment} desktop gallery overflows viewport`);
-    }
-  } else {
-    for (const environment of ['kitchen', 'garage']) {
-      const rail = page.locator(`.gallery-room[data-environment="${environment}"] .gallery-room__rail`);
-      const styles = await rail.evaluate(node => ({
-        display: getComputedStyle(node).display,
-        overflowX: getComputedStyle(node).overflowX,
-        snap: getComputedStyle(node).scrollSnapType,
-      }));
-      if (styles.display !== 'flex' || !['auto', 'scroll'].includes(styles.overflowX) || !styles.snap.includes('x')) {
-        throw new Error(`${environment} mobile gallery must remain a horizontal snap rail: ${JSON.stringify(styles)}`);
-      }
-    }
+async function verifyRiskDisclosure(page) {
+  await page.locator('.paytable summary').click();
+  for (const [mode, loss, top] of [['CONTROLLED', '45%', '8×'], ['SEND IT', '65%', '12×'], ['ABSOLUTELY NOT', '80%', '16×']]) {
+    const choice = page.getByRole('button', { name: new RegExp(`^${mode}`) });
+    await choice.click();
+    if (await choice.getAttribute('aria-pressed') !== 'true') throw new Error(`${mode} selection is not exposed`);
+    const table = await page.locator('.paytable table').innerText();
+    if (!table.includes(loss) || !table.includes(top) || table.includes('100×')) throw new Error(`${mode} odds are incorrect`);
   }
+  await page.locator('.paytable summary').click();
 }
 
 async function enterPlayWithUniformAftermathPreload(page, environment) {
@@ -168,6 +158,7 @@ async function verifyPlay(page, environment) {
   if (await page.locator('.cinematic-backdrop').count() !== 0) throw new Error('Legacy CinematicBackdrop is still rendering in production play');
   if (await page.locator('.actor-artwork').count() !== 0) throw new Error('Legacy SVG actor artwork is still rendering in production play');
 
+  await verifyRiskDisclosure(page);
   await page.getByRole('button', { name: /ABSOLUTELY NOT/i }).click();
   await page.getByRole('button', { name: /DO NOT PRESS/i }).click();
   await page.locator('.environment-stage[data-phase="revealing"]').waitFor({ timeout: 5_000 });
@@ -211,6 +202,7 @@ async function verifyMobilePlay(page) {
   if (!stage || !controls || !viewport) throw new Error('Could not measure mobile play layout');
   if (!(stage.y < controls.y)) throw new Error('Mobile play must keep the room stage before controls');
   if (stage.width > viewport.width + 1 || controls.width > viewport.width + 1) throw new Error('Mobile play escapes viewport width');
+  await verifyRiskDisclosure(page);
   await page.screenshot({ path: `${outputDir}/mobile-play.png`, fullPage: true });
 }
 
@@ -231,7 +223,7 @@ try {
   await verifyMobilePlay(mobile);
 
   if (errors.length) throw new Error(`Browser errors:\n${errors.join('\n')}`);
-  console.log('Reference-locked visual regression passed.');
+  console.log('Room selection, risk disclosure, and scene smoke checks passed. Screenshots saved for visual review.');
 } finally {
   await browser.close();
 }

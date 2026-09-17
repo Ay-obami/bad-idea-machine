@@ -1,27 +1,21 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { galleryRows } from './gallery-data';
+import { GalleryScreen } from './GalleryScreen';
 
-describe('reference gallery data', () => {
-  it('locks reference gallery ordering and multiplier labels', () => {
-    for (const row of galleryRows) {
-      expect(row.cards.map(card => card.multiplier)).toEqual([
-        'BEFORE',
-        '0.00×',
-        '1.20×',
-        '3.00×',
-        '10.00×',
-        '100.00×',
-      ]);
-    }
+describe('room selection', () => {
+  it('offers only two intact-room choices instead of selectable destruction outcomes', () => {
+    const html = renderToStaticMarkup(createElement(GalleryScreen, { onChoose: () => {} }));
+    expect(html.match(/<button\b/g)).toHaveLength(2);
+    expect(html).toContain('Choose Kitchen');
+    expect(html).toContain('Choose Garage');
+    expect(html).not.toContain('100.00');
+    expect(html).not.toContain('LEGENDARY CHAOS');
   });
-
-  it('locks the approved editorial quotes', () => {
-    expect(galleryRows.find(row => row.environment === 'kitchen')?.quote).toBe('Same kitchen. Different levels of regret.');
-    expect(galleryRows.find(row => row.environment === 'garage')?.quote).toBe('Same garage. Bigger problems.');
-  });
-
-  it('contains exactly two environment rows with six authored cards each', () => {
-    expect(galleryRows.map(row => row.environment)).toEqual(['kitchen', 'garage']);
-    for (const row of galleryRows) expect(row.cards).toHaveLength(6);
+  it('provides rules without unavailable wallet or leaderboard actions', () => {
+    const html = renderToStaticMarkup(createElement(GalleryScreen, { onChoose: () => {} }));
+    expect(html).toContain('How to play');
+    expect(html).not.toContain('href="#leaderboard"');
+    expect(html).not.toContain('Wallet status');
   });
 });

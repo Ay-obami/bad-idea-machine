@@ -23,7 +23,7 @@ jobs:
 
       - name: Install workspace
         working-directory: sdk/casino-sdk
-        run: npm install
+        run: npm ci
 
       - name: Build verified static game
         working-directory: sdk/casino-sdk

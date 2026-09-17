@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd sdk/casino-sdk && npm install",
+  "installCommand": "cd sdk/casino-sdk && npm ci",
   "buildCommand": "cd sdk/casino-sdk && npm run build:bad-idea && npm --prefix examples/bad-idea-machine run verify-build",
   "outputDirectory": "sdk/casino-sdk/examples/bad-idea-machine/dist",
   "headers": [

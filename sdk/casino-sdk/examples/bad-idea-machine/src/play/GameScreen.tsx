@@ -129,8 +129,8 @@ export function GameScreen({
       {receipt}
 
       <footer className="game-footer reference-play__footer">
-        <span>96.00% RTP</span>
-        <span>CHAIN VRF</span>
+        <span>96% THEORETICAL RTP · BEFORE ROUNDING</span>
+        <span>{demoMode ? 'DEMO · BROWSER RANDOMNESS' : 'CHAIN VRF'}</span>
         <span>2 CHAOS ENVIRONMENTS</span>
         <span>THE ROOM CHANGES. THE MATH DOES NOT.</span>
       </footer>

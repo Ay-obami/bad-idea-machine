@@ -1,12 +1,13 @@
-import type { RiskMode } from '../lib/badIdea';
+import { PAYTABLES, maxMultiplierX, type RiskMode } from '../lib/badIdea';
 import type { EnvironmentId } from '../scene/types';
 import '../styles/cinematic-controls.css';
+import { Paytable } from './Paytable';
 import { EnvironmentSelector } from './EnvironmentSelector';
 
-const MODES: Array<{ mode: RiskMode; label: string; sub: string }> = [
-  { mode: 0, label: 'CONTROLLED', sub: 'frequent little disasters' },
-  { mode: 1, label: 'SEND IT', sub: 'responsibility not included' },
-  { mode: 2, label: 'ABSOLUTELY NOT', sub: 'maximum chaos offline' },
+const MODES: Array<{ mode: RiskMode; label: string }> = [
+  { mode: 0, label: 'CONTROLLED' },
+  { mode: 1, label: 'SEND IT' },
+  { mode: 2, label: 'ABSOLUTELY NOT' },
 ];
 
 const WAGER_PRESETS = ['1.00', '5.00', '10.00', '50.00', '100.00'] as const;
@@ -53,7 +54,8 @@ export function ControlPanel({
       <div className="control-panel__topline">
         <div>
           <span className="eyebrow">AVAILABLE {demoMode ? 'DEMO CREDITS' : 'BALANCE'}</span>
-          <strong className="balance-readout">{balanceText} {symbol}</strong>
+          <strong className="balance-readout">{balanceText}</strong>
+          <span className="balance-symbol">{symbol}</span>
         </div>
         <button className="sound-button" type="button" onClick={onToggleMuted} aria-label={muted ? 'Enable sound' : 'Mute sound'}>
           <span aria-hidden>{muted ? '×' : '◖))'}</span>
@@ -61,10 +63,11 @@ export function ControlPanel({
         </button>
       </div>
 
-      <label className="wager-control cinematic-wager">
-        <span>WAGER</span>
+      <div className="wager-control cinematic-wager">
+        <label htmlFor="wager-amount">WAGER</label>
         <div className="wager-control__input">
           <input
+            id="wager-amount"
             inputMode="decimal"
             value={wagerInput}
             onChange={event => onWagerInputChange(event.target.value)}
@@ -81,12 +84,13 @@ export function ControlPanel({
               onClick={() => onWagerInputChange(value)}
               className={Number(wagerInput) === Number(value) ? 'wager-preset wager-preset--selected' : 'wager-preset'}
               disabled={controlsLocked}
+              aria-pressed={Number(wagerInput) === Number(value)}
             >
               {value}
             </button>
           ))}
         </div>
-      </label>
+      </div>
 
       <fieldset className="risk-selector cinematic-risk-selector">
         <legend>HOW BAD AN IDEA?</legend>
@@ -96,16 +100,19 @@ export function ControlPanel({
             type="button"
             className={`risk-card ${riskMode === option.mode ? 'risk-card--selected' : ''}`}
             onClick={() => onRiskModeChange(option.mode)}
+            aria-pressed={riskMode === option.mode}
             disabled={controlsLocked}
           >
             <span className="risk-card__indicator" aria-hidden>{riskMode === option.mode && option.mode === 2 ? '☠' : ''}</span>
             <span>
               <strong>{option.label}</strong>
-              <small>{option.sub}</small>
+              <small>{PAYTABLES[option.mode][0].maxExclusive / 100}% lose stake · up to {maxMultiplierX(option.mode)}×</small>
             </span>
           </button>
         ))}
       </fieldset>
+
+      <Paytable riskMode={riskMode} />
 
       <EnvironmentSelector value={environment} onChange={onEnvironmentChange} disabled={controlsLocked} />
 
@@ -121,7 +128,7 @@ export function ControlPanel({
       </button>
 
       <div className="control-panel__reason" role="status">
-        {reason ?? (demoMode ? 'Standalone demo — no real funds are used.' : 'Verified Chain VRF settles every round.')}
+        {reason ?? (demoMode ? 'Standalone demo — no real funds are used.' : 'Chain-hosted play. Review the odds before placing a wager.')}
       </div>
     </aside>
   );

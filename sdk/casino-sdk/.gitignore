@@ -1,3 +1,4 @@
 local-verify-network/
 node_modules/
-package-lock.json
+examples/*/dist/
+examples/*/visual-regression/

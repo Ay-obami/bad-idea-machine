@@ -10,7 +10,7 @@ describe('master-first kitchen proof', () => {
     const plates = byId.get('plates-release')!;
 
     expect(recoil.startMs).toBe(toast.startMs + toast.durationMs);
-    expect(sag.startMs).toBe(recoil.startMs + recoil.durationMs + 40);
+    expect(sag.startMs).toBe(recoil.startMs + recoil.durationMs + 55);
     expect(plates.startMs).toBe(sag.startMs + sag.durationMs);
   });
 
@@ -20,10 +20,24 @@ describe('master-first kitchen proof', () => {
     expect(intact.door.rotation).toBe(0);
     expect(intact.plates.every(plate => plate.opacity === 0)).toBe(true);
 
-    const toastOnly = kitchenNativeFrameAt(800);
+    const toastOnly = kitchenNativeFrameAt(850);
     expect(toastOnly.toast.opacity).toBe(1);
     expect(toastOnly.door.rotation).toBe(0);
     expect(toastOnly.plates.every(plate => plate.opacity === 0)).toBe(true);
+  });
+
+  it('keeps the hanging door restrained instead of turning it into a flying slab', () => {
+    const aftermath = kitchenNativeFrameAt(10_000);
+    expect(aftermath.door.rotation).toBeGreaterThanOrEqual(-14.01);
+    expect(aftermath.door.rotation).toBeLessThanOrEqual(-13.9);
+    expect(Math.abs(aftermath.door.x - 676)).toBeLessThanOrEqual(6.01);
+    expect(aftermath.door.y).toBeLessThanOrEqual(9.01);
+  });
+
+  it('keeps ceramic plates broad with restrained roll', () => {
+    const aftermath = kitchenNativeFrameAt(10_000);
+    expect(aftermath.plates.every(plate => Math.abs(plate.rotation) <= 11)).toBe(true);
+    expect(aftermath.plates.every(plate => plate.scale >= .95 && plate.scale <= 1.02)).toBe(true);
   });
 
   it('persists hinge and plate damage after the cascade completes', () => {

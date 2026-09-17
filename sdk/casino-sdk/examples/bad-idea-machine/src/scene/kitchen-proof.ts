@@ -23,9 +23,18 @@ export const kitchenProofTimeline = compileRoomTimeline([
     id: `plate-${index}-contact`, objectId: `plate-${index}`, after: 'plate-strike',
     delayMs: plate.delay, durationMs: plate.duration, damageId: 'broken-plates',
   })),
+  // Checkpoint 3A extends the approved proof instead of placing a second renderer over it.
+  // One real ceramic fragment travels from the first broken plate to the pan handle.
+  { id: 'pan-trigger-shard', objectId: 'pan-trigger-shard', after: 'plate-3-contact', delayMs: 180, durationMs: 900, contact: { x: 192, y: 292 } },
+  // The pan cannot move until the shard has physically arrived.
+  { id: 'pan-react', objectId: 'pan', after: 'pan-trigger-shard', delayMs: 0, durationMs: 720, contact: { x: 192, y: 292 } },
+  // Grease only leaves the pan after it has begun to tip.
+  { id: 'grease-spill', objectId: 'grease', after: 'pan-trigger-shard', delayMs: 260, durationMs: 820, contact: { x: 118, y: 315 }, damageId: 'grease-spill' },
+  // Ignition is downstream of the completed spill, at the exact burner contact point.
+  { id: 'burner-ignite', objectId: 'burner', after: 'grease-spill', delayMs: 0, durationMs: 1250, contact: { x: 118, y: 315 }, damageId: 'localized-burner-fire' },
 ]);
 
-export const KITCHEN_PROOF_DURATION = 4000;
+export const KITCHEN_PROOF_DURATION = 6000;
 const events = new Map(kitchenProofTimeline.map(event => [event.id, event]));
 const clamp = (value: number) => Math.max(0, Math.min(1, value));
 const radians = (degrees: number) => degrees * Math.PI / 180;
@@ -56,6 +65,10 @@ export function kitchenFrame(elapsedMs: number) {
   const door = progress('door-contact', time);
   const settle = progress('door-settle', time);
   const strike = progress('plate-strike', time);
+  const panShard = progress('pan-trigger-shard', time);
+  const panReact = progress('pan-react', time);
+  const grease = progress('grease-spill', time);
+  const ignition = progress('burner-ignite', time);
   const damage = roomStateAt(kitchenProofTimeline, time);
 
   const landing = smooth(clamp((fall - .67) / .33));
@@ -144,6 +157,56 @@ export function kitchenFrame(elapsedMs: number) {
     });
   });
 
+  const triggerStart = individualPlates[3];
+  const triggerStartX = triggerStart.impactX - 4;
+  const triggerStartY = triggerStart.impactY - 3;
+  const triggerTargetX = 192;
+  const triggerTargetY = 292;
+  const triggerArc = Math.sin(panShard * Math.PI);
+  const panTrigger = {
+    visible: panShard > 0 && panShard < 1,
+    progress: panShard,
+    x: triggerStartX + (triggerTargetX - triggerStartX) * smooth(panShard),
+    y: triggerStartY + (triggerTargetY - triggerStartY) * panShard - 46 * triggerArc,
+    rotation: -18 - 330 * panShard,
+    shadowOpacity: .08 + .24 * panShard,
+  };
+
+  // The pan remains a small, supported photographic object on the actual left-side stove.
+  // Contact produces a short skid and tip rather than a cartoon launch.
+  const panEase = smooth(panReact);
+  const panRecoil = panReact > 0 && panReact < 1 ? Math.sin(panReact * Math.PI * 2) * (1 - panReact) : 0;
+  const pan = {
+    x: 142 - 16 * panEase,
+    y: 292 + 5 * panEase,
+    rotation: -7 - 13 * panEase + 2.5 * panRecoil,
+    pitchScale: 1 - .12 * panEase,
+    motion: panReact,
+    contact: panReact,
+    shadowOpacity: .24 + .16 * panEase,
+  };
+
+  // Grease hugs the stove surface; it does not become a floating graphic layer.
+  const oilFrom = { x: pan.x + 9, y: pan.y + 17 };
+  const oilTo = { x: 118, y: 315 };
+  const oil = {
+    from: oilFrom,
+    to: oilTo,
+    progress: grease,
+    headX: oilFrom.x + (oilTo.x - oilFrom.x) * smooth(grease),
+    headY: oilFrom.y + (oilTo.y - oilFrom.y) * smooth(grease),
+    width: 1.5 + 5.5 * grease,
+    opacity: .18 + .38 * grease,
+  };
+
+  const fire = {
+    x: oilTo.x,
+    y: oilTo.y,
+    progress: ignition,
+    glow: smooth(ignition),
+    height: 8 + 18 * smooth(ignition),
+  };
+
   const upperHingeLoad = smooth(clamp((rotation - 1) / 17));
   return {
     time,
@@ -174,6 +237,10 @@ export function kitchenFrame(elapsedMs: number) {
     },
     individualPlates,
     ceramicFragments,
+    panTrigger,
+    pan,
+    oil,
+    fire,
     platesVisible: individualPlates.some(plate => !plate.shattered),
     shardsVisible: ceramicFragments.length > 0,
     damageIds: damage.damageIds,
@@ -189,6 +256,14 @@ export function kitchenFrame(elapsedMs: number) {
               ? 'The door edge physically strikes the first plate.'
               : time < 2505
                 ? 'The plates peel away and hit one after another.'
-                : 'The damage stays until you reset the room.',
+                : time < 3295
+                  ? 'One ceramic fragment carries across the counter toward the pan handle.'
+                  : time < 3555
+                    ? 'The shard catches the handle. The pan skids and starts to tip on the burner.'
+                    : time < 4375
+                      ? 'Grease leaves the tilted pan and runs across the hot stove surface.'
+                      : time < 5625
+                        ? 'The grease reaches the burner and ignites at the contact point.'
+                        : 'The hinge, ceramic, displaced pan, grease mark and localized burn all remain until reset.',
   };
 }

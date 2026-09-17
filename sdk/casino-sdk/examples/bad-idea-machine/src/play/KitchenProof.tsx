@@ -12,6 +12,7 @@ export default function KitchenProof() {
   const [retry, setRetry] = useState(0);
   const clock = useRef(0);
   const frame = kitchenFrame(elapsed);
+
   useEffect(() => {
     let active = true;
     setAssetStatus('loading');
@@ -25,6 +26,7 @@ export default function KitchenProof() {
       .catch(() => { if (active) { clearTimeout(timeout); setAssetStatus('error'); } });
     return () => { active = false; clearTimeout(timeout); };
   }, [retry]);
+
   useEffect(() => {
     if (!running) return;
     let request = 0;
@@ -37,6 +39,7 @@ export default function KitchenProof() {
     request = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(request);
   }, [running]);
+
   function seek(time: number) { setRunning(false); setElapsed(time); }
   function play() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { seek(KITCHEN_PROOF_DURATION); return; }
@@ -44,8 +47,9 @@ export default function KitchenProof() {
     clock.current = performance.now();
     setRunning(true);
   }
+
   return <main className="kitchen-proof">
-    <header><a href={import.meta.env.BASE_URL}>← Back to game</a><span>CHECKPOINT 2 · MOTION REVISION</span></header>
+    <header><a href={import.meta.env.BASE_URL}>← Back to game</a><span>CHECKPOINT 2 · FINAL MOTION GATE</span></header>
     <div className="kitchen-proof__intro"><div><p className="kitchen-proof__eyebrow">KITCHEN MELTDOWN</p><h1>One very loose hinge.</h1></div><p>A toaster, a loose cabinet door, and a stack of plates. One connected accident in the same room.</p></div>
     <div className="kitchen-proof__frame" style={{ width, maxWidth: '100%' }}>
       <KitchenRoom elapsedMs={elapsed} />
@@ -60,8 +64,8 @@ export default function KitchenProof() {
     <div className="kitchen-proof__inspection">
       <label htmlFor="proof-time">Inspect motion <output>{(elapsed / 1000).toFixed(2)} s</output></label>
       <input id="proof-time" type="range" min="0" max={KITCHEN_PROOF_DURATION} step="10" value={elapsed} onChange={event => seek(Number(event.target.value))} />
-      <div>{[[0, 'Intact'], [1050, 'Toast contact'], [1230, 'Hinge releases'], [1500, 'Door contact'], [2005, 'First plate impact'], [2295, 'Last plate impact'], [4000, 'Aftermath']].map(([time, label]) => <button key={time} onClick={() => seek(Number(time))}>{label}</button>)}</div>
+      <div>{[[0, 'Intact'], [1050, 'Toast contact'], [1230, 'Hinge releases'], [1500, 'Door hanging'], [1660, 'Door hits plate'], [2215, 'First plate impact'], [2505, 'Last plate impact'], [4000, 'Aftermath']].map(([time, label]) => <button key={time} onClick={() => seek(Number(time))}>{label}</button>)}</div>
     </div>
-    <p className="kitchen-proof__note">Visual prototype · Intentionally silent. No wager or payout. The complete outcome sequences and contact sound are the next checkpoint. Reduced motion shows the final state; use the frame controls to inspect each contact.</p>
+    <p className="kitchen-proof__note">Visual prototype · Intentionally silent. No wager or payout. This is the final Checkpoint 2 motion gate before full Kitchen Meltdown expansion. Reduced motion shows the final state; use the frame controls to inspect each contact.</p>
   </main>;
 }

@@ -4,6 +4,7 @@ import { ControlPanel } from '../components/ControlPanel';
 import { EnvironmentStage, type EnvironmentPhase } from '../components/EnvironmentStage';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import type { EnvironmentId, SceneScript } from '../scene/types';
+import { useAftermathPreload } from './aftermath-preload';
 
 type Props = Readonly<{
   networkLabel: string;
@@ -61,8 +62,19 @@ export function GameScreen({
   onBackToGallery,
   canLeave,
 }: Props) {
+  const aftermathPreload = useAftermathPreload(environment);
+  const preloadReason = aftermathPreload === 'loading'
+    ? 'Preloading every possible room aftermath before the machine can run…'
+    : aftermathPreload === 'error'
+      ? 'Room aftermaths failed to preload. Reload before operating the machine.'
+      : null;
+  const launchDisabled = disabled || aftermathPreload !== 'ready';
+
   return (
-    <main className={`app-shell reference-play app-shell--mode-${displayMode} app-shell--environment-${displayEnvironment}`}>
+    <main
+      className={`app-shell reference-play app-shell--mode-${displayMode} app-shell--environment-${displayEnvironment}`}
+      data-aftermath-preload={aftermathPreload}
+    >
       <header className="game-header reference-play__header">
         <div className="game-header__brand">
           <span className="brand-badge">BIM</span>
@@ -105,8 +117,8 @@ export function GameScreen({
           balanceText={balanceText}
           symbol={symbol}
           ctaLabel={ctaLabel}
-          disabled={disabled}
-          reason={reason}
+          disabled={launchDisabled}
+          reason={reason ?? preloadReason}
           demoMode={demoMode}
           muted={muted}
           onToggleMuted={onToggleMuted}

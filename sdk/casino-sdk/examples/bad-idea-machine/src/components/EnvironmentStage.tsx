@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { playAftermathAmbience, playSceneEventSound, stopAftermathAmbience } from '../lib/audio';
 import type { OutcomeTier, RiskMode } from '../lib/badIdea';
 import { AftermathController } from '../play/AftermathController';
+import { KitchenMeltdownRoom } from '../play/KitchenMeltdownRoom';
 import { ResultOverlay } from '../play/ResultOverlay';
 import { RoomStage } from '../play/RoomStage';
 import { getEnvironmentDefinition } from '../scene/environments';
+import type { KitchenVariant } from '../scene/kitchen-meltdown';
 import type { EnvironmentId, SceneEvent, SceneScript } from '../scene/types';
 import '../styles/environment-stage.css';
 import '../styles/environment-ui.css';
@@ -30,11 +32,19 @@ function eventMap(events: readonly SceneEvent[]): ReadonlyMap<string, SceneEvent
   return new Map(events.map(event => [event.actorId, event] as const));
 }
 
+function kitchenVariant(script?: SceneScript): KitchenVariant {
+  return script?.variant === 'steam-short' || script?.variant === 'pan-spark'
+    ? script.variant
+    : 'grease-fire';
+}
+
 export function EnvironmentStage({ environment, riskMode, phase, script, tier, multiplierBps }: Props) {
   const [startedIds, setStartedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [activeIds, setActiveIds] = useState<ReadonlySet<string>>(() => new Set());
   const [revision, setRevision] = useState(0);
   const [aftermathStatus, setAftermathStatus] = useState<AftermathStatus>('pending');
+  const [kitchenElapsed, setKitchenElapsed] = useState(0);
+  const kitchenClock = useRef(0);
 
   const definition = getEnvironmentDefinition(environment);
   const scriptEvents = script?.events ?? [];
@@ -44,8 +54,40 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   const cameraImpact = activeEvents.reduce((max, event) => Math.max(max, event.intensity), 0);
 
   useEffect(() => {
+    if (environment === 'kitchen' && phase === 'result') {
+      setAftermathStatus('visible');
+      return;
+    }
     if (phase !== 'result') setAftermathStatus('pending');
   }, [environment, phase, script, tier]);
+
+  // The production Kitchen uses the same deterministic room clock as the approved proof.
+  // Result holds the final frame instead of swapping to a full-frame aftermath image.
+  useEffect(() => {
+    if (environment !== 'kitchen') {
+      setKitchenElapsed(0);
+      return;
+    }
+    if (phase === 'result' && script) {
+      setKitchenElapsed(script.durationMs);
+      return;
+    }
+    if (phase !== 'revealing' || !script) {
+      setKitchenElapsed(0);
+      return;
+    }
+
+    kitchenClock.current = performance.now();
+    setKitchenElapsed(0);
+    let request = 0;
+    const tick = (now: number) => {
+      const elapsed = Math.min(script.durationMs, now - kitchenClock.current);
+      setKitchenElapsed(elapsed);
+      if (elapsed < script.durationMs) request = requestAnimationFrame(tick);
+    };
+    request = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(request);
+  }, [environment, phase, script]);
 
   useEffect(() => {
     if (phase !== 'revealing' || !script || script.environment !== environment) {
@@ -90,6 +132,7 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
   }, [aftermathStatus, environment, phase, tier]);
 
   const modeClass = riskMode === 0 ? 'controlled' : riskMode === 1 ? 'send-it' : 'absolutely-not';
+  const productionKitchen = environment === 'kitchen';
 
   return (
     <section
@@ -98,19 +141,26 @@ export function EnvironmentStage({ environment, riskMode, phase, script, tier, m
       data-phase={phase}
       data-camera-impact={cameraImpact}
       data-aftermath-status={aftermathStatus}
+      data-kitchen-variant={productionKitchen ? kitchenVariant(script) : undefined}
       aria-live="polite"
     >
-      <RoomStage environment={environment} startedByActor={startedByActor} revision={revision} />
+      {productionKitchen
+        ? <KitchenMeltdownRoom
+            elapsedMs={kitchenElapsed}
+            variant={kitchenVariant(script)}
+            tier={tier ?? 1}
+          />
+        : <RoomStage environment={environment} startedByActor={startedByActor} revision={revision} />}
 
-      <SceneVfx events={activeEvents} />
+      {!productionKitchen && <SceneVfx events={activeEvents} />}
 
-      <AftermathController
+      {!productionKitchen && <AftermathController
         environment={environment}
         tier={tier}
         phase={phase}
         onVisible={() => setAftermathStatus('visible')}
         onError={() => setAftermathStatus('error')}
-      />
+      />}
 
       <div className="environment-stage__hud cinematic-stage__hud" aria-hidden="true">
         <div className="environment-stage__name">

@@ -61,4 +61,8 @@ export type SceneScript = Readonly<{
   durationMs: number;
   events: readonly SceneEvent[];
   finalizer: SceneFinalizer;
+  /** Kitchen checkpoint 3: terminal choreography cannot start before this clock. */
+  revealStartMs?: number;
+  /** Deterministic art-directed sequence family. Garage keeps this unset until checkpoint 4. */
+  variant?: string;
 }>;

@@ -247,3 +247,11 @@ Current source-based Vercel settings, to recheck at each handoff: repository roo
 - R1: new sharp coherent art inspected offline. R3: empty background surfaces plus controlled objects, no duplicates. R4: causal schedule and durable damage tested and shown in the motion sample. R5/R6: economics and existing disclosures unchanged. R8: preview handoff via GitHub; no assistant Vercel deployment.
 - **Partial acceptance:** offline scene inspection is complete; deployed browser motion and desktop/mobile layout remain pending. Narrow art-frame controls do not count as mobile browser QA. Do not start full-room expansion or mark the quality gate passed solely because tests pass.
 - Deploy the checkpoint 2 commit on `feat/living-room-rebuild`, repository root with existing Vercel settings; open `/?scene=kitchen-proof`. No Solidity deployment required. Full kitchen outcomes, audio, normal-game integration and garage rebuild remain pending.
+
+
+### Checkpoint 2 motion revision after recording review
+
+- User supplied a 12.53-second deployed desktop recording. Playback, persistent damage, and reset work. Review rejected the original proof's realism: flat door rotation, insufficient visible hinge failure, rigid plate-stack fall/generic fracture, and ungrounded toast landing. The visual acceptance gate remains open; do not proceed to full kitchen expansion yet.
+- Revised renderer adds anchored yaw/sag projection, solid door edge, moving shadow and falling hinge screw; four individually timed plates and per-plate debris; flat toast landing with bounce/contact shadow; flat shard settlement. The proof remains deliberately silent and now says so visibly.
+- Four regression tests failed against the previous implementation, then passed. Full suite now 72 tests / 16 files; exact verification output recorded in the checkpoint handoff. Art unchanged; no increased art budget or new rendering dependency. Updated contact sheet and renderer-produced 24 fps clip replace the initial evidence.
+- Deployment handoff: same `feat/living-room-rebuild` branch, new motion-revision commit, existing Vercel settings, `/?scene=kitchen-proof`. Look for the “CHECKPOINT 2 · MOTION REVISION” header. Inspect screw release, door depth, separate plate impacts, flat bread/debris, and reset. No contract deployment. Full kitchen damage, outcome variants and sound remain checkpoint 3.

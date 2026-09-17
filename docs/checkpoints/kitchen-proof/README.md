@@ -1,6 +1,6 @@
 # Checkpoint 2: kitchen visual proof
 
-Status: **preview ready; browser quality gate pending**. This is deliberately one connected visual sequence, not the complete kitchen game or a production release.
+Status: **motion revision ready; visual quality gate still pending**. This is deliberately one connected visual sequence, not the complete kitchen game or a production release.
 
 Open `/?scene=kitchen-proof` on this branch's Vercel deployment. The page is lazy-loaded and standalone only: an iframe cannot enter it. The normal two-room game, contract, paytables, host bridge, manifest and widget are unchanged.
 
@@ -15,11 +15,11 @@ Open `/?scene=kitchen-proof` on this branch's Vercel deployment. The page is laz
 ## Evidence and limits
 
 - [Asset review](asset-review.webp): legacy clean plate (upper left), legacy toaster (upper right), legacy cabinet (lower left), new assembled room (lower right). Old plate has a baked-in toaster and degraded detail; old door has cutout contamination. None is reused in this proof.
-- [Contact sheet](contact-sheet.webp): intact, launch, toast contact, door contact, plate fall, aftermath. Rendered from `KitchenRoom`, not a separately authored mockup.
+- [Contact sheet](contact-sheet.webp): intact, door contact, separated plates, first fracture, later fractures, settled aftermath. Rendered from `KitchenRoom`, not a separately authored mockup.
 - [Motion sample](motion.mp4): 4.04 seconds, 24 fps, 1000×600, no sound. Offline rendering of the same frame function and SVG composition. This demonstrates authored motion, **not measured browser performance**.
-- 68 tests across 16 files pass, including dependency-order/cycle/missing-event/invalid-time rejection, duplicate-safe damage, exact contact boundaries, skipped-frame aftermath and reset.
+- 72 tests across 16 files pass, including dependency-order/cycle/missing-event/invalid-time rejection, duplicate-safe damage, exact contact boundaries, skipped-frame aftermath and reset.
 - TypeScript, Vite production build, bundle and room-asset validation pass. The two new WebP files total 193,690 bytes. The entire room-art directory is 2,097,180 bytes within the unchanged 2,100,000-byte guardrail.
-- Browser playback, full responsive page layout, runtime loading/retry, reduced-motion behavior and performance still require the deployed preview. The available browser cannot reach the local development server. Offline frames do not close those gates.
+- The user recording of the first deployment confirmed playback, persistent damage and reset, but failed the realism review. This motion revision still requires deployed browser review; responsive page layout, runtime loading/retry, reduced-motion behavior and performance remain unverified. The available browser cannot reach the local development server. Offline frames do not close those gates.
 - This is an authored 2.5D motion proof. It is not a physics simulation. The single failing hinge is the premise; further physically convincing variation, five outcomes, audio and integration belong to checkpoint 3.
 
 ## Implementation
@@ -51,3 +51,17 @@ Atlas prompt: use the generated kitchen as the lighting/material/perspective ref
 ## Deployment handoff
 
 Deploy branch `feat/living-room-rebuild` at the checkpoint 2 commit reported in the handoff. Use repository root and the existing `vercel.json` build settings. Then open `/?scene=kitchen-proof` and inspect the five steps above. **No contract deployment. No production-readiness claim.** The assistant has not deployed to Vercel.
+
+## Motion revision after user recording review
+
+Reviewed `Screencast from 2026-09-17 21-41-03.webm` (12.53 seconds) at overview and contact-frame intervals. The first proof did not meet the realism gate: the door rotated as a flat sheet, the plates moved as one rigid stack, their fracture was a generic swap, and the toast remained upright at its landing. No full-kitchen expansion has been undertaken while that gate remains open.
+
+Changes in this revision:
+
+- Door face foreshortens in depth with an explicit solid edge and displaced shadow. Its projection keeps the upper hinge fixed. A visibly backed-out lower screw drops as the lower attachment fails; initial give precedes the main sag.
+- Four plate silhouettes overlap at rest and then separate with distinct release times, trajectories, rotations, and impacts (2005, 2100, 2195, 2295 ms). Each plate fractures separately, with pieces originating across its own silhouette. Pieces settle flat with surface shadows.
+- Toast tips onto the counter, makes a small bounce, and retains a contact shadow. Its final centre sits at y=310 instead of retaining an upright airborne pose.
+- Preview frame controls expose hinge release and first/last plate impacts. The page explicitly identifies itself as intentionally silent. No new audio, outcomes, game integration or contract changes in this revision.
+- Four new regression tests were observed failing before correction, then passing. They cover flat toast landing, anchored depth projection and screw fall, separate plate impacts, and flat debris settlement. Updated offline contact sheet and motion clip are generated from the actual renderer.
+
+These changes address the recorded defects but are **not a claim that the final realism requirement is passed**. Inspect the revised deployed motion before checkpoint 3.

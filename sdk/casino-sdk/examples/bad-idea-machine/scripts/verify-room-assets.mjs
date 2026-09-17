@@ -2,6 +2,8 @@ import { access, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const required = [
+  'public/rooms/kitchen/proof/room.webp',
+  'public/rooms/kitchen/proof/objects.webp',
   ...['kitchen', 'garage'].flatMap(room => [
     ...['before', '0x', '1_2x', '3x', '10x', '100x'].map(name => `public/rooms/${room}/gallery/${name}.webp`),
     `public/rooms/${room}/stage/clean.webp`,

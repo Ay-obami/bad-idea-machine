@@ -29,8 +29,8 @@
 | Checkpoint | Deliverable | Status | Deploy instruction |
 |---|---|---|---|
 | 0 | This plan + design | Approved | No deployment: documentation only |
-| 1 | Two-room selector and truthful controls | Code verified; visual review pending | Preview checkpoint 1 source/build; legacy animation remains explicitly incomplete |
-| 2 | Convincing kitchen visual proof | Pending | Preview checkpoint 2; inspect idle and contact sequence before expanding art |
+| 1 | Two-room selector and truthful controls | Code + deployed desktop flow verified; mobile pending | Preview checkpoint 1 source/build; legacy animation remains explicitly incomplete |
+| 2 | Convincing kitchen visual proof | Preview ready; deployed browser quality gate pending | Preview checkpoint 2; inspect idle and contact sequence before expanding art |
 | 3 | Complete kitchen destruction | Pending | Preview checkpoint 3; play repeated kitchen demo rounds |
 | 4 | Complete garage destruction | Pending | Preview checkpoint 4; inspect both rooms and navigation |
 | 5 | Recovery, fairness, accessibility, and controls | Pending | Preview checkpoint 5; hosted flows also require the local simulator |
@@ -95,11 +95,11 @@ Acceptance: exactly two room choices; no impossible payouts; selectable risks ha
 
 Files: inspect/rework kitchen assets and manifest; create scene model/timeline/state modules; modify `RoomStage.tsx`, `RoomObject.tsx`, `EnvironmentStage.tsx`, `src/styles/reference-room.css`. Add `src/scene/room-state.test.ts` and `room-timeline.test.ts`.
 
-- [ ] Inspect reference/available assets at original resolution and make a contact sheet for internal review. Record which images are usable and which require coherent replacement; do not upscale degraded art as a quality fix.
-- [ ] Build a complete intact kitchen composition with matching lighting/perspective. Separate toaster, toast, cabinet door and plates; reconstruct the surfaces behind them and necessary occlusion/shadow layers. Use image editing/generation capabilities for raster authoring, not improvised programmatic painting.
-- [ ] Anchor all artwork to 1000x600 logical coordinates. Preserve its aspect ratio with a single scale/letterbox transform across background, objects, effects and hit locations.
-- [ ] Implement toaster -> toast -> cabinet -> plates as a causal sequence. Use hinge pivots, deliberate acceleration, contact at visible surfaces, and lasting fragments/damage.
-- [ ] Implement and test duplicate-safe persistent damage and event dependency scheduling. Minimum state regression:
+- [x] Inspect reference/available assets at original resolution and make a contact sheet for internal review. Record which images are usable and which require coherent replacement; do not upscale degraded art as a quality fix.
+- [x] Build a complete intact kitchen composition with matching lighting/perspective. Separate toaster, toast, cabinet door and plates; reconstruct the surfaces behind them and necessary occlusion/shadow layers. Use image editing/generation capabilities for raster authoring, not improvised programmatic painting.
+- [x] Anchor all artwork to 1000x600 logical coordinates. Preserve its aspect ratio with a single scale/letterbox transform across background, objects, effects and hit locations.
+- [x] Implement toaster -> toast -> cabinet -> plates as a causal sequence. Use hinge pivots, deliberate acceleration, contact at visible surfaces, and lasting fragments/damage.
+- [x] Implement and test duplicate-safe persistent damage and event dependency scheduling. Minimum state regression:
 
 ```ts
 const state: RoomState = { damageIds: [] };
@@ -232,3 +232,18 @@ Current source-based Vercel settings, to recheck at each handoff: repository roo
 - Preview handoff: deploy the packaged static build or this branch's exact source commit. Source uses repository root, install `cd sdk/casino-sdk && npm ci`, existing root `vercel.json` build/output settings. Built-static package contains `index.html` at its root plus manifest CORS headers; it needs no build step. No contract deployment required.
 - User review: at 1366x768/1440x1000 and 390x844/360x800, confirm exactly two room choices; both enter their room; rules and Odds & payouts open; risk changes show 45%/65%/80% lose-stake probabilities and 8x/12x/16x maxima; balance/controls do not clip; play a demo round.
 - Status: checkpoint 1 code and nonvisual checks verified; acceptance remains partial until the rendered walkthrough passes. Existing graphics and floating-prop animation are explicitly unfinished; checkpoint 2 is the kitchen visual proof, not another interface redesign. No Vercel deployment or deployment-triggering branch push performed.
+
+
+### Checkpoint 1 deployed verification (September 17)
+
+- User deployed https://bad-idea-machine.vercel.app/ from published checkpoint 1 (`16b1f2bee070795b961d813d37e7276d8961303a`). Browser verified two room choices, expandable rules, all three actual paytables, kitchen 10-credit demo loss (2500 → 2490), and Garage navigation. Blurry legacy art and navigation balance reset remain documented. Required mobile viewport matrix remains unverified.
+
+### Checkpoint 2 implementation and offline visual record
+
+- Dedicated lazy-loaded standalone `?scene=kitchen-proof` route. Normal game/hosted rendering is deliberately unchanged until the proof passes review; complete integration belongs to checkpoint 3. No economic or contract changes.
+- New generated room plate and atlas, explicit silhouette masks, one 1000×600 viewBox, supported toaster, upper-hinge door motion, plate fall, persistent ceramic fragments and deterministic reset. No full-frame aftermath image.
+- Shared scene model, dependency compiler and damage reducer; 9 new behavior tests observed failing then passing. Full suite: 68 tests / 16 files passed. TypeScript/build/asset validation passed. Art 2,097,180 / 2,100,000 bytes, unchanged budget.
+- Inspected original art and new intact/contact/aftermath frames. Initial plate movement opposed the hit direction; corrected to travel left. Renderer-produced contact sheet and 24 fps motion sample are committed under `docs/checkpoints/kitchen-proof/`. See its README for provenance, commands, constraints and review checklist.
+- R1: new sharp coherent art inspected offline. R3: empty background surfaces plus controlled objects, no duplicates. R4: causal schedule and durable damage tested and shown in the motion sample. R5/R6: economics and existing disclosures unchanged. R8: preview handoff via GitHub; no assistant Vercel deployment.
+- **Partial acceptance:** offline scene inspection is complete; deployed browser motion and desktop/mobile layout remain pending. Narrow art-frame controls do not count as mobile browser QA. Do not start full-room expansion or mark the quality gate passed solely because tests pass.
+- Deploy the checkpoint 2 commit on `feat/living-room-rebuild`, repository root with existing Vercel settings; open `/?scene=kitchen-proof`. No Solidity deployment required. Full kitchen outcomes, audio, normal-game integration and garage rebuild remain pending.

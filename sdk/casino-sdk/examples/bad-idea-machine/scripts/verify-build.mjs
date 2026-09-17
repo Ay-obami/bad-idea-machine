@@ -55,7 +55,10 @@ const roomBytes = sum(roomArt);
 const foleyBytes = sum(foley);
 const runtimeBytes = sum(runtime);
 
-if (roomArt.length !== 44) throw new Error(`Production room-art count is ${roomArt.length}; expected 44`);
+// Validate the new scene assets explicitly without locking the renderer to a file count.
+for (const asset of ['rooms/kitchen/proof/room.webp', 'rooms/kitchen/proof/objects.webp']) {
+  if (!roomArt.some(file => file.path === asset)) throw new Error(`Missing kitchen proof asset: ${asset}`);
+}
 if (foley.length !== 17) throw new Error(`Production foley count is ${foley.length}; expected 17`);
 
 const budgets = {

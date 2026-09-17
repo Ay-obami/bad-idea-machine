@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { lazy, StrictMode, Suspense, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@fontsource/poppins/latin-500.css';
@@ -18,6 +18,7 @@ import type { EnvironmentId } from './scene/types';
 import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
+const KitchenProof = lazy(() => import('./play/KitchenProof'));
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -65,6 +66,8 @@ function ExperienceRoot() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ExperienceRoot />
+    {window.self === window.top && new URLSearchParams(window.location.search).get('scene') === 'kitchen-proof'
+      ? <Suspense fallback={<p>Loading kitchen preview…</p>}><KitchenProof /></Suspense>
+      : <ExperienceRoot />}
   </StrictMode>,
 );

@@ -28,8 +28,19 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
   const finalSmoke = clamp(frame.smoke.progress * .5 + damage.smoke * outcome);
   const rocketProgress = tier === 4 ? clamp((outcome - .08) / .48) : 0;
   const safeProgress = tier === 0 ? clamp((outcome - .3) / .45) : 0;
-  const secondaryWidth = frame.secondaryObject.kind === 'kettle' ? 60 : 94;
-  const secondaryHeight = frame.secondaryObject.kind === 'kettle' ? 72 : 62;
+
+  // Both props are present in every intact room. Variant selection changes motion, never room inventory.
+  const panActive = frame.secondaryObject.kind === 'pan';
+  const kettleActive = frame.secondaryObject.kind === 'kettle';
+  const panSparkCorrection = variant === 'pan-spark' && panActive
+    ? -50 * (1 - frame.secondaryObject.motion)
+    : 0;
+  const pan = panActive
+    ? { x: frame.secondaryObject.x + panSparkCorrection, y: frame.secondaryObject.y, rotation: frame.secondaryObject.rotation }
+    : { x: 585, y: 302, rotation: -8 };
+  const kettle = kettleActive
+    ? { x: frame.secondaryObject.x, y: frame.secondaryObject.y, rotation: frame.secondaryObject.rotation }
+    : { x: 730, y: 287, rotation: 0 };
 
   return (
     <div
@@ -61,24 +72,26 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           </linearGradient>
         </defs>
 
-        {/* Secondary object belongs to the room and follows the same 1000x600 clock. */}
-        <ellipse
-          cx={frame.secondaryObject.x}
-          cy={332}
-          rx={secondaryWidth * .38}
-          ry="4"
-          fill="#24160e"
-          opacity={.16 + frame.secondaryObject.motion * .3}
-          filter={`url(#${id}-soft)`}
-        />
+        {/* Stable room inventory: pan and kettle exist before the random chain is selected. */}
+        <ellipse cx={pan.x} cy="332" rx="37" ry="4" fill="#24160e" opacity={.2 + (panActive ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
         <image
-          href={`${base}rooms/kitchen/objects/${frame.secondaryObject.kind}.webp`}
-          x={frame.secondaryObject.x - secondaryWidth / 2}
-          y={frame.secondaryObject.y - secondaryHeight / 2}
-          width={secondaryWidth}
-          height={secondaryHeight}
+          href={`${base}rooms/kitchen/objects/pan.webp`}
+          x={pan.x - 47}
+          y={pan.y - 31}
+          width="94"
+          height="62"
           preserveAspectRatio="xMidYMid meet"
-          transform={`rotate(${frame.secondaryObject.rotation} ${frame.secondaryObject.x} ${frame.secondaryObject.y})`}
+          transform={`rotate(${pan.rotation} ${pan.x} ${pan.y})`}
+        />
+        <ellipse cx={kettle.x} cy="326" rx="25" ry="4" fill="#24160e" opacity={.18 + (kettleActive ? frame.secondaryObject.motion * .25 : 0)} filter={`url(#${id}-soft)`} />
+        <image
+          href={`${base}rooms/kitchen/objects/kettle.webp`}
+          x={kettle.x - 30}
+          y={kettle.y - 36}
+          width="60"
+          height="72"
+          preserveAspectRatio="xMidYMid meet"
+          transform={`rotate(${kettle.rotation} ${kettle.x} ${kettle.y})`}
         />
 
         {frame.secondaryObject.contactPulse > 0 && <g opacity={.22 + frame.secondaryObject.contactPulse * .55}>
@@ -86,7 +99,7 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           <path d={`M${frame.secondaryObject.contact.x - 10} ${frame.secondaryObject.contact.y + 5}l-8 7m20-10 7 8`} stroke="#e8c581" strokeWidth="1.5" />
         </g>}
 
-        {/* Spill grows along the counter from the actual collision source. */}
+        {/* Spill grows along the actual countertop from the collision source. */}
         {frame.spill.progress > 0 && <g data-room-damage="counter-spill">
           <path
             d={`M${frame.spill.from.x} ${frame.spill.from.y} C${frame.spill.from.x + 26} ${frame.spill.from.y + 8}, ${spillEndX - 30} ${spillEndY - 7}, ${spillEndX} ${spillEndY}`}
@@ -121,7 +134,7 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           })}
         </g>}
 
-        {/* Smoke accumulates from the ignition point; it never appears elsewhere in the room. */}
+        {/* Smoke rises only from the ignition point and accumulates into the final room. */}
         {finalSmoke > 0 && <g data-room-damage="smoke-staining" filter={`url(#${id}-smoke)`}>
           {[0, 1, 2, 3, 4].map(index => {
             const rise = 34 + index * 37 + finalSmoke * 60;
@@ -138,60 +151,67 @@ export function KitchenMeltdownRoom({ elapsedMs, variant, tier }: Props) {
           })}
         </g>}
 
-        {/* Five separately art-directed persistent structural outcomes appear only after reveal. */}
-        {outcome > 0 && <g data-room-damage={damage.structuralSignature}>
-          <path
-            d="M430 112l-18 18 15 17-25 24 19 15-14 31m92-92-14 19 11 16-22 20 12 25"
-            fill="none"
-            stroke="#4a2e20"
-            strokeWidth={1.2 + damage.cracks * outcome * 3.2}
-            opacity={damage.cracks * outcome * .9}
-          />
-          <path
-            d={`M365 ${82 + damage.cabinetDrop * outcome * 18}h92v92l-13 16h-78z`}
-            fill="#d1c0a0"
-            stroke="#6c5137"
-            strokeWidth="2"
-            opacity={damage.cabinetDrop * outcome * .72}
-            transform={`rotate(${damage.cabinetDrop * outcome * 8} 456 82)`}
-          />
-          <path
-            d="M340 36Q500 8 680 40Q628 78 520 65Q424 72 340 36Z"
-            fill="#2b211b"
-            opacity={damage.ceilingSoot * outcome * .48}
-            filter={`url(#${id}-soft)`}
-          />
-          {Array.from({ length: Math.round(4 + damage.debris * 12) }, (_, index) => {
-            const x = 355 + ((index * 53) % 390);
+        {/* Common settled debris comes from the same plate/counter zone; structural damage below is tier-specific. */}
+        {outcome > 0 && <g opacity={outcome}>
+          {Array.from({ length: Math.round(3 + damage.debris * 9) }, (_, index) => {
+            const x = 360 + ((index * 53) % 365);
             const y = 326 + ((index * 17) % 35);
             const size = 4 + (index % 4) * 2;
-            return <path key={index} d={`M${x} ${y}l${size} ${-size * .5} ${size * .7} ${size} -${size * 1.3} ${size * .4}Z`} fill={index % 3 ? '#d7ccb5' : '#76563c'} opacity={outcome * (.35 + damage.debris * .55)} />;
+            return <path key={index} d={`M${x} ${y}l${size} ${-size * .5} ${size * .7} ${size} -${size * 1.3} ${size * .4}Z`} fill={index % 3 ? '#d7ccb5' : '#76563c'} opacity={.35 + damage.debris * .55} />;
           })}
         </g>}
 
-        {rocketProgress > 0 && <g data-room-object="legendary-rocket">
-          <image
-            href={`${base}rooms/kitchen/objects/rocket.webp`}
-            x={880 - rocketProgress * 700}
-            y={410 - rocketProgress * 245}
-            width="86"
-            height="58"
-            transform={`rotate(${-38 - rocketProgress * 8} ${923 - rocketProgress * 700} ${439 - rocketProgress * 245})`}
-          />
-          <path d={`M${890 - rocketProgress * 700} ${438 - rocketProgress * 245}l${-30 - rocketProgress * 25} ${18 + rocketProgress * 8}`} stroke="#ff9d32" strokeWidth={5 + rocketProgress * 6} strokeLinecap="round" opacity={.35 + rocketProgress * .6} />
-          {rocketProgress > .82 && <circle cx="205" cy="178" r={25 + (rocketProgress - .82) * 190} fill="none" stroke="#e28a3f" strokeWidth="8" opacity={(1 - rocketProgress) * 3.8} />}
+        {/* Tier 1: small, localized repairable damage. */}
+        {tier === 1 && outcome > 0 && <g data-room-damage="minor-localized-scorch" opacity={outcome}>
+          <path d="M648 286l-8 8 7 8-9 7" fill="none" stroke="#5c4330" strokeWidth="1.4" />
+          <ellipse cx={frame.ignition.x + 12} cy={frame.ignition.y + 3} rx="24" ry="7" fill="#392319" opacity=".28" />
+          <path d="M660 316l12 2-7 5-13-2z" fill="#c8b89b" stroke="#765b41" strokeWidth=".7" />
+        </g>}
+
+        {/* Tier 2: cracked counter edge and damaged backsplash, without upper-cabinet collapse. */}
+        {tier === 2 && outcome > 0 && <g data-room-damage="moderate-counter-cabinet-damage" opacity={outcome}>
+          <path d="M555 324l24-7 18 9 31-8 24 10 30-6" fill="none" stroke="#493426" strokeWidth="2.6" />
+          <path d="M617 268l-11 14 9 12-16 13m45-42 9 15-8 12 13 12" fill="none" stroke="#6d5240" strokeWidth="1.8" />
+          <path d="M604 280h24v17h-24zM636 274h20v19h-20z" fill="#8f9e8f" opacity=".42" stroke="#4c584d" />
+        </g>}
+
+        {/* Tier 3: the upper cabinet itself sags and burns; a separate silhouette from tier 2. */}
+        {tier === 3 && outcome > 0 && <g data-room-damage="severe-upper-cabinet-burn" opacity={outcome}>
+          <path d="M372 62h102v112l-15 22-82-7z" fill="#cbb898" stroke="#62472f" strokeWidth="2.3" transform={`rotate(${9 * outcome} 472 64)`} />
+          <path d="M390 84h65v76h-65z" fill="none" stroke="#7a6043" strokeWidth="3" />
+          <path d="M455 55l-18 25 14 22-23 31 17 25-20 32" fill="none" stroke="#3e2a1f" strokeWidth="3" />
+          <ellipse cx="430" cy="105" rx="72" ry="40" fill="#2b1d15" opacity=".36" filter={`url(#${id}-soft)`} />
+        </g>}
+
+        {/* Tier 0: failed round leaves a charred local collapse plus a heavy impact crater. */}
+        {tier === 0 && outcome > 0 && <g data-room-damage="loss-charred-collapse" opacity={outcome}>
+          <path d="M390 48h98v136l-32 33-72-23z" fill="#5f4938" stroke="#2b211a" strokeWidth="3" transform={`rotate(${15 * outcome} 488 50)`} />
+          <path d="M405 73h58v83h-58z" fill="#28211c" opacity=".8" />
+          <path d="M350 42Q450 6 558 44Q535 105 458 96Q397 98 350 42Z" fill="#211713" opacity=".62" filter={`url(#${id}-soft)`} />
+          <ellipse cx="650" cy="504" rx={34 + safeProgress * 44} ry={7 + safeProgress * 10} fill="#241811" opacity={.25 + safeProgress * .48} />
+          <path d="M613 498l18-12 17 9 16-13 20 10 17-6" fill="none" stroke="#493327" strokeWidth={2 + safeProgress * 3} />
         </g>}
 
         {safeProgress > 0 && <g data-room-object="loss-safe">
           <ellipse cx="650" cy="520" rx={34 + safeProgress * 25} ry="7" fill="#1c1510" opacity={.2 + safeProgress * .4} filter={`url(#${id}-soft)`} />
-          <image
-            href={`${base}rooms/kitchen/objects/safe.webp`}
-            x={690 - safeProgress * 70}
-            y={62 + safeProgress * safeProgress * 420}
-            width="92"
-            height="92"
-            transform={`rotate(${safeProgress * 16} ${736 - safeProgress * 70} ${108 + safeProgress * safeProgress * 420})`}
-          />
+          <image href={`${base}rooms/kitchen/objects/safe.webp`} x={690 - safeProgress * 70} y={62 + safeProgress * safeProgress * 420} width="92" height="92" transform={`rotate(${safeProgress * 16} ${736 - safeProgress * 70} ${108 + safeProgress * safeProgress * 420})`} />
+        </g>}
+
+        {/* Tier 4: unique cross-room rocket event and blast-damaged architecture. */}
+        {tier === 4 && outcome > 0 && <g data-room-damage="legendary-rocket-cinematic-devastation" opacity={outcome}>
+          <path d="M118 92l31 17-13 31 28 18-24 33 32 26" fill="none" stroke="#3b291f" strokeWidth="4" />
+          <path d="M170 126l-26 18 18 23-23 22 31 18-16 30" fill="none" stroke="#5b3b2b" strokeWidth="3" />
+          <path d="M298 35Q493 2 716 36L684 68Q554 48 411 72L325 61Z" fill="#261b16" opacity=".55" filter={`url(#${id}-soft)`} />
+          {rocketProgress > .76 && <g opacity={clamp((rocketProgress - .76) / .24)}>
+            <ellipse cx="205" cy="178" rx="54" ry="44" fill="#201714" stroke="#694331" strokeWidth="6" />
+            <path d="M205 134l-17 26-31-7 17 28-24 22 34 1 13 31 12-32 34 5-25-24 19-29-31 9z" fill="#3a271e" opacity=".86" />
+          </g>}
+        </g>}
+
+        {rocketProgress > 0 && <g data-room-object="legendary-rocket">
+          <image href={`${base}rooms/kitchen/objects/rocket.webp`} x={880 - rocketProgress * 700} y={410 - rocketProgress * 245} width="86" height="58" transform={`rotate(${-38 - rocketProgress * 8} ${923 - rocketProgress * 700} ${439 - rocketProgress * 245})`} />
+          <path d={`M${890 - rocketProgress * 700} ${438 - rocketProgress * 245}l${-30 - rocketProgress * 25} ${18 + rocketProgress * 8}`} stroke="#ff9d32" strokeWidth={5 + rocketProgress * 6} strokeLinecap="round" opacity={.35 + rocketProgress * .6} />
+          {rocketProgress > .82 && <circle cx="205" cy="178" r={25 + (rocketProgress - .82) * 190} fill="none" stroke="#e28a3f" strokeWidth="8" opacity={(1 - rocketProgress) * 3.8} />}
         </g>}
       </svg>
     </div>

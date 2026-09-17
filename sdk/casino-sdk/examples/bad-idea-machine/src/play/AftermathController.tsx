@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { getEnvironmentArt } from '../environments';
 import type { OutcomeTier } from '../lib/badIdea';
@@ -19,13 +19,6 @@ export function AftermathController({ environment, tier, phase, onVisible, onErr
     if (!aftermathKey) return undefined;
     return getEnvironmentArt(environment).aftermaths[aftermathKey];
   }, [aftermathKey, environment]);
-
-  useEffect(() => {
-    if (!src || typeof window === 'undefined') return;
-    const image = new window.Image();
-    image.decoding = 'async';
-    image.src = src;
-  }, [src]);
 
   if (phase !== 'result' || !src || !aftermathKey) return null;
 

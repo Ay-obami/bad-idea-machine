@@ -42,11 +42,21 @@ it('keeps the upper hinge anchored while the door turns in depth and the loose s
   expect(final.hingeScrew.y).toBeGreaterThan(initial.hingeScrew.y + 100);
 });
 
+it('makes the lower hinge visibly tear away before the door reaches the plates', () => {
+  const intact = kitchenFrame(1100).lowerHinge;
+  const released = kitchenFrame(1500).lowerHinge;
+  expect(intact.separation).toBeLessThan(1);
+  expect(released.separation).toBeGreaterThan(8);
+  expect(released.rotation).toBeGreaterThan(8);
+  expect(released.shadowOpacity).toBeGreaterThan(.2);
+});
+
 it('separates the plates before impact and scatters each from its own contact', () => {
   const falling = kitchenFrame(1850).individualPlates;
   expect(falling).toHaveLength(4);
   expect(new Set(falling.map(plate => plate.rotation)).size).toBeGreaterThan(1);
   expect(new Set(falling.map(plate => plate.impactMs)).size).toBe(4);
+  expect(new Set(falling.map(plate => plate.depthScale.toFixed(3))).size).toBeGreaterThan(1);
   const firstImpact = Math.min(...falling.map(plate => plate.impactMs));
   expect(kitchenFrame(firstImpact - 1).individualPlates.filter(plate => plate.shattered)).toHaveLength(0);
   const contact = kitchenFrame(firstImpact + 1);

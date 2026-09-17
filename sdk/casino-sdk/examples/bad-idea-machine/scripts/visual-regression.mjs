@@ -5,6 +5,7 @@ const baseUrl = process.env.BIM_BASE_URL ?? 'http://127.0.0.1:3100';
 const outputDir = process.env.BIM_VISUAL_DIR ?? 'visual-regression';
 const galleryStates = ['before', '0x', '1_2x', '3x', '10x', '100x'];
 const aftermathStates = new Set(['failure', 'minor', 'moderate', 'severe', 'legendary']);
+const aftermathFiles = ['0x.webp', '1_2x.webp', '3x.webp', '10x.webp', '100x.webp'];
 
 await mkdir(outputDir, { recursive: true });
 
@@ -83,6 +84,57 @@ async function verifyGallery(page, viewportName) {
   }
 }
 
+async function enterPlayWithUniformAftermathPreload(page, environment) {
+  const expected = aftermathFiles.map(file => `/rooms/${environment}/aftermath/${file}`);
+  const observed = new Set();
+  const routePattern = `**/rooms/${environment}/aftermath/*.webp`;
+  let releasePreloads = () => {};
+  const preloadGate = new Promise(resolve => {
+    releasePreloads = resolve;
+  });
+
+  await page.route(routePattern, async route => {
+    observed.add(new URL(route.request().url()).pathname);
+    await preloadGate;
+    await route.continue();
+  });
+
+  try {
+    const room = page.locator(`.gallery-room[data-environment="${environment}"]`);
+    await room.locator('.gallery-room__heading').click();
+    await page.locator(`.reference-play .room-stage[data-room-stage="${environment}"]`).waitFor();
+
+    const deadline = Date.now() + 5_000;
+    while (observed.size < expected.length && Date.now() < deadline) {
+      await page.waitForTimeout(25);
+    }
+
+    const missing = expected.filter(path => !observed.has(path));
+    if (missing.length) {
+      throw new Error(`${environment} did not uniformly request every aftermath before launch: missing ${missing.join(', ')}`);
+    }
+
+    const shell = page.locator('.reference-play');
+    if (await shell.getAttribute('data-aftermath-preload') !== 'loading') {
+      throw new Error(`${environment} preload gate became ready before all blocked aftermaths completed`);
+    }
+
+    const launch = page.getByRole('button', { name: /DO NOT PRESS/i });
+    if (!(await launch.isDisabled())) {
+      throw new Error(`${environment} launch became enabled while aftermath preloads were still blocked`);
+    }
+
+    releasePreloads();
+    await page.locator('.reference-play[data-aftermath-preload="ready"]').waitFor({ timeout: 5_000 });
+    if (await launch.isDisabled()) {
+      throw new Error(`${environment} launch stayed disabled after every aftermath finished preloading`);
+    }
+  } finally {
+    releasePreloads();
+    await page.unroute(routePattern);
+  }
+}
+
 async function movementDistance(page) {
   let best = { actor: 'none', distance: 0 };
   for (let attempt = 0; attempt < 18; attempt += 1) {
@@ -106,9 +158,7 @@ async function movementDistance(page) {
 
 async function verifyPlay(page, environment) {
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
-  const room = page.locator(`.gallery-room[data-environment="${environment}"]`);
-  await room.locator('.gallery-room__heading').click();
-  await page.locator(`.reference-play .room-stage[data-room-stage="${environment}"]`).waitFor();
+  await enterPlayWithUniformAftermathPreload(page, environment);
   await assertImageLoaded(page.locator('.room-stage__plate'), `/rooms/${environment}/stage/clean.webp`);
 
   const expectedObjects = environment === 'kitchen' ? 9 : 11;

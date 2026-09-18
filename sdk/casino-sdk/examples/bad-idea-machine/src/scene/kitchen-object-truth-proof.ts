@@ -1,120 +1,58 @@
-export type KitchenObjectTruthId = 'pan' | 'toaster';
+export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
 
-export type KitchenObjectTruthFrame = Readonly<{
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  destX: number;
-  destY: number;
-  kind: 'support' | 'shadow' | 'body';
-}>;
-
-export const KITCHEN_OBJECT_TRUTH_ATLAS = {
-  url: '/rooms/kitchen/rebuild/proof/object-extraction-v1.webp',
-  width: 512,
-  height: 386,
-  source: 'container-extracted-approved-master' as const,
-  frames: {
-    'pan/support': { x: 4, y: 4, width: 240, height: 110, destX: 325, destY: 235, kind: 'support' },
-    'pan/body': { x: 248, y: 4, width: 240, height: 110, destX: 325, destY: 235, kind: 'body' },
-    'pan/shadow': { x: 4, y: 118, width: 240, height: 110, destX: 325, destY: 235, kind: 'shadow' },
-    'toaster/support': { x: 248, y: 118, width: 150, height: 130, destX: 585, destY: 205, kind: 'support' },
-    'toaster/body': { x: 4, y: 252, width: 150, height: 130, destX: 585, destY: 205, kind: 'body' },
-    'toaster/shadow': { x: 158, y: 252, width: 150, height: 130, destX: 585, destY: 205, kind: 'shadow' },
-  } satisfies Readonly<Record<string, KitchenObjectTruthFrame>>,
+export const KITCHEN_PAN_TRUTH = {
+  referenceUrl: '/rooms/kitchen/truth/pan-reference.webp',
+  supportUrl: '/rooms/kitchen/truth/pan-support.webp',
+  bodyUrl: '/rooms/kitchen/truth/pan-body.webp',
+  shadowUrl: '/rooms/kitchen/truth/pan-shadow.webp',
+  width: 240,
+  height: 110,
+  logicalBounds: {
+    x: 325,
+    y: 235,
+    width: 240,
+    height: 110,
+  },
+  source: 'approved-master-local-extraction' as const,
+  role: 'single-object-truth-gate' as const,
 } as const;
 
-export type KitchenObjectTruthObject = Readonly<{
-  id: KitchenObjectTruthId;
-  label: string;
-  supportFrame: keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames;
-  bodyFrame: keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames;
-  shadowFrame: keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames;
-  focus: Readonly<{ x: number; y: number; width: number; height: number }>;
-}>;
-
-export const KITCHEN_OBJECT_TRUTH_OBJECTS: readonly KitchenObjectTruthObject[] = [
-  {
-    id: 'pan',
-    label: 'Pan',
-    supportFrame: 'pan/support',
-    bodyFrame: 'pan/body',
-    shadowFrame: 'pan/shadow',
-    focus: { x: 305, y: 220, width: 285, height: 145 },
-  },
-  {
-    id: 'toaster',
-    label: 'Toaster assembly',
-    supportFrame: 'toaster/support',
-    bodyFrame: 'toaster/body',
-    shadowFrame: 'toaster/shadow',
-    focus: { x: 565, y: 185, width: 200, height: 175 },
-  },
-] as const;
-
-export function kitchenObjectTruthDrawOrder(
-  objectId: KitchenObjectTruthId,
+export function kitchenPanTruthLayers(
   bodyVisible: boolean,
   shadowVisible: boolean,
-): readonly (keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames)[] {
-  const object = KITCHEN_OBJECT_TRUTH_OBJECTS.find(item => item.id === objectId);
-  if (!object) throw new Error(`Unknown Kitchen truth object: ${objectId}`);
-
-  const order: (keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames)[] = [object.supportFrame];
-  if (shadowVisible) order.push(object.shadowFrame);
-  if (bodyVisible) order.push(object.bodyFrame);
-  return order;
+): readonly KitchenPanTruthLayer[] {
+  const layers: KitchenPanTruthLayer[] = ['support'];
+  if (shadowVisible) layers.push('shadow');
+  if (bodyVisible) layers.push('body');
+  return layers;
 }
 
-export function validateKitchenObjectTruthProof(): readonly string[] {
+export function validateKitchenPanTruth(): readonly string[] {
   const errors: string[] = [];
 
-  if (!KITCHEN_OBJECT_TRUTH_ATLAS.url.startsWith('/rooms/')) {
-    errors.push('truth atlas must be repository-local');
-  }
-
-  for (const [id, frame] of Object.entries(KITCHEN_OBJECT_TRUTH_ATLAS.frames)) {
-    if (frame.x < 0 ||
-        frame.y < 0 ||
-        frame.x + frame.width > KITCHEN_OBJECT_TRUTH_ATLAS.width ||
-        frame.y + frame.height > KITCHEN_OBJECT_TRUTH_ATLAS.height) {
-      errors.push(`${id}: frame outside atlas`);
+  for (const [label, url] of Object.entries({
+    reference: KITCHEN_PAN_TRUTH.referenceUrl,
+    support: KITCHEN_PAN_TRUTH.supportUrl,
+    body: KITCHEN_PAN_TRUTH.bodyUrl,
+    shadow: KITCHEN_PAN_TRUTH.shadowUrl,
+  })) {
+    if (!url.startsWith('/rooms/kitchen/truth/')) {
+      errors.push(`${label}: truth asset must be repository-local`);
     }
 
-    if (frame.destX < 0 ||
-        frame.destY < 0 ||
-        frame.destX + frame.width > 1000 ||
-        frame.destY + frame.height > 600) {
-      errors.push(`${id}: destination outside logical canvas`);
+    if (/creativeclaw/i.test(url) || /^https?:\/\//i.test(url)) {
+      errors.push(`${label}: remote asset dependency is forbidden`);
     }
   }
 
-  for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
-    const support = KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.supportFrame];
-    const body = KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.bodyFrame];
-    const shadow = KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.shadowFrame];
+  const { x, y, width, height } = KITCHEN_PAN_TRUTH.logicalBounds;
 
-    if (!support || support.kind !== 'support') errors.push(`${object.id}: invalid support frame`);
-    if (!body || body.kind !== 'body') errors.push(`${object.id}: invalid body frame`);
-    if (!shadow || shadow.kind !== 'shadow') errors.push(`${object.id}: invalid shadow frame`);
+  if (width !== KITCHEN_PAN_TRUTH.width || height !== KITCHEN_PAN_TRUTH.height) {
+    errors.push('pan truth registration size mismatch');
+  }
 
-    const sameRegistration =
-      support?.destX === body?.destX &&
-      support?.destY === body?.destY &&
-      support?.width === body?.width &&
-      support?.height === body?.height &&
-      support?.destX === shadow?.destX &&
-      support?.destY === shadow?.destY &&
-      support?.width === shadow?.width &&
-      support?.height === shadow?.height;
-
-    if (!sameRegistration) errors.push(`${object.id}: support/body/shadow registration mismatch`);
-
-    const { x, y, width, height } = object.focus;
-    if (x < 0 || y < 0 || x + width > 1000 || y + height > 600) {
-      errors.push(`${object.id}: focus region outside logical canvas`);
-    }
+  if (x < 0 || y < 0 || x + width > 1000 || y + height > 600) {
+    errors.push('pan truth registration outside logical canvas');
   }
 
   return errors;

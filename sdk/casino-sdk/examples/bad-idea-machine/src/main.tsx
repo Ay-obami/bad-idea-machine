@@ -34,6 +34,11 @@ const KitchenTier1SeparationProof = lazy(async () => {
   return { default: module.KitchenTier1SeparationProof };
 });
 
+const KitchenObjectTruthProof = lazy(async () => {
+  const module = await import('./play/KitchenObjectTruthProof');
+  return { default: module.KitchenObjectTruthProof };
+});
+
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -105,6 +110,14 @@ function RootView() {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
         <KitchenTier1SeparationProof />
+      </Suspense>
+    );
+  }
+
+  if (scene === 'kitchen-object-truth') {
+    return (
+      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
+        <KitchenObjectTruthProof />
       </Suspense>
     );
   }

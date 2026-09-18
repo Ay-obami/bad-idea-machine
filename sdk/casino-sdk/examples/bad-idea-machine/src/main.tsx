@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@fontsource/poppins/latin-500.css';
@@ -18,6 +18,11 @@ import type { EnvironmentId } from './scene/types';
 import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
+
+const KitchenLayeredStaticProof = lazy(async () => {
+  const module = await import('./play/KitchenLayeredStaticProof');
+  return { default: module.KitchenLayeredStaticProof };
+});
 
 
 type GalleryGateProps = Readonly<{
@@ -65,8 +70,24 @@ function ExperienceRoot() {
 }
 
 
+const scene = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('scene')
+  : null;
+
+function RootView() {
+  if (scene === 'kitchen-layered-static') {
+    return (
+      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
+        <KitchenLayeredStaticProof />
+      </Suspense>
+    );
+  }
+
+  return <ExperienceRoot />;
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ExperienceRoot />
+    <RootView />
   </StrictMode>,
 );

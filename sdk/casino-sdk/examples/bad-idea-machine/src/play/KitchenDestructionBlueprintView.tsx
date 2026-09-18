@@ -5,6 +5,7 @@ import {
   KITCHEN_DESTRUCTION_BLUEPRINT,
   kitchenDamageCount,
   validateKitchenDestructionBlueprint,
+  type KitchenDestructibleZoneId,
   type KitchenVariant,
 } from '../scene/kitchen-destruction-blueprint';
 import { KITCHEN_NATIVE_MASTER } from '../scene/kitchen-native-proof';
@@ -92,7 +93,7 @@ export function KitchenDestructionBlueprintView() {
 
             {KITCHEN_DESTRUCTION_BLUEPRINT.zones.map(zone => {
               const state = zone.kind === 'destructible'
-                ? composition.zoneStates[zone.id]
+                ? composition.zoneStates[zone.id as KitchenDestructibleZoneId]
                 : 'permanent shell';
 
               return (
@@ -187,7 +188,7 @@ export function KitchenDestructionBlueprintView() {
               <div className="kitchen-blueprint__matrix-row" role="row" key={zone.id}>
                 <span role="cell">{zone.label}</span>
                 {tiers.map(item => (
-                  <strong role="cell" key={item}>{KITCHEN_DESTRUCTION_BLUEPRINT.tiers[item].zoneStates[zone.id]}</strong>
+                  <strong role="cell" key={item}>{KITCHEN_DESTRUCTION_BLUEPRINT.tiers[item].zoneStates[zone.id as KitchenDestructibleZoneId]}</strong>
                 ))}
               </div>
             ))}

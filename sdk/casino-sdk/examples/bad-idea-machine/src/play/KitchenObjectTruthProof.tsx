@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_INTACT_ATLAS } from '../scene/kitchen-intact-atlas';
 import {
+  KITCHEN_OBJECT_TRUTH_ATLAS,
   KITCHEN_OBJECT_TRUTH_OBJECTS,
   kitchenObjectTruthDrawOrder,
   type KitchenObjectTruthId,
@@ -11,9 +11,9 @@ import {
 function drawFrame(
   context: CanvasRenderingContext2D,
   atlas: HTMLImageElement,
-  id: keyof typeof KITCHEN_INTACT_ATLAS.frames,
+  id: keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames,
 ) {
-  const frame = KITCHEN_INTACT_ATLAS.frames[id];
+  const frame = KITCHEN_OBJECT_TRUTH_ATLAS.frames[id];
   context.drawImage(
     atlas,
     frame.x,
@@ -41,6 +41,7 @@ export function KitchenObjectTruthProof() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const focusCanvasRef = useRef<HTMLCanvasElement>(null);
   const [atlas, setAtlas] = useState<HTMLImageElement | null>(null);
+  const [master, setMaster] = useState<HTMLImageElement | null>(null);
   const [objectId, setObjectId] = useState<KitchenObjectTruthId>('pan');
   const [bodyVisible, setBodyVisible] = useState(true);
   const [shadowVisible, setShadowVisible] = useState(true);
@@ -48,14 +49,22 @@ export function KitchenObjectTruthProof() {
   const object = KITCHEN_OBJECT_TRUTH_OBJECTS.find(item => item.id === objectId)!;
 
   useEffect(() => {
-    const image = new Image();
-    image.onload = () => setAtlas(image);
-    image.src = KITCHEN_INTACT_ATLAS.url;
-    return () => { image.onload = null; };
+    const atlasImage = new Image();
+    atlasImage.onload = () => setAtlas(atlasImage);
+    atlasImage.src = KITCHEN_OBJECT_TRUTH_ATLAS.url;
+
+    const masterImage = new Image();
+    masterImage.onload = () => setMaster(masterImage);
+    masterImage.src = KITCHEN_APPROVED_MASTER.sourceUrl;
+
+    return () => {
+      atlasImage.onload = null;
+      masterImage.onload = null;
+    };
   }, []);
 
   useEffect(() => {
-    if (!atlas) return;
+    if (!atlas || !master) return;
     const canvas = canvasRef.current;
     const focusCanvas = focusCanvasRef.current;
     if (!canvas || !focusCanvas) return;
@@ -65,6 +74,10 @@ export function KitchenObjectTruthProof() {
     if (!context || !focus) return;
 
     context.clearRect(0, 0, 1000, 600);
+    context.drawImage(master, 0, 0, master.naturalWidth, master.naturalHeight, 0, 0, 1000, 600);
+
+    // The support frame first removes the object that is baked into the approved
+    // reference. Shadow and body are then independently reapplied.
     for (const id of kitchenObjectTruthDrawOrder(objectId, bodyVisible, shadowVisible)) {
       drawFrame(context, atlas, id);
     }
@@ -82,7 +95,7 @@ export function KitchenObjectTruthProof() {
       area.width,
       area.height,
     );
-  }, [atlas, bodyVisible, object, objectId, shadowVisible]);
+  }, [atlas, bodyVisible, master, object, objectId, shadowVisible]);
 
   const state = bodyVisible && shadowVisible
     ? 'body + shadow'
@@ -102,14 +115,14 @@ export function KitchenObjectTruthProof() {
     }}>
       <header style={{ width: 'min(1500px,100%)', margin: '0 auto 14px' }}>
         <small style={{ color: '#f4cb58', font: '800 11px Poppins,sans-serif', letterSpacing: '.13em' }}>
-          CHECKPOINT 2C · SINGLE-OBJECT TRUTH GATE
+          CHECKPOINT 2C · LOCAL EXTRACTION TRUTH GATE
         </small>
         <h1 style={{ margin: '7px 0 5px', font: '800 clamp(24px,3vw,39px)/1.04 Poppins,sans-serif' }}>
-          Exact object layer, independent shadow, clean support
+          Exact source body, independent contact shadow, local clean support
         </h1>
-        <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          No browser polygon masks and no Tier 1 debris are involved here. This proof uses only the already-approved intact layered atlas.
-          Hide an object and its shadow: the genuine architectural support beneath it must remain visually believable.
+        <p style={{ maxWidth: 1000, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
+          This gate no longer uses the rejected Tier 1 ownership polygons. Pan and toaster are extracted locally from the approved master in the container,
+          packed into a repository asset, and rebuilt as support → shadow → body.
         </p>
       </header>
 
@@ -146,7 +159,7 @@ export function KitchenObjectTruthProof() {
       }}>
         <figure style={{ margin: 0, border: '1px solid #32464b', background: '#071014' }}>
           <figcaption style={{ padding: '10px 12px', color: '#7ce2a5', fontWeight: 700 }}>
-            Layered reconstruction · {object.label}
+            Local reconstruction · {object.label}
           </figcaption>
           <canvas ref={canvasRef} width={1000} height={600} style={{ display: 'block', width: '100%', height: 'auto' }} />
         </figure>
@@ -188,8 +201,8 @@ export function KitchenObjectTruthProof() {
       </section>
 
       <section style={{ width: 'min(1500px,100%)', margin: '12px auto 0', color: '#a9b5b6', lineHeight: 1.5, fontSize: 12 }}>
-        <strong style={{ color: '#edf0e9' }}>Pass rule:</strong> with both body and shadow hidden, the support must read as an uninterrupted stove/counter surface.
-        With body visible and shadow hidden, only grounding should change. With shadow visible and body hidden, there must be no black geometric patch or object silhouette masquerading as a shadow.
+        <strong style={{ color: '#edf0e9' }}>Pass rule:</strong> support-only must look like a continuous stove/counter surface.
+        Body-only may lose grounding but cannot drag background pixels. Shadow-only must remain subtle and local rather than becoming an object-shaped black patch.
       </section>
     </main>
   );

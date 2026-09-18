@@ -1,55 +1,45 @@
 import { describe, expect, it } from 'vitest';
 
-import { KITCHEN_INTACT_ATLAS, KITCHEN_INTACT_DRAW_ORDER } from './kitchen-intact-atlas';
 import {
+  KITCHEN_OBJECT_TRUTH_ATLAS,
   KITCHEN_OBJECT_TRUTH_OBJECTS,
   kitchenObjectTruthDrawOrder,
   validateKitchenObjectTruthProof,
 } from './kitchen-object-truth-proof';
 
 describe('kitchen single-object truth proof', () => {
-  it('uses only already separated intact-atlas frames', () => {
+  it('uses a repository-local atlas produced from the approved master', () => {
     expect(validateKitchenObjectTruthProof()).toEqual([]);
+    expect(KITCHEN_OBJECT_TRUTH_ATLAS.url).toMatch(/^\/rooms\//);
+    expect(KITCHEN_OBJECT_TRUTH_ATLAS.url).not.toMatch(/creativeclaw/i);
+    expect(KITCHEN_OBJECT_TRUTH_ATLAS.source).toBe('container-extracted-approved-master');
+  });
 
+  it('gives each object a real support, shadow and body layer', () => {
     for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
-      expect(KITCHEN_INTACT_ATLAS.frames[object.bodyFrame]).toBeDefined();
-      expect(KITCHEN_INTACT_ATLAS.frames[object.shadowFrame]).toBeDefined();
+      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.supportFrame].kind).toBe('support');
+      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.shadowFrame].kind).toBe('shadow');
+      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.bodyFrame].kind).toBe('body');
     }
   });
 
-  it('can remove each object body and shadow without removing architecture', () => {
+  it('always restores support before optionally adding shadow and body', () => {
     for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
       const supportOnly = kitchenObjectTruthDrawOrder(object.id, false, false);
-      expect(supportOnly).not.toContain(object.bodyFrame);
-      expect(supportOnly).not.toContain(object.shadowFrame);
-
-      for (const id of KITCHEN_INTACT_DRAW_ORDER.filter(id => !id.startsWith(`prop/${object.id}/`))) {
-        expect(supportOnly).toContain(id);
-      }
-    }
-  });
-
-  it('can independently restore shadow and body', () => {
-    for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
       const shadowOnly = kitchenObjectTruthDrawOrder(object.id, false, true);
       const bodyOnly = kitchenObjectTruthDrawOrder(object.id, true, false);
       const complete = kitchenObjectTruthDrawOrder(object.id, true, true);
 
-      expect(shadowOnly).toContain(object.shadowFrame);
-      expect(shadowOnly).not.toContain(object.bodyFrame);
-
-      expect(bodyOnly).toContain(object.bodyFrame);
-      expect(bodyOnly).not.toContain(object.shadowFrame);
-
-      expect(complete).toContain(object.bodyFrame);
-      expect(complete).toContain(object.shadowFrame);
+      expect(supportOnly).toEqual([object.supportFrame]);
+      expect(shadowOnly).toEqual([object.supportFrame, object.shadowFrame]);
+      expect(bodyOnly).toEqual([object.supportFrame, object.bodyFrame]);
+      expect(complete).toEqual([object.supportFrame, object.shadowFrame, object.bodyFrame]);
     }
   });
 
-  it('contains no mask or generated replacement frame', () => {
-    for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
-      expect(object.bodyFrame).not.toMatch(/mask|patch|replacement/i);
-      expect(object.shadowFrame).not.toMatch(/mask|patch|replacement/i);
+  it('uses no browser ownership masks or Tier 1 debris in this gate', () => {
+    for (const id of Object.keys(KITCHEN_OBJECT_TRUTH_ATLAS.frames)) {
+      expect(id).not.toMatch(/mask|tier1|debris|replacement/i);
     }
   });
 });

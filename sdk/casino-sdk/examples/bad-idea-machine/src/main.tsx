@@ -24,6 +24,11 @@ const KitchenLayeredStaticProof = lazy(async () => {
   return { default: module.KitchenLayeredStaticProof };
 });
 
+const KitchenAftermathStaticProof = lazy(async () => {
+  const module = await import('./play/KitchenAftermathStaticProof');
+  return { default: module.KitchenAftermathStaticProof };
+});
+
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -79,6 +84,14 @@ function RootView() {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
         <KitchenLayeredStaticProof />
+      </Suspense>
+    );
+  }
+
+  if (scene === 'kitchen-aftermath-static') {
+    return (
+      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
+        <KitchenAftermathStaticProof />
       </Suspense>
     );
   }

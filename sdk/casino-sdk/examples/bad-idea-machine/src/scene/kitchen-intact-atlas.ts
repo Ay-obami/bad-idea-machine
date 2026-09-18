@@ -11,14 +11,14 @@ export type KitchenAtlasFrame = Readonly<{
 }>;
 
 export const KITCHEN_INTACT_ATLAS = {
-  url: 'https://cdn.creativeclaw.co/u/534269cc/images/7902c141-0439-4525-95b3-15be49cf804a.webp',
+  url: 'https://cdn.creativeclaw.co/u/534269cc/images/2d531b2f-6089-4297-a4eb-e93de30b0bad.png',
   width: 2048,
   height: 864,
   metrics: {
-    mae: 2.4424522222222222,
-    p99: 13,
-    max: 62,
-    exactPixelFraction: 0.15417833333333333,
+    mae: 0.14555722222222223,
+    p99: 4,
+    max: 56,
+    exactPixelFraction: 0.9428183333333333,
   },
   frames: {
     'shell/permanent': { x: 3, y: 3, width: 1000, height: 600, destX: 0, destY: 0, kind: 'shell' },

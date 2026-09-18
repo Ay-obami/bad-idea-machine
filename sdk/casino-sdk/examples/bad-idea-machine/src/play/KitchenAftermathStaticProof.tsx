@@ -2,6 +2,11 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import type { OutcomeTier } from '../lib/badIdea';
 import { KITCHEN_AFTERMATH_AUTHORING } from '../scene/kitchen-aftermath-authoring';
+import {
+  KITCHEN_AFTERMATH_ZONE_ATLAS,
+  kitchenAftermathZoneFrame,
+  validateKitchenAftermathZoneAtlas,
+} from '../scene/kitchen-aftermath-atlas';
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from '../scene/kitchen-destruction-blueprint';
 import { KITCHEN_INTACT_ATLAS } from '../scene/kitchen-intact-atlas';
 
@@ -62,27 +67,27 @@ const button: CSSProperties = {
 export function KitchenAftermathStaticProof() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tier, setTier] = useState<OutcomeTier>(1);
-  const [atlasImage, setAtlasImage] = useState<HTMLImageElement | null>(null);
-  const [authoringImage, setAuthoringImage] = useState<HTMLImageElement | null>(null);
+  const [intactAtlasImage, setIntactAtlasImage] = useState<HTMLImageElement | null>(null);
+  const [aftermathAtlasImage, setAftermathAtlasImage] = useState<HTMLImageElement | null>(null);
   const [showBounds, setShowBounds] = useState(false);
 
   const authoring = KITCHEN_AFTERMATH_AUTHORING[tier];
   const composition = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier];
 
   useEffect(() => {
-    const image = new Image();
-    image.onload = () => setAtlasImage(image);
-    image.src = KITCHEN_INTACT_ATLAS.url;
-    return () => { image.onload = null; };
-  }, []);
+    const intact = new Image();
+    intact.onload = () => setIntactAtlasImage(intact);
+    intact.src = KITCHEN_INTACT_ATLAS.url;
 
-  useEffect(() => {
-    setAuthoringImage(null);
-    const image = new Image();
-    image.onload = () => setAuthoringImage(image);
-    image.src = authoring.url;
-    return () => { image.onload = null; };
-  }, [authoring.url]);
+    const aftermath = new Image();
+    aftermath.onload = () => setAftermathAtlasImage(aftermath);
+    aftermath.src = KITCHEN_AFTERMATH_ZONE_ATLAS.url;
+
+    return () => {
+      intact.onload = null;
+      aftermath.onload = null;
+    };
+  }, []);
 
   const orderedZones = useMemo(() => [
     ...KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(zone => zone.kind === 'permanent'),
@@ -91,15 +96,26 @@ export function KitchenAftermathStaticProof() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !atlasImage || !authoringImage) return;
+    if (!canvas || !intactAtlasImage || !aftermathAtlasImage) return;
     const context = canvas.getContext('2d');
     if (!context) return;
 
     context.clearRect(0, 0, 1000, 600);
-    drawAtlasFrame(context, atlasImage, 'shell/permanent');
+    drawAtlasFrame(context, intactAtlasImage, 'shell/permanent');
 
     for (const zone of orderedZones) {
-      drawRegisteredCrop(context, authoringImage, zone.bounds);
+      const frame = kitchenAftermathZoneFrame(tier, zone.id);
+      context.drawImage(
+        aftermathAtlasImage,
+        frame.x,
+        frame.y,
+        frame.width,
+        frame.height,
+        frame.destX,
+        frame.destY,
+        frame.width,
+        frame.height,
+      );
     }
 
     if (showBounds) {
@@ -121,7 +137,7 @@ export function KitchenAftermathStaticProof() {
 
       context.restore();
     }
-  }, [atlasImage, authoringImage, orderedZones, showBounds]);
+  }, [intactAtlasImage, aftermathAtlasImage, orderedZones, showBounds, tier]);
 
   const card: CSSProperties = {
     border: '1px solid #32464b',
@@ -145,8 +161,9 @@ export function KitchenAftermathStaticProof() {
           Local destruction crops, not full-frame outcome swaps
         </h1>
         <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          Left: clean layered Kitchen base plus only registered shell/zone crops from the selected aftermath authoring plate.
-          Right: the full authoring plate used to design those local states. The right image is explicitly forbidden as a runtime outcome.
+          Left: clean layered Kitchen base plus only crops from the baked local-zone atlas. Right: the full authoring plate
+          used to design those local states. The right image is explicitly forbidden as a runtime outcome and is not used
+          to render the left composite.
         </p>
       </header>
 
@@ -183,7 +200,7 @@ export function KitchenAftermathStaticProof() {
       }}>
         <figure style={{ ...card, margin: 0 }}>
           <figcaption style={{ padding: '10px 12px', color: '#77d39b', fontWeight: 700 }}>
-            Local-crop composite · Tier {tier}
+            Baked-atlas composite · Tier {tier}
           </figcaption>
           <canvas
             ref={canvasRef}
@@ -228,8 +245,9 @@ export function KitchenAftermathStaticProof() {
         <div style={{ ...card, padding: 12 }}>
           <strong>Gate</strong>
           <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
-            Reject a tier if the left composite shows camera drift, broken countertop/cabinet registration,
-            obvious rectangular seams, impossible object support, or destruction that does not read as this same Kitchen.
+            {validateKitchenAftermathZoneAtlas().length
+              ? validateKitchenAftermathZoneAtlas().join(' · ')
+              : '50 registered local crops present. Reject visually if the left composite shows camera drift, rectangular seams, impossible support, or destruction that no longer reads as this same Kitchen.'}
           </p>
         </div>
       </section>

@@ -40,104 +40,79 @@
   user-select:none;
   pointer-events:none;
 }
-.kitchen-native-proof__clip {
+.kitchen-native-proof__toast-patch {
+  position:absolute;
+  left:63.62%;
+  top:39.13%;
+  width:4.94%;
+  height:4.43%;
+  z-index:12;
+  object-fit:fill;
+  pointer-events:none;
+}
+.kitchen-native-proof__toast {
+  position:absolute;
+  width:2.97%;
+  height:auto;
+  z-index:24;
+  transform-origin:50% 50%;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.24));
+  pointer-events:none;
+}
+.kitchen-native-proof__toast-shadow {
+  position:absolute;
+  z-index:18;
+  width:3.2%;
+  height:.9%;
+  border-radius:50%;
+  background:rgba(19,12,7,.55);
+  filter:blur(2px);
+  pointer-events:none;
+}
+.kitchen-native-proof__master-clip {
   position:absolute;
   overflow:hidden;
   pointer-events:none;
 }
-.kitchen-native-proof__clip > img {
+.kitchen-native-proof__master-clip > img {
   position:absolute;
   max-width:none;
   user-select:none;
   pointer-events:none;
 }
-.kitchen-native-proof__source-patch { z-index:12; }
-.kitchen-native-proof__toast-source-patch { filter:brightness(.97) saturate(.88); }
-.kitchen-native-proof__door-source-patch { filter:brightness(.99) saturate(.97); }
-.kitchen-native-proof__plate-origin-patch { filter:brightness(.985); }
-.kitchen-native-proof__moving { z-index:20; will-change:transform; }
-.kitchen-native-proof__toast {
-  filter:drop-shadow(0 3px 3px rgba(0,0,0,.24));
+.kitchen-native-proof__pan-lip {
+  z-index:29;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.15));
 }
-.kitchen-native-proof__door {
-  z-index:19;
-  filter:drop-shadow(-3px 5px 5px rgba(0,0,0,.27));
-  backface-visibility:hidden;
-}
-.kitchen-native-proof__plate-rim {
-  z-index:22;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.25));
-}
-.kitchen-native-proof__plate-body {
-  position:absolute;
-  z-index:23;
-  width:6.4%;
-  height:3.4%;
-  border-radius:50%;
-  transform-origin:50% 50%;
-  background:
-    radial-gradient(ellipse at 50% 42%,#f9f3eb 0 46%,#e2d5c8 49% 58%,#f5ece2 61% 73%,#bda999 77% 81%,#eadfd4 84% 100%);
-  border:1px solid rgba(101,85,70,.40);
-  box-shadow:
-    0 4px 4px rgba(0,0,0,.25),
-    inset 0 2px 2px rgba(255,255,255,.77),
-    inset 0 -2px 3px rgba(101,83,67,.16);
-  pointer-events:none;
-}
-.kitchen-native-proof__plate-well {
-  position:absolute;
-  inset:22% 18%;
-  border-radius:50%;
-  border:1px solid rgba(121,101,84,.20);
-  box-shadow:inset 0 1px 2px rgba(255,255,255,.78);
-}
-.kitchen-native-proof__plate-crack {
-  position:absolute;
-  left:50%;
-  top:50%;
-  width:2px;
-  height:47%;
-  background:#8d7e70;
-  transform-origin:50% 0;
-}
-.kitchen-native-proof__plate-crack--a { transform:rotate(33deg); }
-.kitchen-native-proof__plate-crack--b { transform:rotate(-49deg); height:39%; }
-.kitchen-native-proof__fragment {
-  position:absolute;
-  z-index:25;
-  width:2.05%;
-  height:1.55%;
-  background:linear-gradient(155deg,#faf3eb 0%,#ddcfc2 72%,#b7a391 100%);
-  border:1px solid rgba(101,84,67,.35);
-  box-shadow:0 2px 3px rgba(0,0,0,.26), inset 0 1px 1px rgba(255,255,255,.68);
-  pointer-events:none;
-}
-.kitchen-native-proof__fragment--1 { clip-path:polygon(0 16%,100% 0,70% 100%,12% 79%); }
-.kitchen-native-proof__fragment--2 { clip-path:polygon(7% 0,100% 17%,72% 100%,0 67%); width:1.8%; }
-.kitchen-native-proof__fragment--3 { clip-path:polygon(0 22%,84% 0,100% 75%,27% 100%); width:1.92%; }
-.kitchen-native-proof__fragment--4 { clip-path:polygon(11% 0,100% 31%,59% 100%,0 73%); width:1.52%; }
-.kitchen-native-proof__fragment--5 { clip-path:polygon(0 13%,78% 0,100% 64%,21% 100%); width:1.34%; }
-.kitchen-native-proof__fragment--6 { clip-path:polygon(8% 0,100% 24%,65% 100%,0 69%); width:1.18%; }
 .kitchen-native-proof__contact {
   position:absolute;
-  z-index:30;
-  width:12px;
-  height:5px;
-  border-radius:50%;
-  transform:translate(-50%,-50%) rotate(-8deg);
-  background:rgba(226,212,186,.35);
-  box-shadow:0 0 4px rgba(255,236,195,.25);
+  z-index:31;
+  transform:translate(-50%,-50%);
   pointer-events:none;
 }
-.kitchen-native-proof__impact {
-  position:absolute;
-  z-index:31;
-  width:18px;
-  height:6px;
+.kitchen-native-proof__contact--handle {
+  width:10px;
+  height:4px;
   border-radius:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(244,234,218,.48);
-  box-shadow:0 0 9px rgba(255,246,228,.34);
+  background:rgba(229,214,180,.36);
+  box-shadow:0 0 4px rgba(255,234,190,.25);
+  transform:translate(-50%,-50%) rotate(-12deg);
+}
+.kitchen-native-proof__contact--pan {
+  width:15px;
+  height:5px;
+  border-radius:50%;
+  background:rgba(211,172,111,.30);
+  box-shadow:0 0 6px rgba(235,193,126,.28);
+}
+.kitchen-native-proof__grease-drop {
+  position:absolute;
+  z-index:28;
+  width:7px;
+  height:5px;
+  border-radius:50% 50% 54% 46%;
+  background:radial-gradient(circle at 35% 30%,rgba(255,221,144,.86),rgba(174,113,44,.78) 55%,rgba(89,50,20,.52) 100%);
+  box-shadow:0 1px 2px rgba(0,0,0,.24);
   pointer-events:none;
 }
 .kitchen-native-proof__controls {
@@ -156,11 +131,12 @@
   font:700 12px Poppins,sans-serif;
   cursor:pointer;
 }
-.kitchen-native-proof button:hover,.kitchen-native-proof button:focus-visible { border-color:#f5c94d; outline:none; }
+.kitchen-native-proof button:hover,
+.kitchen-native-proof button:focus-visible { border-color:#f5c94d; outline:none; }
 .kitchen-native-proof__transport button:first-child { background:#f5c94d; border-color:#f5c94d; color:#151612; }
 .kitchen-native-proof__marks {
   display:grid;
-  grid-template-columns:repeat(8,minmax(0,1fr));
+  grid-template-columns:repeat(7,minmax(0,1fr));
   gap:7px;
 }
 .kitchen-native-proof__marks button { display:grid; align-content:center; gap:2px; text-align:left; }
@@ -174,5 +150,5 @@
   .kitchen-native-proof__marks button { min-width:132px; scroll-snap-align:start; }
 }
 @media (prefers-reduced-motion:reduce) {
-  .kitchen-native-proof__moving { will-change:auto; }
+  .kitchen-native-proof__toast { will-change:auto; }
 }

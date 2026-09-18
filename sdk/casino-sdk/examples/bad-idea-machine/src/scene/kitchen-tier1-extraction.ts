@@ -219,11 +219,11 @@ export const KITCHEN_TIER1_EXTRACTION_SPECS: readonly KitchenTier1ExtractionSpec
     kind: 'debris',
     ownerId: 'ceramic-debris',
     sourceZoneId: 'right-counter',
-    bounds: { x: 595, y: 285, width: 220, height: 120 },
+    bounds: { x: 600, y: 285, width: 215, height: 120 },
     shape: {
       type: 'polygon',
       points: [
-        { x: 0, y: 14 }, { x: 219, y: 0 }, { x: 219, y: 118 }, { x: 0, y: 118 },
+        { x: 0, y: 14 }, { x: 214, y: 0 }, { x: 214, y: 118 }, { x: 0, y: 118 },
       ],
     },
     visible: true,

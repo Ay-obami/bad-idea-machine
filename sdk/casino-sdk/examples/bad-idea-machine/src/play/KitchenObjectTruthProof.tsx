@@ -1,35 +1,13 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties } from 'react';
 
-import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
 import {
-  KITCHEN_OBJECT_TRUTH_ATLAS,
-  KITCHEN_OBJECT_TRUTH_OBJECTS,
-  kitchenObjectTruthDrawOrder,
-  type KitchenObjectTruthId,
+  KITCHEN_PAN_TRUTH,
+  kitchenPanTruthLayers,
 } from '../scene/kitchen-object-truth-proof';
-
-function drawFrame(
-  context: CanvasRenderingContext2D,
-  atlas: HTMLImageElement,
-  id: keyof typeof KITCHEN_OBJECT_TRUTH_ATLAS.frames,
-) {
-  const frame = KITCHEN_OBJECT_TRUTH_ATLAS.frames[id];
-  context.drawImage(
-    atlas,
-    frame.x,
-    frame.y,
-    frame.width,
-    frame.height,
-    frame.destX,
-    frame.destY,
-    frame.width,
-    frame.height,
-  );
-}
 
 const button: CSSProperties = {
   minHeight: 40,
-  padding: '7px 11px',
+  padding: '8px 12px',
   border: '1px solid #42565c',
   background: '#101b1f',
   color: '#edf0e9',
@@ -37,65 +15,60 @@ const button: CSSProperties = {
   cursor: 'pointer',
 };
 
+function LayeredPan({
+  bodyVisible,
+  shadowVisible,
+  zoom = 1,
+}: Readonly<{
+  bodyVisible: boolean;
+  shadowVisible: boolean;
+  zoom?: number;
+}>) {
+  const layers = useMemo(
+    () => kitchenPanTruthLayers(bodyVisible, shadowVisible),
+    [bodyVisible, shadowVisible],
+  );
+
+  const urlFor = (layer: (typeof layers)[number]) => {
+    if (layer === 'support') return KITCHEN_PAN_TRUTH.supportUrl;
+    if (layer === 'shadow') return KITCHEN_PAN_TRUTH.shadowUrl;
+    return KITCHEN_PAN_TRUTH.bodyUrl;
+  };
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: KITCHEN_PAN_TRUTH.width * zoom,
+        height: KITCHEN_PAN_TRUTH.height * zoom,
+        overflow: 'hidden',
+        background: '#020405',
+      }}
+    >
+      {layers.map(layer => (
+        <img
+          key={layer}
+          src={urlFor(layer)}
+          alt=""
+          draggable={false}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'fill',
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function KitchenObjectTruthProof() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const focusCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [atlas, setAtlas] = useState<HTMLImageElement | null>(null);
-  const [master, setMaster] = useState<HTMLImageElement | null>(null);
-  const [objectId, setObjectId] = useState<KitchenObjectTruthId>('pan');
   const [bodyVisible, setBodyVisible] = useState(true);
   const [shadowVisible, setShadowVisible] = useState(true);
-
-  const object = KITCHEN_OBJECT_TRUTH_OBJECTS.find(item => item.id === objectId)!;
-
-  useEffect(() => {
-    const atlasImage = new Image();
-    atlasImage.onload = () => setAtlas(atlasImage);
-    atlasImage.src = KITCHEN_OBJECT_TRUTH_ATLAS.url;
-
-    const masterImage = new Image();
-    masterImage.onload = () => setMaster(masterImage);
-    masterImage.src = KITCHEN_APPROVED_MASTER.sourceUrl;
-
-    return () => {
-      atlasImage.onload = null;
-      masterImage.onload = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!atlas || !master) return;
-    const canvas = canvasRef.current;
-    const focusCanvas = focusCanvasRef.current;
-    if (!canvas || !focusCanvas) return;
-
-    const context = canvas.getContext('2d');
-    const focus = focusCanvas.getContext('2d');
-    if (!context || !focus) return;
-
-    context.clearRect(0, 0, 1000, 600);
-    context.drawImage(master, 0, 0, master.naturalWidth, master.naturalHeight, 0, 0, 1000, 600);
-
-    // The support frame first removes the object that is baked into the approved
-    // reference. Shadow and body are then independently reapplied.
-    for (const id of kitchenObjectTruthDrawOrder(objectId, bodyVisible, shadowVisible)) {
-      drawFrame(context, atlas, id);
-    }
-
-    const area = object.focus;
-    focus.clearRect(0, 0, area.width, area.height);
-    focus.drawImage(
-      canvas,
-      area.x,
-      area.y,
-      area.width,
-      area.height,
-      0,
-      0,
-      area.width,
-      area.height,
-    );
-  }, [atlas, bodyVisible, master, object, objectId, shadowVisible]);
+  const [blinkReference, setBlinkReference] = useState(false);
 
   const state = bodyVisible && shadowVisible
     ? 'body + shadow'
@@ -103,7 +76,13 @@ export function KitchenObjectTruthProof() {
       ? 'body only'
       : shadowVisible
         ? 'shadow only'
-        : 'clean support only';
+        : 'support only';
+
+  const card: CSSProperties = {
+    border: '1px solid #32464b',
+    background: '#071014',
+    boxShadow: '0 16px 48px rgba(0,0,0,.34)',
+  };
 
   return (
     <main style={{
@@ -113,96 +92,131 @@ export function KitchenObjectTruthProof() {
       color: '#edf0e9',
       fontFamily: 'Rubik, sans-serif',
     }}>
-      <header style={{ width: 'min(1500px,100%)', margin: '0 auto 14px' }}>
+      <header style={{ width: 'min(1320px,100%)', margin: '0 auto 14px' }}>
         <small style={{ color: '#f4cb58', font: '800 11px Poppins,sans-serif', letterSpacing: '.13em' }}>
-          CHECKPOINT 2C · LOCAL EXTRACTION TRUTH GATE
+          CHECKPOINT 2C · PAN SINGLE-OBJECT TRUTH GATE
         </small>
         <h1 style={{ margin: '7px 0 5px', font: '800 clamp(24px,3vw,39px)/1.04 Poppins,sans-serif' }}>
-          Exact source body, independent contact shadow, local clean support
+          One object, four repository-local assets
         </h1>
-        <p style={{ maxWidth: 1000, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          This gate no longer uses the rejected Tier 1 ownership polygons. Pan and toaster are extracted locally from the approved master in the container,
-          packed into a repository asset, and rebuilt as support → shadow → body.
+        <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
+          This gate tests only the photographed pan. The support plate, pan body, contact shadow and approved reference crop are all stored in the repository.
+          No Creative Claw asset, remote master or Tier 1 ownership mask is used here.
         </p>
       </header>
 
-      <section style={{ width: 'min(1500px,100%)', margin: '0 auto 12px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        {KITCHEN_OBJECT_TRUTH_OBJECTS.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => {
-              setObjectId(item.id);
-              setBodyVisible(true);
-              setShadowVisible(true);
-            }}
-            style={{ ...button, borderColor: item.id === objectId ? '#f4cb58' : '#42565c' }}
-          >
-            {item.label}
-          </button>
-        ))}
-        <button type="button" style={{ ...button, borderColor: bodyVisible ? '#7ce2a5' : '#8b4c48' }} onClick={() => setBodyVisible(v => !v)}>
+      <section style={{ width: 'min(1320px,100%)', margin: '0 auto 12px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+        <button
+          type="button"
+          style={{ ...button, borderColor: bodyVisible ? '#7ce2a5' : '#8b4c48' }}
+          onClick={() => setBodyVisible(v => !v)}
+        >
           {bodyVisible ? 'Hide' : 'Show'} body
         </button>
-        <button type="button" style={{ ...button, borderColor: shadowVisible ? '#6bc8e6' : '#8b4c48' }} onClick={() => setShadowVisible(v => !v)}>
+        <button
+          type="button"
+          style={{ ...button, borderColor: shadowVisible ? '#6bc8e6' : '#8b4c48' }}
+          onClick={() => setShadowVisible(v => !v)}
+        >
           {shadowVisible ? 'Hide' : 'Show'} shadow
         </button>
-        <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>Current: {state}</span>
+        <button
+          type="button"
+          style={{ ...button, borderColor: blinkReference ? '#f4cb58' : '#42565c' }}
+          onClick={() => setBlinkReference(v => !v)}
+        >
+          {blinkReference ? 'Show reconstruction' : 'Show reference'}
+        </button>
+        <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>
+          Current: {state}
+        </span>
       </section>
 
       <section style={{
-        width: 'min(1500px,100%)',
+        width: 'min(1320px,100%)',
         margin: 'auto',
         display: 'grid',
-        gridTemplateColumns: 'minmax(0,1.5fr) minmax(320px,.8fr)',
+        gridTemplateColumns: 'repeat(auto-fit,minmax(min(520px,100%),1fr))',
         gap: 12,
       }}>
-        <figure style={{ margin: 0, border: '1px solid #32464b', background: '#071014' }}>
-          <figcaption style={{ padding: '10px 12px', color: '#7ce2a5', fontWeight: 700 }}>
-            Local reconstruction · {object.label}
+        <figure style={{ ...card, margin: 0, padding: 12 }}>
+          <figcaption style={{ marginBottom: 10, color: '#7ce2a5', fontWeight: 700 }}>
+            {blinkReference ? 'Approved reference crop' : `Reconstruction · ${state}`}
           </figcaption>
-          <canvas ref={canvasRef} width={1000} height={600} style={{ display: 'block', width: '100%', height: 'auto' }} />
-        </figure>
 
-        <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
-          <figure style={{ margin: 0, border: '1px solid #32464b', background: '#071014' }}>
-            <figcaption style={{ padding: '10px 12px', color: '#6bc8e6', fontWeight: 700 }}>
-              1:1 focus · {state}
-            </figcaption>
-            <canvas
-              ref={focusCanvasRef}
-              width={object.focus.width}
-              height={object.focus.height}
-              style={{ display: 'block', width: '100%', imageRendering: 'auto' }}
-            />
-          </figure>
-
-          <figure style={{ margin: 0, border: '1px solid #32464b', background: '#071014' }}>
-            <figcaption style={{ padding: '10px 12px', color: '#f4cb58', fontWeight: 700 }}>
-              Approved master reference
-            </figcaption>
-            <div style={{ overflow: 'hidden', aspectRatio: `${object.focus.width} / ${object.focus.height}` }}>
+          <div style={{ display: 'grid', placeItems: 'center', minHeight: 300 }}>
+            {blinkReference ? (
               <img
-                src={KITCHEN_APPROVED_MASTER.sourceUrl}
-                alt={`Approved master ${object.label} reference`}
+                src={KITCHEN_PAN_TRUTH.referenceUrl}
+                alt="Approved pan reference crop"
                 draggable={false}
                 style={{
-                  display: 'block',
-                  width: `${(1000 / object.focus.width) * 100}%`,
-                  height: `${(600 / object.focus.height) * 100}%`,
-                  maxWidth: 'none',
-                  transform: `translate(${(-object.focus.x / 1000) * 100}%, ${(-object.focus.y / 600) * 100}%)`,
-                  transformOrigin: '0 0',
+                  width: KITCHEN_PAN_TRUTH.width * 2,
+                  height: KITCHEN_PAN_TRUTH.height * 2,
+                  objectFit: 'fill',
+                  imageRendering: 'auto',
                 }}
               />
-            </div>
-          </figure>
-        </div>
+            ) : (
+              <LayeredPan
+                bodyVisible={bodyVisible}
+                shadowVisible={shadowVisible}
+                zoom={2}
+              />
+            )}
+          </div>
+        </figure>
+
+        <figure style={{ ...card, margin: 0, padding: 12 }}>
+          <figcaption style={{ marginBottom: 10, color: '#6bc8e6', fontWeight: 700 }}>
+            1:1 diagnostic
+          </figcaption>
+          <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+            <LayeredPan
+              bodyVisible={bodyVisible}
+              shadowVisible={shadowVisible}
+            />
+            <img
+              src={KITCHEN_PAN_TRUTH.referenceUrl}
+              alt="Approved pan reference at one-to-one scale"
+              draggable={false}
+              style={{
+                width: KITCHEN_PAN_TRUTH.width,
+                height: KITCHEN_PAN_TRUTH.height,
+                objectFit: 'fill',
+              }}
+            />
+          </div>
+        </figure>
       </section>
 
-      <section style={{ width: 'min(1500px,100%)', margin: '12px auto 0', color: '#a9b5b6', lineHeight: 1.5, fontSize: 12 }}>
-        <strong style={{ color: '#edf0e9' }}>Pass rule:</strong> support-only must look like a continuous stove/counter surface.
-        Body-only may lose grounding but cannot drag background pixels. Shadow-only must remain subtle and local rather than becoming an object-shaped black patch.
+      <section style={{
+        width: 'min(1320px,100%)',
+        margin: '12px auto 0',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))',
+        gap: 8,
+      }}>
+        <div style={{ ...card, padding: 12 }}>
+          <strong>Support-only pass rule</strong>
+          <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
+            With body and shadow hidden, the burner/grate area must remain believable and continuous. No smeared rectangle, ghost pan or missing stove geometry.
+          </p>
+        </div>
+
+        <div style={{ ...card, padding: 12 }}>
+          <strong>Shadow-only pass rule</strong>
+          <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
+            The shadow must be subtle and local. It must not read as a black pan-shaped patch or contain background pixels.
+          </p>
+        </div>
+
+        <div style={{ ...card, padding: 12 }}>
+          <strong>Complete pass rule</strong>
+          <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
+            Support + shadow + body must converge on the approved crop closely enough that switching to the reference does not expose a registration jump.
+          </p>
+        </div>
       </section>
     </main>
   );

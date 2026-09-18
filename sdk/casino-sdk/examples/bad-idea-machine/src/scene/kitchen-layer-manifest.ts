@@ -2,11 +2,13 @@ import type { OutcomeTier } from '../lib/badIdea';
 import {
   KITCHEN_DESTRUCTION_BLUEPRINT,
   type KitchenDestructibleZoneId,
+  type KitchenPermanentZoneId,
   type KitchenPropId,
 } from './kitchen-destruction-blueprint';
 
 export type KitchenLayerAssetKind =
   | 'permanent-shell'
+  | 'shell-overlay'
   | 'zone-state'
   | 'zone-mask'
   | 'prop-state'
@@ -29,6 +31,21 @@ const shellAsset: KitchenLayerAsset = {
   state: 'base',
   path: '/rooms/kitchen/layers/shell/permanent.webp',
 };
+
+const permanentZones = KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(
+  (zone): zone is (typeof KITCHEN_DESTRUCTION_BLUEPRINT.zones)[number] & { id: KitchenPermanentZoneId } =>
+    zone.kind === 'permanent',
+);
+
+const shellOverlayAssets: readonly KitchenLayerAsset[] = permanentZones.flatMap(zone =>
+  zone.states.map(state => ({
+    id: `shell/${zone.id}/${state}`,
+    kind: 'shell-overlay' as const,
+    ownerId: zone.id,
+    state,
+    path: `/rooms/kitchen/layers/shell/${zone.id}/${state}.webp`,
+  })),
+);
 
 const destructibleZones = KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(
   (zone): zone is (typeof KITCHEN_DESTRUCTION_BLUEPRINT.zones)[number] & { id: KitchenDestructibleZoneId } =>
@@ -78,6 +95,7 @@ const propShadowAssets: readonly KitchenLayerAsset[] = KITCHEN_DESTRUCTION_BLUEP
 
 export const KITCHEN_LAYER_ASSETS: readonly KitchenLayerAsset[] = [
   shellAsset,
+  ...shellOverlayAssets,
   ...zoneStateAssets,
   ...zoneMaskAssets,
   ...propStateAssets,
@@ -101,6 +119,15 @@ function assetFor(
 export function kitchenAssetsForTier(tier: OutcomeTier): readonly KitchenLayerAsset[] {
   const composition = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier];
 
+  const shellLayers = permanentZones.map(zone => {
+    const state = composition.shellStates[zone.id];
+    const asset = KITCHEN_LAYER_ASSETS.find(candidate =>
+      candidate.kind === 'shell-overlay' && candidate.ownerId === zone.id && candidate.state === state,
+    );
+    if (!asset) throw new Error(`Missing Kitchen shell overlay: ${zone.id}/${state}`);
+    return asset;
+  });
+
   const zoneLayers = destructibleZones.map(zone =>
     assetFor('zone-state', zone.id, composition.zoneStates[zone.id]),
   );
@@ -111,6 +138,7 @@ export function kitchenAssetsForTier(tier: OutcomeTier): readonly KitchenLayerAs
 
   return [
     shellAsset,
+    ...shellLayers,
     ...zoneLayers,
     ...propLayers,
     ...zoneMaskAssets,
@@ -133,6 +161,16 @@ export function validateKitchenLayerManifest(): readonly string[] {
 
     if (asset.kind === 'full-frame-aftermath') {
       errors.push(`forbidden full-frame aftermath: ${asset.id}`);
+    }
+  }
+
+  for (const zone of permanentZones) {
+    for (const state of zone.states) {
+      if (!KITCHEN_LAYER_ASSETS.some(asset =>
+        asset.kind === 'shell-overlay' && asset.ownerId === zone.id && asset.state === state,
+      )) {
+        errors.push(`missing shell overlay: ${zone.id}/${state}`);
+      }
     }
   }
 

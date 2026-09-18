@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 
 import type { OutcomeTier } from '../lib/badIdea';
 import {
@@ -9,107 +9,110 @@ import {
   type KitchenVariant,
 } from '../scene/kitchen-destruction-blueprint';
 import { KITCHEN_NATIVE_MASTER } from '../scene/kitchen-native-proof';
-import '../styles/kitchen-destruction-blueprint.css';
 
 const tiers = [0, 1, 2, 3, 4] as const satisfies readonly OutcomeTier[];
 
-function tierLabel(tier: OutcomeTier) {
-  switch (tier) {
-    case 0: return '0 · catastrophic loss';
-    case 1: return '1 · localized';
-    case 2: return '2 · moderate';
-    case 3: return '3 · severe';
-    case 4: return '4 · absurd';
-  }
-}
+const page: CSSProperties = {
+  minHeight: '100vh',
+  padding: 18,
+  background: '#071014',
+  color: '#eef1ed',
+  fontFamily: 'Rubik, sans-serif',
+};
+
+const button: CSSProperties = {
+  border: '1px solid #496069',
+  background: '#102026',
+  color: '#eef1ed',
+  padding: '8px 10px',
+  cursor: 'pointer',
+};
 
 export function KitchenDestructionBlueprintView() {
   const [tier, setTier] = useState<OutcomeTier>(2);
   const [variantId, setVariantId] = useState<KitchenVariant['id']>('cabinet-pan');
-
+  const composition = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier];
   const variant = KITCHEN_DESTRUCTION_BLUEPRINT.variants.find(item => item.id === variantId)
     ?? KITCHEN_DESTRUCTION_BLUEPRINT.variants[0];
-  const composition = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier];
-  const errors = useMemo(() => validateKitchenDestructionBlueprint(), []);
+  const errors = validateKitchenDestructionBlueprint();
 
   return (
-    <main className="kitchen-blueprint">
-      <header className="kitchen-blueprint__header">
-        <div>
-          <small>FULL KITCHEN DESTRUCTION BLUEPRINT</small>
-          <h1>One Room · Layered Architecture · Five Persistent End States</h1>
-          <p>
-            This is the asset-production contract. No new motion is allowed until the intact layered reconstruction
-            and all five static aftermath compositions can be rendered from these same zones and props.
-          </p>
-        </div>
-        <div className="kitchen-blueprint__status">
-          <strong>{errors.length === 0 ? 'BLUEPRINT VALID' : `${errors.length} BLUEPRINT ERRORS`}</strong>
-          <span>{KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(zone => zone.kind === 'destructible').length} destructible zones</span>
-          <span>{KITCHEN_DESTRUCTION_BLUEPRINT.props.length} supported props</span>
-          <span>{KITCHEN_DESTRUCTION_BLUEPRINT.variants.length} causal variants</span>
-        </div>
-      </header>
+    <main style={page}>
+      <div style={{ maxWidth: 1380, margin: '0 auto' }}>
+        <small style={{ color: '#f5ca55', letterSpacing: '.12em' }}>FULL KITCHEN DESTRUCTION BLUEPRINT</small>
+        <h1 style={{ margin: '7px 0 4px' }}>One room · five persistent end states</h1>
+        <p style={{ color: '#aeb9ba', maxWidth: 880, lineHeight: 1.45 }}>
+          Asset-production map only. Motion remains blocked until the layered intact reconstruction and all five static
+          aftermath compositions can be produced from these same zones and props.
+        </p>
 
-      <section className="kitchen-blueprint__toolbar" aria-label="Blueprint controls">
-        <div>
-          <span>Final composition</span>
-          <div className="kitchen-blueprint__tier-buttons">
-            {tiers.map(candidate => (
-              <button
-                type="button"
-                key={candidate}
-                className={candidate === tier ? 'is-active' : ''}
-                onClick={() => setTier(candidate)}
-              >
-                {tierLabel(candidate)}
-                <small>{kitchenDamageCount(candidate)} damaged zones</small>
-              </button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '14px 0 8px' }}>
+          {tiers.map(candidate => (
+            <button
+              key={candidate}
+              type="button"
+              style={{
+                ...button,
+                borderColor: candidate === tier ? '#f5ca55' : '#496069',
+                color: candidate === tier ? '#f5ca55' : '#eef1ed',
+              }}
+              onClick={() => setTier(candidate)}
+            >
+              Tier {candidate} · {kitchenDamageCount(candidate)} zones
+            </button>
+          ))}
         </div>
 
-        <div>
-          <span>Causal variant</span>
-          <div className="kitchen-blueprint__variant-buttons">
-            {KITCHEN_DESTRUCTION_BLUEPRINT.variants.map(candidate => (
-              <button
-                type="button"
-                key={candidate.id}
-                className={candidate.id === variant.id ? 'is-active' : ''}
-                onClick={() => setVariantId(candidate.id)}
-              >
-                {candidate.label}
-              </button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+          {KITCHEN_DESTRUCTION_BLUEPRINT.variants.map(candidate => (
+            <button
+              key={candidate.id}
+              type="button"
+              style={{
+                ...button,
+                borderColor: candidate.id === variant.id ? '#78d59c' : '#496069',
+                color: candidate.id === variant.id ? '#78d59c' : '#eef1ed',
+              }}
+              onClick={() => setVariantId(candidate.id)}
+            >
+              {candidate.label}
+            </button>
+          ))}
         </div>
-      </section>
 
-      <section className="kitchen-blueprint__layout">
-        <div className="kitchen-blueprint__stage-shell">
-          <div className="kitchen-blueprint__stage">
-            <img src={KITCHEN_NATIVE_MASTER} alt="Approved Kitchen master" draggable={false} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(280px, 360px)', gap: 14 }}>
+          <div style={{ position: 'relative', aspectRatio: '5 / 3', overflow: 'hidden', border: '1px solid #3a5057' }}>
+            <img
+              src={KITCHEN_NATIVE_MASTER}
+              alt="Approved Kitchen master with destruction zones"
+              draggable={false}
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+            />
 
             {KITCHEN_DESTRUCTION_BLUEPRINT.zones.map(zone => {
               const state = zone.kind === 'destructible'
                 ? composition.zoneStates[zone.id as KitchenDestructibleZoneId]
-                : 'permanent shell';
+                : 'permanent';
 
               return (
                 <div
                   key={zone.id}
-                  className={`kitchen-blueprint__zone kitchen-blueprint__zone--${zone.kind}`}
+                  title={`${zone.label}: ${state}`}
                   style={{
+                    position: 'absolute',
                     left: `${zone.bounds.x / 10}%`,
                     top: `${zone.bounds.y / 6}%`,
                     width: `${zone.bounds.width / 10}%`,
                     height: `${zone.bounds.height / 6}%`,
+                    border: `1px solid ${zone.kind === 'destructible' ? '#f5ca55' : '#75c6de'}`,
+                    background: zone.kind === 'destructible' ? 'rgba(245,202,85,.07)' : 'rgba(117,198,222,.05)',
+                    boxSizing: 'border-box',
+                    pointerEvents: 'none',
                   }}
-                  title={zone.notes}
                 >
-                  <strong>{zone.label}</strong>
-                  <small>{state}</small>
+                  <span style={{ background: 'rgba(5,10,12,.78)', padding: '2px 4px', fontSize: 9 }}>
+                    {zone.label} · {state}
+                  </span>
                 </div>
               );
             })}
@@ -117,92 +120,43 @@ export function KitchenDestructionBlueprintView() {
             {KITCHEN_DESTRUCTION_BLUEPRINT.props.map(prop => (
               <div
                 key={prop.id}
-                className="kitchen-blueprint__prop-anchor"
+                title={`${prop.label}: ${composition.propStates[prop.id]}`}
                 style={{
+                  position: 'absolute',
                   left: `${prop.rest.x / 10}%`,
                   top: `${prop.rest.y / 6}%`,
+                  width: 9,
+                  height: 9,
+                  borderRadius: '50%',
+                  background: '#f27767',
+                  boxShadow: '0 0 0 2px rgba(0,0,0,.7)',
+                  transform: 'translate(-50%,-50%)',
                 }}
-              >
-                <i />
-                <span>{prop.label}</span>
-                <small>{composition.propStates[prop.id]}</small>
-              </div>
+              />
             ))}
           </div>
-        </div>
 
-        <aside className="kitchen-blueprint__panel">
-          <section>
-            <small>ART DIRECTION · TIER {tier}</small>
-            <h2>{tierLabel(tier)}</h2>
-            <p>{composition.artDirection}</p>
-          </section>
-
-          <section>
-            <small>SELECTED VARIANT</small>
-            <h2>{variant.label}</h2>
-            <p>{variant.premise}</p>
-            <ol className="kitchen-blueprint__beats">
+          <aside style={{ border: '1px solid #33484f', background: '#0b171b', padding: 12 }}>
+            <strong style={{ color: errors.length ? '#f27767' : '#78d59c' }}>
+              {errors.length ? `${errors.length} blueprint errors` : 'Blueprint valid'}
+            </strong>
+            <h2 style={{ marginBottom: 5 }}>Tier {tier}</h2>
+            <p style={{ color: '#adb8b9', lineHeight: 1.4 }}>{composition.artDirection}</p>
+            <h2 style={{ marginBottom: 5 }}>{variant.label}</h2>
+            <p style={{ color: '#adb8b9', lineHeight: 1.4 }}>{variant.premise}</p>
+            <ol style={{ paddingLeft: 22 }}>
               {variant.beats.map((beat, index) => (
-                <li key={beat.id} className={index < variant.sharedUntilBeat ? 'is-shared' : 'is-terminal'}>
-                  <span>{index + 1}</span>
-                  <div>
-                    <strong>{beat.action}</strong>
-                    <small>
-                      {beat.actor} → {beat.target} · contact {beat.contact.x},{beat.contact.y}
-                    </small>
-                    {beat.damage?.length ? (
-                      <em>
-                        {beat.damage.map(item => `${item.zoneId}: ${item.state}`).join(' · ')}
-                      </em>
-                    ) : null}
-                  </div>
+                <li key={beat.id} style={{ marginBottom: 7, color: index < variant.sharedUntilBeat ? '#dce3e1' : '#f5ca55' }}>
+                  <strong>{beat.action}</strong>
+                  <small style={{ display: 'block', color: '#8f9c9e' }}>
+                    {beat.actor} → {beat.target} @ {beat.contact.x},{beat.contact.y}
+                  </small>
                 </li>
               ))}
             </ol>
-          </section>
-        </aside>
-      </section>
-
-      <section className="kitchen-blueprint__matrix">
-        <div className="kitchen-blueprint__matrix-heading">
-          <div>
-            <small>STATIC AFTERMATH CONTRACT</small>
-            <h2>All five tiers must be authored before motion resumes</h2>
-          </div>
-          <p>
-            The final renderer may combine localized state layers, occlusion masks, shadows and debris.
-            It may not replace the complete room with a tier-specific full-frame image.
-          </p>
+          </aside>
         </div>
-
-        <div className="kitchen-blueprint__matrix-table" role="table" aria-label="Kitchen destruction state matrix">
-          <div className="kitchen-blueprint__matrix-row kitchen-blueprint__matrix-row--head" role="row">
-            <span role="columnheader">Component</span>
-            {tiers.map(item => <strong role="columnheader" key={item}>Tier {item}</strong>)}
-          </div>
-
-          {KITCHEN_DESTRUCTION_BLUEPRINT.zones
-            .filter(zone => zone.kind === 'destructible')
-            .map(zone => (
-              <div className="kitchen-blueprint__matrix-row" role="row" key={zone.id}>
-                <span role="cell">{zone.label}</span>
-                {tiers.map(item => (
-                  <strong role="cell" key={item}>{KITCHEN_DESTRUCTION_BLUEPRINT.tiers[item].zoneStates[zone.id as KitchenDestructibleZoneId]}</strong>
-                ))}
-              </div>
-            ))}
-
-          {KITCHEN_DESTRUCTION_BLUEPRINT.props.map(prop => (
-            <div className="kitchen-blueprint__matrix-row kitchen-blueprint__matrix-row--prop" role="row" key={prop.id}>
-              <span role="cell">{prop.label}</span>
-              {tiers.map(item => (
-                <strong role="cell" key={item}>{KITCHEN_DESTRUCTION_BLUEPRINT.tiers[item].propStates[prop.id]}</strong>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
+      </div>
     </main>
   );
 }

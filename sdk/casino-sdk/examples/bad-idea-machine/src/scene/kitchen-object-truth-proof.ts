@@ -1,5 +1,6 @@
 export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenToastTruthLayer = 'support' | 'shadow' | 'body';
+export type KitchenTowelTruthLayer = 'support' | 'shadow' | 'body';
 
 export type KitchenTruthAtlasFrame = Readonly<{
   x: number;
@@ -53,6 +54,33 @@ export const KITCHEN_TOAST_TRUTH = {
   role: 'single-object-truth-gate' as const,
 } as const;
 
+export const KITCHEN_TOWEL_TRUTH = {
+  atlasUrl: '/rooms/kitchen/rebuild/truth/towel-truth-atlas.webp',
+  atlasWidth: 252,
+  atlasHeight: 325,
+  cropWidth: 125,
+  cropHeight: 175,
+  logicalBounds: {
+    x: 430,
+    y: 360,
+    width: 125,
+    height: 175,
+  },
+  frames: {
+    reference: { x: 0, y: 0, width: 125, height: 175 },
+    support: { x: 127, y: 0, width: 125, height: 175 },
+    body: { x: 0, y: 177, width: 77, height: 143 },
+    shadow: { x: 79, y: 177, width: 81, height: 148 },
+  } satisfies Readonly<Record<'reference' | 'support' | 'body' | 'shadow', KitchenTruthAtlasFrame>>,
+  restPlacement: {
+    body: { x: 19, y: 16 },
+    shadow: { x: 20, y: 16 },
+  },
+  source: 'approved-master-local-extraction' as const,
+  supportSource: 'deterministic-local-oven-reconstruction' as const,
+  role: 'single-object-truth-gate' as const,
+} as const;
+
 export function kitchenPanTruthLayers(
   bodyVisible: boolean,
   shadowVisible: boolean,
@@ -68,6 +96,16 @@ export function kitchenToastTruthLayers(
   shadowVisible: boolean,
 ): readonly KitchenToastTruthLayer[] {
   const layers: KitchenToastTruthLayer[] = ['support'];
+  if (shadowVisible) layers.push('shadow');
+  if (bodyVisible) layers.push('body');
+  return layers;
+}
+
+export function kitchenTowelTruthLayers(
+  bodyVisible: boolean,
+  shadowVisible: boolean,
+): readonly KitchenTowelTruthLayer[] {
+  const layers: KitchenTowelTruthLayer[] = ['support'];
   if (shadowVisible) layers.push('shadow');
   if (bodyVisible) layers.push('body');
   return layers;
@@ -143,6 +181,52 @@ export function validateKitchenToastTruth(): readonly string[] {
         placement.x + frame.width > truth.cropWidth ||
         placement.y + frame.height > truth.cropHeight) {
       errors.push(`toast rest placement outside crop: ${id}`);
+    }
+  }
+
+  return errors;
+}
+
+
+export function validateKitchenTowelTruth(): readonly string[] {
+  const errors: string[] = [];
+  const truth = KITCHEN_TOWEL_TRUTH;
+
+  if (!truth.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/')) {
+    errors.push('towel atlas must be repository-local');
+  }
+
+  if (/creativeclaw/i.test(truth.atlasUrl) || /^https?:\/\//i.test(truth.atlasUrl)) {
+    errors.push('towel atlas remote dependency is forbidden');
+  }
+
+  for (const [id, frame] of Object.entries(truth.frames)) {
+    if (frame.x < 0 ||
+        frame.y < 0 ||
+        frame.width <= 0 ||
+        frame.height <= 0 ||
+        frame.x + frame.width > truth.atlasWidth ||
+        frame.y + frame.height > truth.atlasHeight) {
+      errors.push(`towel atlas frame outside bounds: ${id}`);
+    }
+  }
+
+  const { x, y, width, height } = truth.logicalBounds;
+  if (width !== truth.cropWidth || height !== truth.cropHeight) {
+    errors.push('towel truth registration size mismatch');
+  }
+
+  if (x < 0 || y < 0 || x + width > 1000 || y + height > 600) {
+    errors.push('towel truth registration outside logical canvas');
+  }
+
+  for (const [id, placement] of Object.entries(truth.restPlacement)) {
+    const frame = truth.frames[id as 'body' | 'shadow'];
+    if (placement.x < 0 ||
+        placement.y < 0 ||
+        placement.x + frame.width > truth.cropWidth ||
+        placement.y + frame.height > truth.cropHeight) {
+      errors.push(`towel rest placement outside crop: ${id}`);
     }
   }
 

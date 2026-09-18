@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 import {
   KITCHEN_PAN_TRUTH,
   KITCHEN_TOAST_TRUTH,
+  KITCHEN_TOWEL_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
+  kitchenTowelTruthLayers,
   validateKitchenPanTruth,
   validateKitchenToastTruth,
+  validateKitchenTowelTruth,
 } from './kitchen-object-truth-proof';
 
 describe('kitchen single-object truth proofs', () => {
@@ -74,6 +77,29 @@ describe('kitchen single-object truth proofs', () => {
     expect(kitchenToastTruthLayers(false, true)).toEqual(['support', 'shadow']);
     expect(kitchenToastTruthLayers(true, false)).toEqual(['support', 'body']);
     expect(kitchenToastTruthLayers(true, true)).toEqual(['support', 'shadow', 'body']);
+  });
+
+  it('registers the oven towel as a repository-local atlas over a clean oven support', () => {
+    expect(validateKitchenTowelTruth()).toEqual([]);
+    expect(KITCHEN_TOWEL_TRUTH.atlasUrl).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
+    expect(KITCHEN_TOWEL_TRUTH.atlasUrl).not.toMatch(/creativeclaw|^https?:\/\//i);
+
+    expect(KITCHEN_TOWEL_TRUTH.logicalBounds).toEqual({
+      x: 430,
+      y: 360,
+      width: 125,
+      height: 175,
+    });
+
+    expect(KITCHEN_TOWEL_TRUTH.supportSource)
+      .toBe('deterministic-local-oven-reconstruction');
+  });
+
+  it('keeps towel body and shadow independently optional over the restored oven front', () => {
+    expect(kitchenTowelTruthLayers(false, false)).toEqual(['support']);
+    expect(kitchenTowelTruthLayers(false, true)).toEqual(['support', 'shadow']);
+    expect(kitchenTowelTruthLayers(true, false)).toEqual(['support', 'body']);
+    expect(kitchenTowelTruthLayers(true, true)).toEqual(['support', 'shadow', 'body']);
   });
 
   it('does not use the reconstructed full toast face in the intact rest stack', () => {

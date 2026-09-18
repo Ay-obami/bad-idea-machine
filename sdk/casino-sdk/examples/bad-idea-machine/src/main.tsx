@@ -13,6 +13,7 @@ import '@fontsource/rubik/latin-500.css';
 import { App } from './App';
 import { GalleryScreen } from './gallery/GalleryScreen';
 import { useCasinoHost } from './lib/useCasinoHost';
+import { KitchenDestructionBlueprintView } from './play/KitchenDestructionBlueprintView';
 import { KitchenNativeProof } from './play/KitchenNativeProof';
 import { hasRecoverableRound, visibleView, type AppView } from './play/view-state';
 import type { EnvironmentId } from './scene/types';
@@ -68,8 +69,14 @@ const proofScene = typeof window !== 'undefined'
   ? new URLSearchParams(window.location.search).get('scene')
   : null;
 
+function RootView() {
+  if (proofScene === 'kitchen-native-proof') return <KitchenNativeProof />;
+  if (proofScene === 'kitchen-destruction-blueprint') return <KitchenDestructionBlueprintView />;
+  return <ExperienceRoot />;
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {proofScene === 'kitchen-native-proof' ? <KitchenNativeProof /> : <ExperienceRoot />}
+    <RootView />
   </StrictMode>,
 );

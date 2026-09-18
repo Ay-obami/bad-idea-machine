@@ -8,8 +8,16 @@ import {
 } from './kitchen-layer-manifest';
 
 describe('kitchen layer manifest', () => {
-  it('covers every authored zone state and prop state', () => {
+  it('covers every authored shell, zone and prop state', () => {
     expect(validateKitchenLayerManifest()).toEqual([]);
+
+    for (const zone of KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(zone => zone.kind === 'permanent')) {
+      for (const state of zone.states) {
+        expect(KITCHEN_LAYER_ASSETS.some(asset =>
+          asset.kind === 'shell-overlay' && asset.ownerId === zone.id && asset.state === state,
+        )).toBe(true);
+      }
+    }
 
     for (const zone of KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(zone => zone.kind === 'destructible')) {
       for (const state of zone.states) {

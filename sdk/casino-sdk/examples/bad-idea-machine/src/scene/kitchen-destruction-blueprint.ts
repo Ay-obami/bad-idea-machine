@@ -12,7 +12,8 @@ export type KitchenZoneId =
   | 'sink-run'
   | 'floor-center';
 
-export type KitchenDestructibleZoneId = Exclude<KitchenZoneId, 'left-shell' | 'right-wall-shell'>;
+export type KitchenPermanentZoneId = Extract<KitchenZoneId, 'left-shell' | 'right-wall-shell'>;
+export type KitchenDestructibleZoneId = Exclude<KitchenZoneId, KitchenPermanentZoneId>;
 
 export type KitchenPropId =
   | 'pan'
@@ -78,11 +79,19 @@ export type KitchenVariant = Readonly<{
   sharedUntilBeat: number;
 }>;
 
+export type KitchenHazardProfile = Readonly<{
+  fire: 'none' | 'localized' | 'smoldering' | 'active';
+  smoke: 'none' | 'light' | 'medium' | 'heavy';
+  power: 'normal' | 'flicker' | 'partial-outage';
+}>;
+
 export type KitchenTierComposition = Readonly<{
   tier: OutcomeTier;
   artDirection: string;
+  shellStates: Readonly<Record<KitchenPermanentZoneId, string>>;
   zoneStates: Readonly<Record<KitchenDestructibleZoneId, string>>;
   propStates: Readonly<Record<KitchenPropId, string>>;
+  hazards: KitchenHazardProfile;
 }>;
 
 const zones: readonly KitchenZone[] = [
@@ -91,16 +100,16 @@ const zones: readonly KitchenZone[] = [
     label: 'Fridge / window / left counter shell',
     kind: 'permanent',
     bounds: { x: 0, y: 0, width: 345, height: 600 },
-    states: ['intact'],
-    notes: 'Camera identity anchor. May receive shadows/occlusion but is not structurally destroyed.',
+    states: ['intact', 'soot-dusted', 'smoke-stained', 'glass-cracked'],
+    notes: 'Structural identity anchor. It may receive localized surface damage, smoke and cracked glass but is not removed.',
   },
   {
     id: 'right-wall-shell',
     label: 'Far-right wall / art shell',
     kind: 'permanent',
     bounds: { x: 895, y: 0, width: 105, height: 325 },
-    states: ['intact'],
-    notes: 'Keeps the room visually recognizable at every tier.',
+    states: ['intact', 'soot-dusted', 'wall-cracked', 'blackened'],
+    notes: 'Structural identity anchor. Surface damage escalates at high tiers while the camera/room identity remains readable.',
   },
   {
     id: 'plate-cabinet',
@@ -448,6 +457,10 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
   0: {
     tier: 0,
     artDirection: 'Catastrophic loss: ugly heat/impact wreck, blackened and debris-heavy rather than celebratory.',
+    shellStates: {
+      'left-shell': 'smoke-stained',
+      'right-wall-shell': 'wall-cracked',
+    },
     zoneStates: {
       'plate-cabinet': 'shelf-damaged',
       'upper-stove-cabinet': 'heat-warped',
@@ -466,10 +479,15 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
       'plate-stack': 'shattered',
       'oven-towel': 'burned',
     },
+    hazards: { fire: 'smoldering', smoke: 'heavy', power: 'partial-outage' },
   },
   1: {
     tier: 1,
     artDirection: 'Small localized damage: one readable accident, mostly habitable room.',
+    shellStates: {
+      'left-shell': 'intact',
+      'right-wall-shell': 'intact',
+    },
     zoneStates: {
       'plate-cabinet': 'hinge-stressed',
       'upper-stove-cabinet': 'intact',
@@ -488,10 +506,15 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
       'plate-stack': 'missing-one',
       'oven-towel': 'hanging',
     },
+    hazards: { fire: 'none', smoke: 'none', power: 'normal' },
   },
   2: {
     tier: 2,
     artDirection: 'Moderate destruction: several connected surfaces show damage, but architecture is still largely intact.',
+    shellStates: {
+      'left-shell': 'soot-dusted',
+      'right-wall-shell': 'intact',
+    },
     zoneStates: {
       'plate-cabinet': 'door-hanging',
       'upper-stove-cabinet': 'smoke-stained',
@@ -510,10 +533,15 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
       'plate-stack': 'scattered',
       'oven-towel': 'singed',
     },
+    hazards: { fire: 'localized', smoke: 'light', power: 'normal' },
   },
   3: {
     tier: 3,
     artDirection: 'Severe room damage: structural cabinet/counter consequences with broad persistent debris.',
+    shellStates: {
+      'left-shell': 'smoke-stained',
+      'right-wall-shell': 'wall-cracked',
+    },
     zoneStates: {
       'plate-cabinet': 'shelf-damaged',
       'upper-stove-cabinet': 'heat-warped',
@@ -532,10 +560,15 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
       'plate-stack': 'shattered',
       'oven-towel': 'fallen',
     },
+    hazards: { fire: 'smoldering', smoke: 'medium', power: 'flicker' },
   },
   4: {
     tier: 4,
     artDirection: 'Absurd cinematic devastation: widest structural destruction while preserving the same room/camera identity.',
+    shellStates: {
+      'left-shell': 'glass-cracked',
+      'right-wall-shell': 'blackened',
+    },
     zoneStates: {
       'plate-cabinet': 'carcass-broken',
       'upper-stove-cabinet': 'carcass-damaged',
@@ -554,6 +587,7 @@ const tiers: Readonly<Record<OutcomeTier, KitchenTierComposition>> = {
       'plate-stack': 'shattered',
       'oven-towel': 'burned',
     },
+    hazards: { fire: 'active', smoke: 'heavy', power: 'partial-outage' },
   },
 };
 
@@ -566,8 +600,11 @@ export const KITCHEN_DESTRUCTION_BLUEPRINT = {
 } as const;
 
 export function kitchenDamageCount(tier: OutcomeTier): number {
-  return Object.values(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier].zoneStates)
-    .filter(state => state !== 'intact').length;
+  const composition = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier];
+  return [
+    ...Object.values(composition.shellStates),
+    ...Object.values(composition.zoneStates),
+  ].filter(state => state !== 'intact').length;
 }
 
 export function validateKitchenDestructionBlueprint(): readonly string[] {
@@ -620,12 +657,21 @@ export function validateKitchenDestructionBlueprint(): readonly string[] {
     }
   }
 
+  const permanent = zones.filter(
+    (zone): zone is KitchenZone & { id: KitchenPermanentZoneId } => zone.kind === 'permanent',
+  );
   const destructible = zones.filter(
     (zone): zone is KitchenZone & { id: KitchenDestructibleZoneId } => zone.kind === 'destructible',
   );
 
   for (const tier of [0, 1, 2, 3, 4] as const) {
     const composition = tiers[tier];
+
+    for (const zone of permanent) {
+      const state = composition.shellStates[zone.id];
+      if (!state) errors.push(`tier ${tier}: missing shell state ${zone.id}`);
+      else if (!zone.states.includes(state)) errors.push(`tier ${tier}: invalid shell ${zone.id} state ${state}`);
+    }
 
     for (const zone of destructible) {
       const state = composition.zoneStates[zone.id];

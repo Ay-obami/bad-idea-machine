@@ -48,42 +48,42 @@ function MasterClip({ rect, source, className = '', style, clipPath }: ClipProps
   );
 }
 
-const doorRect = { x: 684, y: 0, width: 74, height: 150 } as const;
-const toastRect = { x: 638, y: 237, width: 39, height: 24 } as const;
+const doorRect = { x: 684, y: 0, width: 75, height: 159 } as const;
+const toastRect = { x: 638, y: 236, width: 39, height: 25 } as const;
+const plateRimRect = { x: 589, y: 139, width: 69, height: 14 } as const;
 
 const doorMask = 'polygon(18% 0, 100% 0, 100% 100%, 2% 91%)';
-const toastMask = 'polygon(8% 42%, 15% 16%, 34% 3%, 73% 5%, 92% 28%, 95% 76%, 80% 94%, 17% 94%, 3% 72%)';
+const toastMask = 'polygon(8% 42%,15% 16%,34% 3%,73% 5%,92% 28%,95% 76%,80% 94%,17% 94%,3% 72%)';
+const rimMask = 'ellipse(49% 44% at 50% 50%)';
 
 const marks = [
   ['Intact', 0],
-  ['Toast ejects', 540],
-  ['Toast hits door', 830],
-  ['Door sags', 1240],
-  ['Door hits stack', 1505],
-  ['First plate breaks', 2110],
-  ['Second plate settles', 2760],
-  ['Aftermath', 3350],
+  ['Toast ejects', 520],
+  ['Toast hits door', 750],
+  ['Door swings', 920],
+  ['Plate leaves stack', 1210],
+  ['Plate hits counter', 1850],
+  ['Ceramic fractures', 1940],
+  ['Aftermath', 2650],
 ] as const;
 
-function HeroPlate({ x, y, rotation, opacity = 1, broken = false }: Readonly<{
-  x: number;
-  y: number;
-  rotation: number;
-  opacity?: number;
-  broken?: boolean;
-}>) {
+function PlateFace({ frame }: Readonly<{ frame: ReturnType<typeof kitchenNativeFrameAt>['plate'] }>) {
+  if (!frame.visible) return null;
+
   return (
     <div
-      className={`kitchen-native-proof__hero-plate${broken ? ' kitchen-native-proof__hero-plate--breaking' : ''}`}
+      className="kitchen-native-proof__plate-body"
       style={{
-        left: `${x / 10}%`,
-        top: `${y / 6}%`,
-        opacity,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+        left: `${frame.x / 10}%`,
+        top: `${frame.y / 6}%`,
+        opacity: frame.bodyOpacity,
+        transform: `translate(-50%, -50%) rotate(${frame.roll}deg) scaleY(${frame.scaleY})`,
       }}
       aria-hidden="true"
     >
-      <i />
+      <i className="kitchen-native-proof__plate-well" />
+      <i className="kitchen-native-proof__plate-crack kitchen-native-proof__plate-crack--a" style={{ opacity: frame.crackOpacity }} />
+      <i className="kitchen-native-proof__plate-crack kitchen-native-proof__plate-crack--b" style={{ opacity: frame.crackOpacity }} />
     </div>
   );
 }
@@ -128,9 +128,9 @@ export function KitchenNativeProof() {
     <main className="kitchen-native-proof">
       <header className="kitchen-native-proof__header">
         <div>
-          <small>CHECKPOINT 2 · CONTACT + BREAKAGE GATE</small>
-          <h1>Approved Kitchen · One Physical Chain</h1>
-          <p>Toast must land, the door must stay hinged, hero plates must come from the visible stack, and ceramic damage must persist on the counter.</p>
+          <small>CHECKPOINT 2 · CONTINUITY + MATERIAL GATE</small>
+          <h1>Approved Kitchen · One Continuous Physical Chain</h1>
+          <p>No copied object may appear while its original remains visible. One plate leaves the visible stack, tips under gravity, fractures on the counter, and remains as ceramic debris.</p>
         </div>
         <div className="kitchen-native-proof__status">
           <span>{Math.round(time)} ms</span>
@@ -144,16 +144,26 @@ export function KitchenNativeProof() {
 
           <MasterClip
             rect={toastRect}
-            source={{ x: 622, y: 238 }}
-            className="kitchen-native-proof__toast-slot-patch"
+            source={{ x: 612, y: 237 }}
+            className="kitchen-native-proof__source-patch kitchen-native-proof__toast-source-patch"
             clipPath={toastMask}
-            style={{ opacity: frame.toast.slotPatchOpacity }}
+            style={{ opacity: frame.toast.sourcePatchOpacity }}
           />
 
-          <div
-            className="kitchen-native-proof__door-gap"
-            style={{ opacity: frame.door.gapOpacity }}
-            aria-hidden="true"
+          <MasterClip
+            rect={doorRect}
+            source={{ x: 760, y: 0 }}
+            className="kitchen-native-proof__source-patch kitchen-native-proof__door-source-patch"
+            clipPath={doorMask}
+            style={{ opacity: frame.door.patchOpacity }}
+          />
+
+          <MasterClip
+            rect={plateRimRect}
+            source={{ x: 589, y: 149 }}
+            className="kitchen-native-proof__source-patch kitchen-native-proof__plate-origin-patch"
+            clipPath={rimMask}
+            style={{ opacity: frame.plate.originPatchOpacity }}
           />
 
           {frame.toast.visible && (
@@ -164,63 +174,49 @@ export function KitchenNativeProof() {
               style={{
                 left: `${frame.toast.x / 10}%`,
                 top: `${frame.toast.y / 6}%`,
-                transform: `translate(-50%, -50%) rotate(${frame.toast.rotation}deg)`,
+                transform: `translate(-50%, -50%) rotate(${frame.toast.rotation}deg) scaleY(${frame.toast.scaleY})`,
+                transformOrigin: '50% 50%',
               }}
             />
           )}
 
-          {(frame.door.recoil > 0 || frame.door.sag > 0) && (
+          {frame.door.patchOpacity > 0 && (
             <MasterClip
               rect={doorRect}
               className="kitchen-native-proof__moving kitchen-native-proof__door"
               clipPath={doorMask}
               style={{
-                transform: `rotate(${frame.door.rotation}deg)`,
-                transformOrigin: '81% 6%',
+                transform: `perspective(700px) rotateY(${frame.door.yaw}deg)`,
+                transformOrigin: '18% 50%',
               }}
             />
           )}
 
-          {frame.door.sag > 0 && (
-            <div className="kitchen-native-proof__upper-hinge" aria-hidden="true">
-              <span />
-            </div>
-          )}
-
-          {frame.door.sag > 0 && (
-            <div
-              className="kitchen-native-proof__loose-screw"
+          {frame.plate.visible && frame.plate.rimOpacity > 0 && (
+            <MasterClip
+              rect={plateRimRect}
+              className="kitchen-native-proof__moving kitchen-native-proof__plate-rim"
+              clipPath={rimMask}
               style={{
-                opacity: Math.min(1, frame.door.sag * 1.8),
-                transform: `translateY(${Math.round(frame.door.sag * 18)}px) rotate(${Math.round(frame.door.sag * 80)}deg)`,
+                left: `${frame.plate.x / 10}%`,
+                top: `${frame.plate.y / 6}%`,
+                opacity: frame.plate.rimOpacity,
+                transform: `translate(-50%, -50%) rotate(${frame.plate.roll}deg)`,
               }}
-              aria-hidden="true"
             />
           )}
 
-          {frame.plate1.visible && (
-            <HeroPlate
-              x={frame.plate1.x}
-              y={frame.plate1.y}
-              rotation={frame.plate1.rotation}
-              opacity={frame.plate1.opacity}
-              broken={frame.plate1.broken}
-            />
-          )}
+          <PlateFace frame={frame.plate} />
 
-          {frame.plate2.visible && (
-            <HeroPlate x={frame.plate2.x} y={frame.plate2.y} rotation={frame.plate2.rotation} />
-          )}
-
-          {frame.shards.map((shard, index) => shard.opacity > 0 && (
+          {frame.fragments.map((fragment, index) => fragment.opacity > 0 && (
             <div
               key={index}
-              className={`kitchen-native-proof__shard kitchen-native-proof__shard--${index + 1}`}
+              className={`kitchen-native-proof__fragment kitchen-native-proof__fragment--${index + 1}`}
               style={{
-                left: `${shard.x / 10}%`,
-                top: `${shard.y / 6}%`,
-                opacity: shard.opacity,
-                transform: `translate(-50%, -50%) rotate(${shard.rotation}deg) scale(${shard.scale})`,
+                left: `${fragment.x / 10}%`,
+                top: `${fragment.y / 6}%`,
+                opacity: fragment.opacity,
+                transform: `translate(-50%, -50%) rotate(${fragment.rotation}deg) scale(${fragment.scale})`,
               }}
               aria-hidden="true"
             />
@@ -228,13 +224,13 @@ export function KitchenNativeProof() {
 
           <div
             className="kitchen-native-proof__contact"
-            style={{ opacity: frame.contactOpacity, left: '65.1%', top: '21%' }}
+            style={{ opacity: frame.doorPlateContactOpacity, left: '65.1%', top: '23.7%' }}
             aria-hidden="true"
           />
 
           <div
-            className="kitchen-native-proof__break-flash"
-            style={{ opacity: frame.breakFlashOpacity, left: '60.4%', top: '51%' }}
+            className="kitchen-native-proof__impact"
+            style={{ opacity: frame.plateImpactOpacity, left: '60.4%', top: '51.1%' }}
             aria-hidden="true"
           />
         </div>
@@ -271,8 +267,8 @@ export function KitchenNativeProof() {
         </div>
 
         <p>
-          Pass only if: toast visibly ejects and lands; the cabinet remains attached to its upper hinge; the first hero plate leaves the existing stack only after door contact;
-          it breaks on the counter; the second plate settles there; shards and cabinet damage remain until Reset.
+          Pass only if the plate visibly departs the existing stack with no duplicate left behind, the cabinet reads as a hinged yaw rather than a rotating slab,
+          toast settles flat after one bounce, ceramic fractures originate at counter impact, and the final debris remains on the counter until Reset.
         </p>
       </section>
     </main>

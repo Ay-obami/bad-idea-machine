@@ -1,21 +1,21 @@
 .kitchen-native-proof {
-  min-height: 100vh;
-  padding: clamp(14px, 2vw, 28px);
-  background: radial-gradient(circle at 50% 0%, #182125 0%, #091014 54%, #05090b 100%);
-  color: #f2efe7;
-  font-family: Rubik, sans-serif;
+  min-height:100vh;
+  padding:clamp(14px,2vw,28px);
+  background:radial-gradient(circle at 50% 0%,#182125 0%,#091014 54%,#05090b 100%);
+  color:#f2efe7;
+  font-family:Rubik,sans-serif;
 }
 .kitchen-native-proof__header {
-  width: min(1180px, 100%);
-  margin: 0 auto 16px;
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 24px;
+  width:min(1180px,100%);
+  margin:0 auto 16px;
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:24px;
 }
 .kitchen-native-proof__header small { color:#f5c94d; font:800 11px/1 Poppins,sans-serif; letter-spacing:.13em; }
 .kitchen-native-proof__header h1 { margin:8px 0 4px; font:800 clamp(22px,3vw,36px)/1.05 Poppins,sans-serif; }
-.kitchen-native-proof__header p { max-width:78ch; margin:0; color:#aeb8ba; line-height:1.5; }
+.kitchen-native-proof__header p { max-width:80ch; margin:0; color:#aeb8ba; line-height:1.5; }
 .kitchen-native-proof__status { display:grid; gap:5px; text-align:right; color:#c5cecf; font-size:12px; }
 .kitchen-native-proof__stage-shell {
   width:min(1180px,100%);
@@ -51,138 +51,93 @@
   user-select:none;
   pointer-events:none;
 }
+.kitchen-native-proof__source-patch { z-index:12; }
+.kitchen-native-proof__toast-source-patch { filter:brightness(.97) saturate(.88); }
+.kitchen-native-proof__door-source-patch { filter:brightness(.99) saturate(.97); }
+.kitchen-native-proof__plate-origin-patch { filter:brightness(.985); }
 .kitchen-native-proof__moving { z-index:20; will-change:transform; }
 .kitchen-native-proof__toast {
-  filter:drop-shadow(0 4px 3px rgba(0,0,0,.26));
-}
-.kitchen-native-proof__toast-slot-patch {
-  z-index:12;
-  filter:brightness(.93) saturate(.84);
+  filter:drop-shadow(0 3px 3px rgba(0,0,0,.24));
 }
 .kitchen-native-proof__door {
   z-index:19;
-  filter:drop-shadow(-2px 5px 5px rgba(0,0,0,.28));
+  filter:drop-shadow(-3px 5px 5px rgba(0,0,0,.27));
+  backface-visibility:hidden;
 }
-.kitchen-native-proof__door-gap {
-  position:absolute;
-  left:73.2%;
-  top:3%;
-  width:2.5%;
-  height:20.5%;
-  z-index:12;
-  clip-path:polygon(58% 0,100% 0,100% 100%,0 88%);
-  background:
-    linear-gradient(90deg, rgba(70,41,23,.35), rgba(150,105,67,.95) 28%, rgba(126,84,52,.97));
-  box-shadow:inset 4px 0 8px rgba(46,27,16,.24);
-  pointer-events:none;
+.kitchen-native-proof__plate-rim {
+  z-index:22;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.25));
 }
-.kitchen-native-proof__upper-hinge {
-  position:absolute;
-  left:74.1%;
-  top:2.4%;
-  z-index:31;
-  width:18px;
-  height:13px;
-  border-radius:2px;
-  background:linear-gradient(180deg,#d3ccbc,#776e60);
-  box-shadow:0 1px 3px rgba(0,0,0,.42), inset 0 0 0 1px rgba(43,40,36,.35);
-  pointer-events:none;
-}
-.kitchen-native-proof__upper-hinge::before,
-.kitchen-native-proof__upper-hinge::after {
-  content:'';
-  position:absolute;
-  top:4px;
-  width:4px;
-  height:4px;
-  border-radius:50%;
-  background:#4d4941;
-}
-.kitchen-native-proof__upper-hinge::before { left:3px; }
-.kitchen-native-proof__upper-hinge::after { right:3px; }
-.kitchen-native-proof__upper-hinge span {
-  position:absolute;
-  left:8px;
-  top:-3px;
-  width:3px;
-  height:19px;
-  border-radius:2px;
-  background:linear-gradient(90deg,#776c5d,#ded6c4,#62594e);
-}
-.kitchen-native-proof__loose-screw {
-  position:absolute;
-  left:73.4%;
-  top:18.4%;
-  z-index:31;
-  width:5px;
-  height:12px;
-  border-radius:2px;
-  background:linear-gradient(90deg,#6e665a,#d7cfbd,#5a5349);
-  box-shadow:0 2px 2px rgba(0,0,0,.45);
-  transform-origin:50% 0;
-  pointer-events:none;
-}
-.kitchen-native-proof__hero-plate {
+.kitchen-native-proof__plate-body {
   position:absolute;
   z-index:23;
-  width:6.1%;
-  height:2.35%;
+  width:6.4%;
+  height:3.4%;
   border-radius:50%;
-  background:
-    radial-gradient(ellipse at 50% 40%, #f7efe4 0 50%, #d9c9b9 55% 64%, #f2e6d7 68% 76%, #bca998 79% 82%, #eadccc 86% 100%);
-  border:1px solid rgba(109,91,73,.42);
-  box-shadow:
-    0 4px 4px rgba(0,0,0,.28),
-    inset 0 2px 2px rgba(255,255,255,.74),
-    inset 0 -2px 3px rgba(103,84,66,.18);
-  pointer-events:none;
   transform-origin:50% 50%;
+  background:
+    radial-gradient(ellipse at 50% 42%,#f9f3eb 0 46%,#e2d5c8 49% 58%,#f5ece2 61% 73%,#bda999 77% 81%,#eadfd4 84% 100%);
+  border:1px solid rgba(101,85,70,.40);
+  box-shadow:
+    0 4px 4px rgba(0,0,0,.25),
+    inset 0 2px 2px rgba(255,255,255,.77),
+    inset 0 -2px 3px rgba(101,83,67,.16);
+  pointer-events:none;
 }
-.kitchen-native-proof__hero-plate i {
+.kitchen-native-proof__plate-well {
   position:absolute;
   inset:22% 18%;
   border-radius:50%;
-  border:1px solid rgba(126,106,89,.22);
-  box-shadow:inset 0 1px 2px rgba(255,255,255,.72);
+  border:1px solid rgba(121,101,84,.20);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.78);
 }
-.kitchen-native-proof__hero-plate--breaking {
-  filter:contrast(1.03);
-}
-.kitchen-native-proof__shard {
+.kitchen-native-proof__plate-crack {
   position:absolute;
-  z-index:26;
-  width:2.3%;
-  height:1.45%;
-  background:linear-gradient(155deg,#f8efe5,#d5c3b2 72%,#ae9a88);
-  border:1px solid rgba(104,85,67,.35);
-  box-shadow:0 2px 3px rgba(0,0,0,.28), inset 0 1px 1px rgba(255,255,255,.62);
+  left:50%;
+  top:50%;
+  width:2px;
+  height:47%;
+  background:#8d7e70;
+  transform-origin:50% 0;
+}
+.kitchen-native-proof__plate-crack--a { transform:rotate(33deg); }
+.kitchen-native-proof__plate-crack--b { transform:rotate(-49deg); height:39%; }
+.kitchen-native-proof__fragment {
+  position:absolute;
+  z-index:25;
+  width:2.05%;
+  height:1.55%;
+  background:linear-gradient(155deg,#faf3eb 0%,#ddcfc2 72%,#b7a391 100%);
+  border:1px solid rgba(101,84,67,.35);
+  box-shadow:0 2px 3px rgba(0,0,0,.26), inset 0 1px 1px rgba(255,255,255,.68);
   pointer-events:none;
 }
-.kitchen-native-proof__shard--1 { clip-path:polygon(0 15%,100% 0,68% 100%,12% 78%); }
-.kitchen-native-proof__shard--2 { clip-path:polygon(6% 0,100% 18%,74% 100%,0 67%); width:1.8%; }
-.kitchen-native-proof__shard--3 { clip-path:polygon(0 20%,85% 0,100% 74%,28% 100%); width:2%; }
-.kitchen-native-proof__shard--4 { clip-path:polygon(12% 0,100% 33%,58% 100%,0 74%); width:1.55%; }
-.kitchen-native-proof__shard--5 { clip-path:polygon(0 13%,78% 0,100% 65%,22% 100%); width:1.35%; }
+.kitchen-native-proof__fragment--1 { clip-path:polygon(0 16%,100% 0,70% 100%,12% 79%); }
+.kitchen-native-proof__fragment--2 { clip-path:polygon(7% 0,100% 17%,72% 100%,0 67%); width:1.8%; }
+.kitchen-native-proof__fragment--3 { clip-path:polygon(0 22%,84% 0,100% 75%,27% 100%); width:1.92%; }
+.kitchen-native-proof__fragment--4 { clip-path:polygon(11% 0,100% 31%,59% 100%,0 73%); width:1.52%; }
+.kitchen-native-proof__fragment--5 { clip-path:polygon(0 13%,78% 0,100% 64%,21% 100%); width:1.34%; }
+.kitchen-native-proof__fragment--6 { clip-path:polygon(8% 0,100% 24%,65% 100%,0 69%); width:1.18%; }
 .kitchen-native-proof__contact {
   position:absolute;
   z-index:30;
-  width:11px;
-  height:4px;
+  width:12px;
+  height:5px;
   border-radius:50%;
-  transform:translate(-50%,-50%) rotate(-9deg);
-  background:rgba(230,216,189,.42);
-  box-shadow:0 0 5px rgba(255,236,195,.28);
+  transform:translate(-50%,-50%) rotate(-8deg);
+  background:rgba(226,212,186,.35);
+  box-shadow:0 0 4px rgba(255,236,195,.25);
   pointer-events:none;
 }
-.kitchen-native-proof__break-flash {
+.kitchen-native-proof__impact {
   position:absolute;
-  z-index:29;
-  width:22px;
-  height:8px;
+  z-index:31;
+  width:18px;
+  height:6px;
   border-radius:50%;
   transform:translate(-50%,-50%);
-  background:rgba(244,234,216,.54);
-  box-shadow:0 0 10px rgba(255,246,228,.38);
+  background:rgba(244,234,218,.48);
+  box-shadow:0 0 9px rgba(255,246,228,.34);
   pointer-events:none;
 }
 .kitchen-native-proof__controls {
@@ -201,32 +156,21 @@
   font:700 12px Poppins,sans-serif;
   cursor:pointer;
 }
-.kitchen-native-proof button:hover,
-.kitchen-native-proof button:focus-visible { border-color:#f5c94d; outline:none; }
+.kitchen-native-proof button:hover,.kitchen-native-proof button:focus-visible { border-color:#f5c94d; outline:none; }
 .kitchen-native-proof__transport button:first-child { background:#f5c94d; border-color:#f5c94d; color:#151612; }
 .kitchen-native-proof__marks {
   display:grid;
   grid-template-columns:repeat(8,minmax(0,1fr));
   gap:7px;
 }
-.kitchen-native-proof__marks button {
-  display:grid;
-  align-content:center;
-  gap:2px;
-  text-align:left;
-}
+.kitchen-native-proof__marks button { display:grid; align-content:center; gap:2px; text-align:left; }
 .kitchen-native-proof__marks small { color:#869397; font-size:9px; }
 .kitchen-native-proof__controls p { margin:0; color:#9eaaad; font-size:12px; line-height:1.5; }
 @media (max-width:760px) {
   .kitchen-native-proof { padding:10px; }
   .kitchen-native-proof__header { display:grid; gap:8px; }
   .kitchen-native-proof__status { text-align:left; }
-  .kitchen-native-proof__marks {
-    display:flex;
-    overflow-x:auto;
-    scroll-snap-type:x mandatory;
-    padding-bottom:5px;
-  }
+  .kitchen-native-proof__marks { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:5px; }
   .kitchen-native-proof__marks button { min-width:132px; scroll-snap-align:start; }
 }
 @media (prefers-reduced-motion:reduce) {

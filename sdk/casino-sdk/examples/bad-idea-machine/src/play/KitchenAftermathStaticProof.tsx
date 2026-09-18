@@ -31,29 +31,6 @@ function drawAtlasFrame(
   );
 }
 
-function drawRegisteredCrop(
-  context: CanvasRenderingContext2D,
-  source: HTMLImageElement,
-  bounds: Readonly<{ x: number; y: number; width: number; height: number }>,
-) {
-  const sx = (bounds.x / 1000) * source.naturalWidth;
-  const sy = (bounds.y / 600) * source.naturalHeight;
-  const sw = (bounds.width / 1000) * source.naturalWidth;
-  const sh = (bounds.height / 600) * source.naturalHeight;
-
-  context.drawImage(
-    source,
-    sx,
-    sy,
-    sw,
-    sh,
-    bounds.x,
-    bounds.y,
-    bounds.width,
-    bounds.height,
-  );
-}
-
 const button: CSSProperties = {
   minHeight: 40,
   padding: '7px 11px',

@@ -1,45 +1,47 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  KITCHEN_OBJECT_TRUTH_ATLAS,
-  KITCHEN_OBJECT_TRUTH_OBJECTS,
-  kitchenObjectTruthDrawOrder,
-  validateKitchenObjectTruthProof,
+  KITCHEN_PAN_TRUTH,
+  kitchenPanTruthLayers,
+  validateKitchenPanTruth,
 } from './kitchen-object-truth-proof';
 
-describe('kitchen single-object truth proof', () => {
-  it('uses a repository-local atlas produced from the approved master', () => {
-    expect(validateKitchenObjectTruthProof()).toEqual([]);
-    expect(KITCHEN_OBJECT_TRUTH_ATLAS.url).toMatch(/^\/rooms\//);
-    expect(KITCHEN_OBJECT_TRUTH_ATLAS.url).not.toMatch(/creativeclaw/i);
-    expect(KITCHEN_OBJECT_TRUTH_ATLAS.source).toBe('container-extracted-approved-master');
-  });
+describe('kitchen pan single-object truth proof', () => {
+  it('uses only repository-local source assets', () => {
+    expect(validateKitchenPanTruth()).toEqual([]);
 
-  it('gives each object a real support, shadow and body layer', () => {
-    for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
-      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.supportFrame].kind).toBe('support');
-      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.shadowFrame].kind).toBe('shadow');
-      expect(KITCHEN_OBJECT_TRUTH_ATLAS.frames[object.bodyFrame].kind).toBe('body');
+    for (const url of [
+      KITCHEN_PAN_TRUTH.referenceUrl,
+      KITCHEN_PAN_TRUTH.supportUrl,
+      KITCHEN_PAN_TRUTH.bodyUrl,
+      KITCHEN_PAN_TRUTH.shadowUrl,
+    ]) {
+      expect(url).toMatch(/^\/rooms\/kitchen\/truth\//);
+      expect(url).not.toMatch(/creativeclaw/i);
+      expect(url).not.toMatch(/^https?:\/\//i);
     }
   });
 
-  it('always restores support before optionally adding shadow and body', () => {
-    for (const object of KITCHEN_OBJECT_TRUTH_OBJECTS) {
-      const supportOnly = kitchenObjectTruthDrawOrder(object.id, false, false);
-      const shadowOnly = kitchenObjectTruthDrawOrder(object.id, false, true);
-      const bodyOnly = kitchenObjectTruthDrawOrder(object.id, true, false);
-      const complete = kitchenObjectTruthDrawOrder(object.id, true, true);
-
-      expect(supportOnly).toEqual([object.supportFrame]);
-      expect(shadowOnly).toEqual([object.supportFrame, object.shadowFrame]);
-      expect(bodyOnly).toEqual([object.supportFrame, object.bodyFrame]);
-      expect(complete).toEqual([object.supportFrame, object.shadowFrame, object.bodyFrame]);
-    }
+  it('keeps every pan layer registered to one 240x110 crop', () => {
+    expect(KITCHEN_PAN_TRUTH.width).toBe(240);
+    expect(KITCHEN_PAN_TRUTH.height).toBe(110);
+    expect(KITCHEN_PAN_TRUTH.logicalBounds).toEqual({
+      x: 325,
+      y: 235,
+      width: 240,
+      height: 110,
+    });
   });
 
-  it('uses no browser ownership masks or Tier 1 debris in this gate', () => {
-    for (const id of Object.keys(KITCHEN_OBJECT_TRUTH_ATLAS.frames)) {
-      expect(id).not.toMatch(/mask|tier1|debris|replacement/i);
-    }
+  it('always renders support first, with shadow and body independently optional', () => {
+    expect(kitchenPanTruthLayers(false, false)).toEqual(['support']);
+    expect(kitchenPanTruthLayers(false, true)).toEqual(['support', 'shadow']);
+    expect(kitchenPanTruthLayers(true, false)).toEqual(['support', 'body']);
+    expect(kitchenPanTruthLayers(true, true)).toEqual(['support', 'shadow', 'body']);
+  });
+
+  it('does not contain toaster, debris, mask or replacement assets in this gate', () => {
+    const serialized = JSON.stringify(KITCHEN_PAN_TRUTH);
+    expect(serialized).not.toMatch(/toaster|debris|mask|replacement/i);
   });
 });

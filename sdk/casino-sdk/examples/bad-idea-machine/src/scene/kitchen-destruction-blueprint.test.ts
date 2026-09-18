@@ -48,6 +48,10 @@ describe('kitchen destruction blueprint', () => {
     const tiers = KITCHEN_DESTRUCTION_BLUEPRINT.tiers;
     expect(Object.keys(tiers).sort()).toEqual(['0', '1', '2', '3', '4']);
 
+    const permanentIds = KITCHEN_DESTRUCTION_BLUEPRINT.zones
+      .filter(zone => zone.kind === 'permanent')
+      .map(zone => zone.id)
+      .sort();
     const destructibleIds = KITCHEN_DESTRUCTION_BLUEPRINT.zones
       .filter(zone => zone.kind === 'destructible')
       .map(zone => zone.id)
@@ -58,6 +62,7 @@ describe('kitchen destruction blueprint', () => {
 
     for (const tier of [0, 1, 2, 3, 4] as const) {
       const composition = tiers[tier];
+      expect(Object.keys(composition.shellStates).sort()).toEqual(permanentIds);
       expect(Object.keys(composition.zoneStates).sort()).toEqual(destructibleIds);
       expect(Object.keys(composition.propStates).sort()).toEqual(propIds);
       signatures.add(JSON.stringify(composition));
@@ -72,6 +77,13 @@ describe('kitchen destruction blueprint', () => {
     expect(kitchenDamageCount(3)).toBeLessThan(kitchenDamageCount(4));
     expect(kitchenDamageCount(0)).toBeGreaterThanOrEqual(kitchenDamageCount(3));
     expect(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[0]).not.toEqual(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[4]);
+    expect(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[1].hazards).toEqual({
+      fire: 'none',
+      smoke: 'none',
+      power: 'normal',
+    });
+    expect(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[4].hazards.fire).toBe('active');
+    expect(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[4].hazards.smoke).toBe('heavy');
   });
 
   it('does not allow a full-frame aftermath image as a destruction state', () => {

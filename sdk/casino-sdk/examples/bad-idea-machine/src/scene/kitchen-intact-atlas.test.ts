@@ -34,10 +34,10 @@ describe('kitchen intact layer atlas', () => {
       .toBeLessThan(KITCHEN_INTACT_DRAW_ORDER.indexOf('prop/hero-plate/resting'));
   });
 
-  it('records the delivered atlas reconstruction error rather than claiming pixel identity', () => {
-    expect(KITCHEN_INTACT_ATLAS.metrics.mae).toBeLessThan(3);
-    expect(KITCHEN_INTACT_ATLAS.metrics.p99).toBeLessThanOrEqual(15);
-    expect(KITCHEN_INTACT_ATLAS.metrics.exactPixelFraction).toBeGreaterThan(.1);
+  it('keeps the genuine layered reconstruction visually registered to the approved master', () => {
+    expect(KITCHEN_INTACT_ATLAS.metrics.mae).toBeLessThan(.2);
+    expect(KITCHEN_INTACT_ATLAS.metrics.p99).toBeLessThanOrEqual(4);
+    expect(KITCHEN_INTACT_ATLAS.metrics.exactPixelFraction).toBeGreaterThan(.93);
   });
 
   it('keeps every atlas source frame and destination inside its declared canvas', () => {

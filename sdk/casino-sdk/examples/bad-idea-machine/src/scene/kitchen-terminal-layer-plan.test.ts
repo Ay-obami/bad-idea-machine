@@ -20,6 +20,9 @@ describe('kitchen terminal layer plan', () => {
       expect(plan.props.length).toBe(
         KITCHEN_DESTRUCTION_BLUEPRINT.props.length,
       );
+      expect(plan.shadows.length).toBe(
+        KITCHEN_DESTRUCTION_BLUEPRINT.props.length,
+      );
       expect(plan.debris.length).toBeGreaterThan(0);
       expect(plan.hazards.length).toBeGreaterThanOrEqual(3);
     }
@@ -34,6 +37,15 @@ describe('kitchen terminal layer plan', () => {
         expect(architectureOwners.has(prop.ownerId)).toBe(false);
         expect(prop.kind).toBe('prop');
       }
+    }
+  });
+
+  it('gives every terminal prop an independently controllable contact shadow', () => {
+    for (const tier of [0, 1, 2, 3, 4] as const) {
+      const plan = kitchenTerminalLayersForTier(tier);
+      const propOwners = plan.props.map(layer => layer.ownerId).sort();
+      const shadowOwners = plan.shadows.map(layer => layer.ownerId).sort();
+      expect(shadowOwners).toEqual(propOwners);
     }
   });
 

@@ -3,12 +3,14 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import {
   KITCHEN_PAN_TRUTH,
   KITCHEN_TOAST_TRUTH,
+  KITCHEN_TOWEL_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
+  kitchenTowelTruthLayers,
   type KitchenTruthAtlasFrame,
 } from '../scene/kitchen-object-truth-proof';
 
-type TruthObject = 'pan' | 'toast';
+type TruthObject = 'pan' | 'toast' | 'towel';
 
 const button: CSSProperties = {
   minHeight: 40,
@@ -71,16 +73,18 @@ function LayeredPan({
 }
 
 function AtlasSprite({
+  atlasUrl,
+  atlasWidth,
+  atlasHeight,
   frame,
-  width,
-  height,
   left = 0,
   top = 0,
   zoom = 1,
 }: Readonly<{
+  atlasUrl: string;
+  atlasWidth: number;
+  atlasHeight: number;
   frame: KitchenTruthAtlasFrame;
-  width: number;
-  height: number;
   left?: number;
   top?: number;
   zoom?: number;
@@ -99,20 +103,68 @@ function AtlasSprite({
       }}
     >
       <img
-        src={KITCHEN_TOAST_TRUTH.atlasUrl}
+        src={atlasUrl}
         alt=""
         draggable={false}
         style={{
           position: 'absolute',
           left: -frame.x * zoom,
           top: -frame.y * zoom,
-          width: KITCHEN_TOAST_TRUTH.atlasWidth * zoom,
-          height: KITCHEN_TOAST_TRUTH.atlasHeight * zoom,
+          width: atlasWidth * zoom,
+          height: atlasHeight * zoom,
           maxWidth: 'none',
           pointerEvents: 'none',
         }}
       />
     </span>
+  );
+}
+
+function ToastSprite({
+  frame,
+  left = 0,
+  top = 0,
+  zoom = 1,
+}: Readonly<{
+  frame: KitchenTruthAtlasFrame;
+  left?: number;
+  top?: number;
+  zoom?: number;
+}>) {
+  return (
+    <AtlasSprite
+      atlasUrl={KITCHEN_TOAST_TRUTH.atlasUrl}
+      atlasWidth={KITCHEN_TOAST_TRUTH.atlasWidth}
+      atlasHeight={KITCHEN_TOAST_TRUTH.atlasHeight}
+      frame={frame}
+      left={left}
+      top={top}
+      zoom={zoom}
+    />
+  );
+}
+
+function TowelSprite({
+  frame,
+  left = 0,
+  top = 0,
+  zoom = 1,
+}: Readonly<{
+  frame: KitchenTruthAtlasFrame;
+  left?: number;
+  top?: number;
+  zoom?: number;
+}>) {
+  return (
+    <AtlasSprite
+      atlasUrl={KITCHEN_TOWEL_TRUTH.atlasUrl}
+      atlasWidth={KITCHEN_TOWEL_TRUTH.atlasWidth}
+      atlasHeight={KITCHEN_TOWEL_TRUTH.atlasHeight}
+      frame={frame}
+      left={left}
+      top={top}
+      zoom={zoom}
+    />
   );
 }
 
@@ -140,27 +192,18 @@ function LayeredToast({
         background: '#020405',
       }}
     >
-      <AtlasSprite
-        frame={KITCHEN_TOAST_TRUTH.frames.support}
-        width={KITCHEN_TOAST_TRUTH.cropWidth}
-        height={KITCHEN_TOAST_TRUTH.cropHeight}
-        zoom={zoom}
-      />
+      <ToastSprite frame={KITCHEN_TOAST_TRUTH.frames.support} zoom={zoom} />
       {layers.includes('shadow') ? (
-        <AtlasSprite
+        <ToastSprite
           frame={KITCHEN_TOAST_TRUTH.frames.shadow}
-          width={KITCHEN_TOAST_TRUTH.frames.shadow.width}
-          height={KITCHEN_TOAST_TRUTH.frames.shadow.height}
           left={KITCHEN_TOAST_TRUTH.restPlacement.shadow.x}
           top={KITCHEN_TOAST_TRUTH.restPlacement.shadow.y}
           zoom={zoom}
         />
       ) : null}
       {layers.includes('body') ? (
-        <AtlasSprite
+        <ToastSprite
           frame={KITCHEN_TOAST_TRUTH.frames.body}
-          width={KITCHEN_TOAST_TRUTH.frames.body.width}
-          height={KITCHEN_TOAST_TRUTH.frames.body.height}
           left={KITCHEN_TOAST_TRUTH.restPlacement.body.x}
           top={KITCHEN_TOAST_TRUTH.restPlacement.body.y}
           zoom={zoom}
@@ -178,12 +221,7 @@ function ToastReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
       height: KITCHEN_TOAST_TRUTH.cropHeight * zoom,
       overflow: 'hidden',
     }}>
-      <AtlasSprite
-        frame={KITCHEN_TOAST_TRUTH.frames.reference}
-        width={KITCHEN_TOAST_TRUTH.cropWidth}
-        height={KITCHEN_TOAST_TRUTH.cropHeight}
-        zoom={zoom}
-      />
+      <ToastSprite frame={KITCHEN_TOAST_TRUTH.frames.reference} zoom={zoom} />
     </div>
   );
 }
@@ -199,7 +237,65 @@ function AirborneToastFace({ zoom = 5 }: Readonly<{ zoom?: number }>) {
       background: '#1b1d1d',
       border: '1px solid #314348',
     }}>
-      <AtlasSprite frame={frame} width={frame.width} height={frame.height} zoom={zoom} />
+      <ToastSprite frame={frame} zoom={zoom} />
+    </div>
+  );
+}
+
+function LayeredTowel({
+  bodyVisible,
+  shadowVisible,
+  zoom = 1,
+}: Readonly<{
+  bodyVisible: boolean;
+  shadowVisible: boolean;
+  zoom?: number;
+}>) {
+  const layers = useMemo(
+    () => kitchenTowelTruthLayers(bodyVisible, shadowVisible),
+    [bodyVisible, shadowVisible],
+  );
+
+  return (
+    <div
+      style={{
+        position: 'relative',
+        width: KITCHEN_TOWEL_TRUTH.cropWidth * zoom,
+        height: KITCHEN_TOWEL_TRUTH.cropHeight * zoom,
+        overflow: 'hidden',
+        background: '#020405',
+      }}
+    >
+      <TowelSprite frame={KITCHEN_TOWEL_TRUTH.frames.support} zoom={zoom} />
+      {layers.includes('shadow') ? (
+        <TowelSprite
+          frame={KITCHEN_TOWEL_TRUTH.frames.shadow}
+          left={KITCHEN_TOWEL_TRUTH.restPlacement.shadow.x}
+          top={KITCHEN_TOWEL_TRUTH.restPlacement.shadow.y}
+          zoom={zoom}
+        />
+      ) : null}
+      {layers.includes('body') ? (
+        <TowelSprite
+          frame={KITCHEN_TOWEL_TRUTH.frames.body}
+          left={KITCHEN_TOWEL_TRUTH.restPlacement.body.x}
+          top={KITCHEN_TOWEL_TRUTH.restPlacement.body.y}
+          zoom={zoom}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function TowelReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
+  return (
+    <div style={{
+      position: 'relative',
+      width: KITCHEN_TOWEL_TRUTH.cropWidth * zoom,
+      height: KITCHEN_TOWEL_TRUTH.cropHeight * zoom,
+      overflow: 'hidden',
+    }}>
+      <TowelSprite frame={KITCHEN_TOWEL_TRUTH.frames.reference} zoom={zoom} />
     </div>
   );
 }
@@ -231,6 +327,39 @@ export function KitchenObjectTruthProof() {
     setBlinkReference(false);
   };
 
+  const primary = () => {
+    if (object === 'pan') {
+      return blinkReference ? (
+        <img
+          src={KITCHEN_PAN_TRUTH.referenceUrl}
+          alt="Approved pan reference crop"
+          draggable={false}
+          style={{
+            width: KITCHEN_PAN_TRUTH.width * 2,
+            height: KITCHEN_PAN_TRUTH.height * 2,
+            objectFit: 'fill',
+          }}
+        />
+      ) : (
+        <LayeredPan bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
+      );
+    }
+
+    if (object === 'toast') {
+      return blinkReference ? (
+        <ToastReference zoom={2} />
+      ) : (
+        <LayeredToast bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
+      );
+    }
+
+    return blinkReference ? (
+      <TowelReference zoom={2} />
+    ) : (
+      <LayeredTowel bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
+    );
+  };
+
   return (
     <main style={{
       minHeight: '100vh',
@@ -247,25 +376,25 @@ export function KitchenObjectTruthProof() {
           One object at a time · repository-local only
         </h1>
         <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          Pan and hero toast are now isolated from the rejected multi-object mask proof. Every active asset on this page is repository-local and produced from the approved Kitchen pixels or deterministic local reconstruction. No Creative Claw asset or remote image is used.
+          Pan, hero toast and oven towel are isolated from the rejected multi-object mask proof. Every active asset on this page is repository-local and comes from approved Kitchen pixels or deterministic local reconstruction. No Creative Claw asset or remote image is used.
         </p>
       </header>
 
       <section style={{ width: 'min(1320px,100%)', margin: '0 auto 10px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        <button
-          type="button"
-          style={{ ...button, borderColor: object === 'pan' ? '#f4cb58' : '#42565c' }}
-          onClick={() => resetLayers('pan')}
-        >
-          Pan
-        </button>
-        <button
-          type="button"
-          style={{ ...button, borderColor: object === 'toast' ? '#f4cb58' : '#42565c' }}
-          onClick={() => resetLayers('toast')}
-        >
-          Hero toast
-        </button>
+        {([
+          ['pan', 'Pan'],
+          ['toast', 'Hero toast'],
+          ['towel', 'Oven towel'],
+        ] as const).map(([id, label]) => (
+          <button
+            type="button"
+            key={id}
+            style={{ ...button, borderColor: object === id ? '#f4cb58' : '#42565c' }}
+            onClick={() => resetLayers(id)}
+          >
+            {label}
+          </button>
+        ))}
       </section>
 
       <section style={{ width: 'min(1320px,100%)', margin: '0 auto 12px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
@@ -307,27 +436,8 @@ export function KitchenObjectTruthProof() {
             {blinkReference ? 'Approved reference crop' : `Reconstruction · ${state}`}
           </figcaption>
 
-          <div style={{ display: 'grid', placeItems: 'center', minHeight: 300 }}>
-            {object === 'pan' ? (
-              blinkReference ? (
-                <img
-                  src={KITCHEN_PAN_TRUTH.referenceUrl}
-                  alt="Approved pan reference crop"
-                  draggable={false}
-                  style={{
-                    width: KITCHEN_PAN_TRUTH.width * 2,
-                    height: KITCHEN_PAN_TRUTH.height * 2,
-                    objectFit: 'fill',
-                  }}
-                />
-              ) : (
-                <LayeredPan bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
-              )
-            ) : blinkReference ? (
-              <ToastReference zoom={2} />
-            ) : (
-              <LayeredToast bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
-            )}
+          <div style={{ display: 'grid', placeItems: 'center', minHeight: 360 }}>
+            {primary()}
           </div>
         </figure>
 
@@ -350,11 +460,19 @@ export function KitchenObjectTruthProof() {
                 }}
               />
             </div>
-          ) : (
+          ) : object === 'toast' ? (
             <div style={{ display: 'grid', gap: 16, justifyItems: 'center' }}>
               <AirborneToastFace />
               <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
-                The rest sprite above remains the exact visible photographed toast. This full face exists only so later rotation can reveal previously occluded bread instead of stretching the rest sprite or changing to a generated object.
+                The rest sprite remains the exact visible photographed toast. This full face exists only so later rotation can reveal previously occluded bread instead of stretching the rest sprite or switching to a generated object.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+              <LayeredTowel bodyVisible={bodyVisible} shadowVisible={shadowVisible} />
+              <TowelReference />
+              <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
+                Hiding the towel must reveal the complete oven handle and door. No oven pixels are allowed inside the towel body layer.
               </p>
             </div>
           )}
@@ -371,7 +489,7 @@ export function KitchenObjectTruthProof() {
         <div style={{ ...card, padding: 12 }}>
           <strong>Support-only pass rule</strong>
           <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
-            With body and shadow hidden, the real support must remain believable. For toast, the toaster and remaining slices stay in place while only the hero slice disappears.
+            With body and shadow hidden, the real support must remain believable. Toast keeps the toaster/remaining slices; towel reveals the complete oven handle and door.
           </p>
         </div>
 
@@ -385,7 +503,7 @@ export function KitchenObjectTruthProof() {
         <div style={{ ...card, padding: 12 }}>
           <strong>Motion-readiness rule</strong>
           <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
-            A moving object is not accepted merely because its rest crop reconstructs correctly. It also needs complete hidden geometry before motion resumes. The toast face on this page is the first enforcement of that rule.
+            A moving object is not accepted merely because its rest crop reconstructs correctly. Hidden geometry/support must also be valid before motion resumes.
           </p>
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, lazy, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import '@fontsource/poppins/latin-500.css';
@@ -20,10 +20,6 @@ import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
 
-const KitchenDestructionBlueprintView = lazy(async () => {
-  const module = await import('./play/KitchenDestructionBlueprintView');
-  return { default: module.KitchenDestructionBlueprintView };
-});
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -75,13 +71,6 @@ const proofScene = typeof window !== 'undefined'
 
 function RootView() {
   if (proofScene === 'kitchen-native-proof') return <KitchenNativeProof />;
-  if (proofScene === 'kitchen-destruction-blueprint') {
-    return (
-      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
-        <KitchenDestructionBlueprintView />
-      </Suspense>
-    );
-  }
   return <ExperienceRoot />;
 }
 

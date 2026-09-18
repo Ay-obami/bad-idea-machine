@@ -1,10 +1,10 @@
 export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
 
 export const KITCHEN_PAN_TRUTH = {
-  referenceUrl: '/rooms/kitchen/truth/pan-reference.webp',
-  supportUrl: '/rooms/kitchen/truth/pan-support.webp',
-  bodyUrl: '/rooms/kitchen/truth/pan-body.webp',
-  shadowUrl: '/rooms/kitchen/truth/pan-shadow.webp',
+  referenceUrl: '/rooms/kitchen/rebuild/truth/pan-reference.webp',
+  supportUrl: '/rooms/kitchen/rebuild/truth/pan-support.webp',
+  bodyUrl: '/rooms/kitchen/rebuild/truth/pan-body.webp',
+  shadowUrl: '/rooms/kitchen/rebuild/truth/pan-shadow.webp',
   width: 240,
   height: 110,
   logicalBounds: {
@@ -36,7 +36,7 @@ export function validateKitchenPanTruth(): readonly string[] {
     body: KITCHEN_PAN_TRUTH.bodyUrl,
     shadow: KITCHEN_PAN_TRUTH.shadowUrl,
   })) {
-    if (!url.startsWith('/rooms/kitchen/truth/')) {
+    if (!url.startsWith('/rooms/kitchen/rebuild/truth/')) {
       errors.push(`${label}: truth asset must be repository-local`);
     }
 

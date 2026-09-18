@@ -1,56 +1,70 @@
 import { describe, expect, it } from 'vitest';
 import { KITCHEN_NATIVE_TIMELINE, kitchenNativeFrameAt } from './kitchen-native-proof';
 
-describe('master-first kitchen proof', () => {
-  it('keeps the interaction causally ordered', () => {
+describe('master-first kitchen realism proof', () => {
+  it('keeps door and plates causally ordered', () => {
     const byId = new Map(KITCHEN_NATIVE_TIMELINE.map(event => [event.id, event]));
-    const toast = byId.get('toast-launch')!;
+    const launch = byId.get('toast-launch')!;
     const recoil = byId.get('door-recoil')!;
     const sag = byId.get('door-sag')!;
-    const plates = byId.get('plates-release')!;
+    const firstPlate = byId.get('plate-1-release')!;
+    const breakEvent = byId.get('plate-1-break')!;
+    const secondPlate = byId.get('plate-2-release')!;
 
-    expect(recoil.startMs).toBe(toast.startMs + toast.durationMs);
-    expect(sag.startMs).toBe(recoil.startMs + recoil.durationMs + 55);
-    expect(plates.startMs).toBe(sag.startMs + sag.durationMs);
+    expect(recoil.startMs).toBe(launch.startMs + launch.durationMs);
+    expect(sag.startMs).toBe(recoil.startMs + recoil.durationMs + 35);
+    expect(firstPlate.startMs).toBe(sag.startMs + sag.durationMs);
+    expect(breakEvent.startMs).toBe(firstPlate.startMs + firstPlate.durationMs);
+    expect(secondPlate.startMs).toBe(breakEvent.startMs + breakEvent.durationMs + 20);
   });
 
-  it('does not move later actors before their physical cause', () => {
-    const intact = kitchenNativeFrameAt(0);
-    expect(intact.toast.opacity).toBe(0);
-    expect(intact.door.rotation).toBe(0);
-    expect(intact.plates.every(plate => plate.opacity === 0)).toBe(true);
-
-    const toastOnly = kitchenNativeFrameAt(850);
-    expect(toastOnly.toast.opacity).toBe(1);
-    expect(toastOnly.door.rotation).toBe(0);
-    expect(toastOnly.plates.every(plate => plate.opacity === 0)).toBe(true);
-  });
-
-  it('keeps the hanging door restrained instead of turning it into a flying slab', () => {
+  it('lands the toast instead of leaving it suspended', () => {
     const aftermath = kitchenNativeFrameAt(10_000);
-    expect(aftermath.door.rotation).toBeGreaterThanOrEqual(-14.01);
-    expect(aftermath.door.rotation).toBeLessThanOrEqual(-13.9);
-    expect(Math.abs(aftermath.door.x - 676)).toBeLessThanOrEqual(6.01);
-    expect(aftermath.door.y).toBeLessThanOrEqual(9.01);
+    expect(aftermath.toast.landed).toBe(true);
+    expect(aftermath.toast.y).toBeGreaterThanOrEqual(300);
+    expect(aftermath.toast.y).toBeLessThanOrEqual(306);
   });
 
-  it('keeps ceramic plates broad with restrained roll', () => {
+  it('keeps the cabinet door constrained to a small upper-hinge sag', () => {
     const aftermath = kitchenNativeFrameAt(10_000);
-    expect(aftermath.plates.every(plate => Math.abs(plate.rotation) <= 11)).toBe(true);
-    expect(aftermath.plates.every(plate => plate.scale >= .95 && plate.scale <= 1.02)).toBe(true);
+    expect(aftermath.door.rotation).toBeGreaterThanOrEqual(-9.51);
+    expect(aftermath.door.rotation).toBeLessThanOrEqual(-9.49);
   });
 
-  it('persists hinge and plate damage after the cascade completes', () => {
+  it('does not materialize either hero plate before door contact', () => {
+    const firstRelease = KITCHEN_NATIVE_TIMELINE.find(event => event.id === 'plate-1-release')!;
+    const before = kitchenNativeFrameAt(firstRelease.startMs - 1);
+    expect(before.plate1.visible).toBe(false);
+    expect(before.plate2.visible).toBe(false);
+  });
+
+  it('breaks the first plate and keeps shards on the counter', () => {
     const aftermath = kitchenNativeFrameAt(10_000);
-    expect(aftermath.damageIds).toEqual(['lower-hinge-failed', 'plates-displaced']);
-    expect(aftermath.plates.every(plate => plate.progress === 1)).toBe(true);
+    expect(aftermath.plate1.opacity).toBe(0);
+    expect(aftermath.shards.every(shard => shard.opacity === 1)).toBe(true);
+    expect(aftermath.shards.every(shard => shard.y >= 305 && shard.y <= 313)).toBe(true);
+    expect(aftermath.damageIds).toContain('plate-1-broken');
   });
 
-  it('reconstructs a clean reset deterministically', () => {
+  it('settles the second plate on the counter and preserves the aftermath', () => {
+    const aftermath = kitchenNativeFrameAt(10_000);
+    expect(aftermath.plate2.visible).toBe(true);
+    expect(aftermath.plate2.y).toBeGreaterThanOrEqual(303);
+    expect(aftermath.plate2.y).toBeLessThanOrEqual(305);
+    expect(aftermath.damageIds).toEqual([
+      'lower-hinge-failed',
+      'plate-1-broken',
+      'plate-stack-displaced',
+    ]);
+  });
+
+  it('resets to the untouched master state', () => {
     const reset = kitchenNativeFrameAt(0);
+    expect(reset.toast.visible).toBe(false);
+    expect(reset.door.rotation).toBe(0);
+    expect(reset.plate1.visible).toBe(false);
+    expect(reset.plate2.visible).toBe(false);
+    expect(reset.shards.every(shard => shard.opacity === 0)).toBe(true);
     expect(reset.damageIds).toEqual([]);
-    expect(reset.toast.patchOpacity).toBe(0);
-    expect(reset.door.patchOpacity).toBe(0);
-    expect(reset.platesPatchOpacity).toBe(0);
   });
 });

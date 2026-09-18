@@ -46,16 +46,22 @@ if (files.some(file => file.path.startsWith('cinematic/'))) {
   throw new Error('Retired /cinematic production assets are still present');
 }
 
-const roomArt = files.filter(file => file.path.startsWith('rooms/'));
+const proofArt = files.filter(file => file.path.startsWith('rooms/kitchen/rebuild/proof/'));
+const roomArt = files.filter(file => file.path.startsWith('rooms/') && !file.path.startsWith('rooms/kitchen/rebuild/proof/'));
 const foley = files.filter(file => file.path.startsWith('audio/foley/'));
-const runtime = files.filter(file => !file.path.startsWith('rooms/') && !file.path.startsWith('audio/foley/'));
+const runtime = files.filter(file =>
+  !file.path.startsWith('rooms/') &&
+  !file.path.startsWith('audio/foley/')
+);
 const sum = group => group.reduce((total, file) => total + file.bytes, 0);
 const totalBytes = sum(files);
 const roomBytes = sum(roomArt);
+const proofBytes = sum(proofArt);
 const foleyBytes = sum(foley);
 const runtimeBytes = sum(runtime);
 
 if (roomArt.length !== 44) throw new Error(`Production room-art count is ${roomArt.length}; expected 44`);
+if (proofArt.length > 8) throw new Error(`Kitchen proof-art count is ${proofArt.length}; limit is 8`);
 if (foley.length !== 17) throw new Error(`Production foley count is ${foley.length}; expected 17`);
 
 const budgets = {
@@ -63,10 +69,12 @@ const budgets = {
   runtime: 1_100_000,
   roomArt: 2_100_000,
   foley: 1_150_000,
+  proofArt: 250_000,
   javascript: 400_000,
   stylesheet: 100_000,
   font: 80_000,
   roomAsset: 150_000,
+  proofAsset: 160_000,
   foleyAsset: 200_000,
 };
 
@@ -77,6 +85,7 @@ function enforce(label, bytes, limit) {
 enforce('Production bundle', totalBytes, budgets.total);
 enforce('Runtime/code/font payload', runtimeBytes, budgets.runtime);
 enforce('Authored room-art payload', roomBytes, budgets.roomArt);
+enforce('Kitchen proof-art payload', proofBytes, budgets.proofArt);
 enforce('Foley payload', foleyBytes, budgets.foley);
 
 for (const file of files) {
@@ -85,11 +94,13 @@ for (const file of files) {
   if (/\.(?:woff2?|ttf|otf)$/.test(file.path)) enforce(`Font asset ${file.path}`, file.bytes, budgets.font);
 }
 for (const file of roomArt) enforce(`Room-art asset ${file.path}`, file.bytes, budgets.roomAsset);
+for (const file of proofArt) enforce(`Proof-art asset ${file.path}`, file.bytes, budgets.proofAsset);
 for (const file of foley) enforce(`Foley asset ${file.path}`, file.bytes, budgets.foleyAsset);
 
 console.log(`PASS standalone bundle: ${files.length} files, ${totalBytes} bytes total`);
 console.log(`  runtime/code/fonts: ${runtimeBytes} / ${budgets.runtime}`);
 console.log(`  authored room art: ${roomBytes} / ${budgets.roomArt} (${roomArt.length} files)`);
+console.log(`  kitchen proof art: ${proofBytes} / ${budgets.proofArt} (${proofArt.length} files)`);
 console.log(`  foley: ${foleyBytes} / ${budgets.foley} (${foley.length} files)`);
 console.log('PASS manifest + Chain Jam widget present in production output');
 console.log('PASS production asset references are relative/subpath-safe');

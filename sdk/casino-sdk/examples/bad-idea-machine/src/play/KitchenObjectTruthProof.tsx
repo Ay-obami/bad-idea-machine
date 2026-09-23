@@ -5,14 +5,16 @@ import {
   KITCHEN_TOAST_TRUTH,
   KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH,
+  KITCHEN_KETTLE_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
   kitchenTowelTruthLayers,
   kitchenPlateTruthLayers,
+  kitchenKettleTruthLayers,
   type KitchenTruthAtlasFrame,
 } from '../scene/kitchen-object-truth-proof';
 
-type TruthObject = 'pan' | 'toast' | 'towel' | 'plates';
+type TruthObject = 'pan' | 'toast' | 'towel' | 'plates' | 'kettle';
 
 const button: CSSProperties = {
   minHeight: 40,
@@ -243,6 +245,67 @@ function PlateReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
   );
 }
 
+function KettleSprite({
+  frame,
+  left = 0,
+  top = 0,
+  zoom = 1,
+}: Readonly<{
+  frame: KitchenTruthAtlasFrame;
+  left?: number;
+  top?: number;
+  zoom?: number;
+}>) {
+  return <AtlasSprite
+    atlasUrl={KITCHEN_KETTLE_TRUTH.atlasUrl}
+    atlasWidth={KITCHEN_KETTLE_TRUTH.atlasWidth}
+    atlasHeight={KITCHEN_KETTLE_TRUTH.atlasHeight}
+    frame={frame}
+    left={left}
+    top={top}
+    zoom={zoom}
+  />;
+}
+
+function LayeredKettle({
+  bodyVisible,
+  shadowVisible,
+  reflectionVisible,
+  zoom = 1,
+}: Readonly<{
+  bodyVisible: boolean;
+  shadowVisible: boolean;
+  reflectionVisible: boolean;
+  zoom?: number;
+}>) {
+  const layers = kitchenKettleTruthLayers(bodyVisible, shadowVisible, reflectionVisible);
+  return <div style={{
+    position: 'relative',
+    width: KITCHEN_KETTLE_TRUTH.cropWidth * zoom,
+    height: KITCHEN_KETTLE_TRUTH.cropHeight * zoom,
+    overflow: 'hidden',
+  }}>
+    {layers.map(id => <KettleSprite
+      key={id}
+      frame={KITCHEN_KETTLE_TRUTH.frames[id]}
+      left={id === 'support' ? 0 : KITCHEN_KETTLE_TRUTH.restPlacement[id].x}
+      top={id === 'support' ? 0 : KITCHEN_KETTLE_TRUTH.restPlacement[id].y}
+      zoom={zoom}
+    />)}
+  </div>;
+}
+
+function KettleReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
+  return <div style={{
+    position: 'relative',
+    width: KITCHEN_KETTLE_TRUTH.cropWidth * zoom,
+    height: KITCHEN_KETTLE_TRUTH.cropHeight * zoom,
+    overflow: 'hidden',
+  }}>
+    <KettleSprite frame={KITCHEN_KETTLE_TRUTH.frames.reference} zoom={zoom} />
+  </div>;
+}
+
 function LayeredToast({
   bodyVisible,
   shadowVisible,
@@ -390,6 +453,7 @@ export function KitchenObjectTruthProof() {
   const [bodyVisible, setBodyVisible] = useState(true);
   const [shadowVisible, setShadowVisible] = useState(true);
   const [remainingToastVisible, setRemainingToastVisible] = useState(true);
+  const [reflectionVisible, setReflectionVisible] = useState(true);
   const [blinkReference, setBlinkReference] = useState(false);
   const [stackBodyVisible, setStackBodyVisible] = useState(true);
   const [stackShadowVisible, setStackShadowVisible] = useState(true);
@@ -415,6 +479,7 @@ export function KitchenObjectTruthProof() {
     setBodyVisible(true);
     setShadowVisible(true);
     setRemainingToastVisible(true);
+    setReflectionVisible(true);
     setBlinkReference(false);
     setStackBodyVisible(true);
     setStackShadowVisible(true);
@@ -460,6 +525,17 @@ export function KitchenObjectTruthProof() {
       );
     }
 
+    if (object === 'kettle') {
+      return blinkReference ? <KettleReference zoom={2} /> : (
+        <LayeredKettle
+          bodyVisible={bodyVisible}
+          shadowVisible={shadowVisible}
+          reflectionVisible={reflectionVisible}
+          zoom={2}
+        />
+      );
+    }
+
     return blinkReference ? (
       <TowelReference zoom={2} />
     ) : (
@@ -483,7 +559,7 @@ export function KitchenObjectTruthProof() {
           One object at a time · repository-local only
         </h1>
         <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          Pan, hero toast, oven towel and independent cabinet plates have local truth gates. Every active asset on this page comes from approved Kitchen pixels or deterministic local reconstruction.
+          Pan, toast, towel, cabinet plates and kettle have local truth gates. Every active asset on this page comes from approved Kitchen pixels or deterministic local reconstruction.
         </p>
       </header>
 
@@ -493,6 +569,7 @@ export function KitchenObjectTruthProof() {
           ['toast', 'Hero toast'],
           ['towel', 'Oven towel'],
           ['plates', 'Hero plate + remaining stack'],
+          ['kettle', 'Counter kettle'],
         ] as const).map(([id, label]) => (
           <button
             type="button"
@@ -517,6 +594,20 @@ export function KitchenObjectTruthProof() {
               <button key={label} type="button"
                 style={{ ...button, borderColor: shown ? '#7ce2a5' : '#8b4c48' }}
                 onClick={() => toggle(!shown)}>
+                {shown ? 'Hide' : 'Show'} {label}
+              </button>
+            ))}
+          </>
+        ) : object === 'kettle' ? (
+          <>
+            {([
+              ['kettle', bodyVisible, setBodyVisible],
+              ['contact shadow', shadowVisible, setShadowVisible],
+              ['counter reflection', reflectionVisible, setReflectionVisible],
+            ] as const).map(([label, shown, toggle]) => (
+              <button key={label} type="button"
+                style={{ ...button, borderColor: shown ? '#7ce2a5' : '#8b4c48' }}
+                onClick={() => toggle(value => !value)}>
                 {shown ? 'Hide' : 'Show'} {label}
               </button>
             ))}
@@ -562,7 +653,8 @@ export function KitchenObjectTruthProof() {
           {blinkReference ? 'Show reconstruction' : 'Show reference'}
         </button>
         <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>
-          Current: {object} · {object === 'plates' ? 'four independent toggles' : object === 'toast'
+          Current: {object} · {object === 'plates' ? 'four independent toggles' : object === 'kettle'
+            ? 'kettle, contact shadow and counter reflection independently toggle' : object === 'toast'
             ? `${bodyVisible ? 'hero visible' : 'hero hidden'} · ${remainingToastVisible ? 'other slice visible' : 'other slice hidden'}`
             : state}
         </span>
@@ -626,6 +718,16 @@ export function KitchenObjectTruthProof() {
                 The hero is only the thin top plate of the upper pile. The remaining stack is the upper plates beneath it. The cabinet wood, lower bowl and plates, and mugs stay in the support. Hide both plate bodies to see that support alone. Motion and the hidden plate face are outside this static gate.
               </p>
             </div>
+          ) : object === 'kettle' ? (
+            <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+              <small style={{ color: '#a9b5b6' }}>Current toggles</small>
+              <LayeredKettle bodyVisible={bodyVisible} shadowVisible={shadowVisible} reflectionVisible={reflectionVisible} />
+              <small style={{ color: '#a9b5b6' }}>Approved intact reference</small>
+              <KettleReference />
+              <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
+                Hide the kettle, its contact shadow and its reflected highlight to inspect clean tile and counter. The kettle body is copied from the approved master; the hidden support uses neighboring tile and stone from that same image.
+              </p>
+            </div>
           ) : (
             <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
               <LayeredTowel bodyVisible={bodyVisible} shadowVisible={shadowVisible} />
@@ -648,7 +750,7 @@ export function KitchenObjectTruthProof() {
         <div style={{ ...card, padding: 12 }}>
           <strong>Support-only pass rule</strong>
           <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
-            With objects and shadows hidden, the real support must remain believable. Hiding both toast slices reveals an empty toaster slot; hiding the towel reveals a clean oven handle and door.
+            With objects and shadows hidden, the real support must remain believable. Hiding both toast slices reveals an empty toaster slot; hiding the towel reveals a clean oven handle and door; hiding all kettle layers reveals tile and counter.
           </p>
         </div>
 

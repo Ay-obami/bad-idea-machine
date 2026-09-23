@@ -2,6 +2,7 @@ export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenToastTruthLayer = 'support' | 'remainingBody' | 'shadow' | 'body';
 export type KitchenTowelTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenPlateTruthLayer = 'support' | 'stackShadow' | 'stackBody' | 'heroShadow' | 'heroBody';
+export type KitchenKettleTruthLayer = 'support' | 'shadow' | 'reflection' | 'body';
 
 export type KitchenTruthAtlasFrame = Readonly<{
   x: number;
@@ -109,6 +110,72 @@ export const KITCHEN_PLATE_TRUTH = {
   supportSource: 'deterministic-local-cabinet-backing-reconstruction' as const,
   role: 'two-object-truth-gate' as const,
 } as const;
+
+export const KITCHEN_KETTLE_TRUTH = {
+  atlasUrl: '/rooms/kitchen/rebuild/truth/kettle-truth-atlas.webp',
+  atlasWidth: 242,
+  atlasHeight: 217,
+  cropWidth: 120,
+  cropHeight: 120,
+  logicalBounds: { x: 720, y: 216, width: 120, height: 120 },
+  frames: {
+    reference: { x: 0, y: 0, width: 120, height: 120 },
+    support: { x: 122, y: 0, width: 120, height: 120 },
+    body: { x: 0, y: 122, width: 75, height: 93 },
+    shadow: { x: 78, y: 122, width: 76, height: 28 },
+    reflection: { x: 78, y: 152, width: 76, height: 22 },
+  } satisfies Readonly<Record<'reference' | KitchenKettleTruthLayer, KitchenTruthAtlasFrame>>,
+  restPlacement: {
+    body: { x: 19, y: 10 },
+    shadow: { x: 19, y: 90 },
+    reflection: { x: 19, y: 98 },
+  },
+  source: 'approved-master-local-extraction' as const,
+  supportSource: 'deterministic-local-counter-reconstruction' as const,
+  role: 'single-object-truth-gate' as const,
+} as const;
+
+export function kitchenKettleTruthLayers(
+  bodyVisible: boolean,
+  shadowVisible: boolean,
+  reflectionVisible: boolean,
+): readonly KitchenKettleTruthLayer[] {
+  const layers: KitchenKettleTruthLayer[] = ['support'];
+  if (shadowVisible) layers.push('shadow');
+  if (reflectionVisible) layers.push('reflection');
+  if (bodyVisible) layers.push('body');
+  return layers;
+}
+
+export function validateKitchenKettleTruth(): readonly string[] {
+  const errors: string[] = [];
+  const truth = KITCHEN_KETTLE_TRUTH;
+  if (!truth.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(truth.atlasUrl)) {
+    errors.push('kettle atlas must be repository-local');
+  }
+  for (const [id, frame] of Object.entries(truth.frames)) {
+    if (frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 ||
+        frame.x + frame.width > truth.atlasWidth ||
+        frame.y + frame.height > truth.atlasHeight) {
+      errors.push(`kettle atlas frame outside bounds: ${id}`);
+    }
+  }
+  const { x, y, width, height } = truth.logicalBounds;
+  if (width !== truth.cropWidth || height !== truth.cropHeight ||
+      x < 0 || y < 0 || x + width > 1000 || y + height > 600) {
+    errors.push('kettle truth registration outside logical canvas');
+  }
+  for (const [id, placement] of Object.entries(truth.restPlacement)) {
+    const frame = truth.frames[id as keyof typeof truth.restPlacement];
+    if (placement.x < 0 || placement.y < 0 ||
+        placement.x + frame.width > truth.cropWidth ||
+        placement.y + frame.height > truth.cropHeight) {
+      errors.push(`kettle rest placement outside crop: ${id}`);
+    }
+  }
+  return errors;
+}
 
 export function kitchenPanTruthLayers(
   bodyVisible: boolean,

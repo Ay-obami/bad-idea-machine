@@ -5,14 +5,17 @@ import {
   KITCHEN_TOAST_TRUTH,
   KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH,
+  KITCHEN_KETTLE_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
   kitchenTowelTruthLayers,
   kitchenPlateTruthLayers,
+  kitchenKettleTruthLayers,
   validateKitchenPanTruth,
   validateKitchenToastTruth,
   validateKitchenTowelTruth,
   validateKitchenPlateTruth,
+  validateKitchenKettleTruth,
 } from './kitchen-object-truth-proof';
 
 describe('kitchen single-object truth proofs', () => {
@@ -132,6 +135,19 @@ describe('kitchen single-object truth proofs', () => {
     expect(kitchenPlateTruthLayers(false, false, false, true)).toEqual(['support', 'heroShadow']);
     expect(kitchenPlateTruthLayers(true, true, true, true)).toEqual([
       'support', 'stackShadow', 'stackBody', 'heroShadow', 'heroBody',
+    ]);
+  });
+
+  it('keeps kettle, contact shadow and counter reflection independently removable', () => {
+    expect(validateKitchenKettleTruth()).toEqual([]);
+    expect(KITCHEN_KETTLE_TRUTH.atlasUrl).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
+    expect(KITCHEN_KETTLE_TRUTH.logicalBounds).toEqual({ x: 720, y: 216, width: 120, height: 120 });
+    expect(kitchenKettleTruthLayers(false, false, false)).toEqual(['support']);
+    expect(kitchenKettleTruthLayers(false, true, false)).toEqual(['support', 'shadow']);
+    expect(kitchenKettleTruthLayers(false, false, true)).toEqual(['support', 'reflection']);
+    expect(kitchenKettleTruthLayers(true, false, false)).toEqual(['support', 'body']);
+    expect(kitchenKettleTruthLayers(true, true, true)).toEqual([
+      'support', 'shadow', 'reflection', 'body',
     ]);
   });
 });

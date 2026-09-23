@@ -39,6 +39,11 @@ const KitchenObjectTruthProof = lazy(async () => {
   return { default: module.KitchenObjectTruthProof };
 });
 
+const KitchenLocalIntactProof = lazy(async () => {
+  const module = await import('./play/KitchenLocalIntactProof');
+  return { default: module.KitchenLocalIntactProof };
+});
+
 
 type GalleryGateProps = Readonly<{
   onChoose: (environment: EnvironmentId) => void;
@@ -90,6 +95,14 @@ const scene = typeof window !== 'undefined'
   : null;
 
 function RootView() {
+  if (scene === 'kitchen-local-intact') {
+    return (
+      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
+        <KitchenLocalIntactProof />
+      </Suspense>
+    );
+  }
+
   if (scene === 'kitchen-layered-static') {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>

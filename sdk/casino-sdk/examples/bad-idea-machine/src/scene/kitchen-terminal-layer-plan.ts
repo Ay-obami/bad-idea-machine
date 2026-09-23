@@ -3,6 +3,8 @@ import {
   KITCHEN_DESTRUCTION_BLUEPRINT,
   type KitchenPropId,
   type KitchenZoneId,
+  type KitchenPermanentZoneId,
+  type KitchenDestructibleZoneId,
 } from './kitchen-destruction-blueprint';
 
 export type KitchenTerminalLayerKind =
@@ -69,8 +71,8 @@ function architectureLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] 
 
   return KITCHEN_DESTRUCTION_BLUEPRINT.zones.map(zone => {
     const state = zone.kind === 'permanent'
-      ? composition.shellStates[zone.id]
-      : composition.zoneStates[zone.id];
+      ? composition.shellStates[zone.id as KitchenPermanentZoneId]
+      : composition.zoneStates[zone.id as KitchenDestructibleZoneId];
 
     return {
       id: `tier/${tier}/architecture/${zone.id}/${state}`,

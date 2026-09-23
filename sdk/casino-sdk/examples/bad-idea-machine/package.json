@@ -11,6 +11,7 @@
     "simulate": "node scripts/simulate-flows.mjs",
     "verify-build": "node scripts/verify-build.mjs",
     "verify-room-assets": "node scripts/verify-room-assets.mjs",
+    "verify-plate-truth": "python scripts/verify-plate-truth.py",
     "verify-audio-assets": "node scripts/verify-audio-assets.mjs"
   },
   "dependencies": {

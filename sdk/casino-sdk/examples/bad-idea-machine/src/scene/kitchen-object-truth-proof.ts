@@ -1,6 +1,7 @@
 export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenToastTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenTowelTruthLayer = 'support' | 'shadow' | 'body';
+export type KitchenPlateTruthLayer = 'support' | 'stackShadow' | 'stackBody' | 'heroShadow' | 'heroBody';
 
 export type KitchenTruthAtlasFrame = Readonly<{
   x: number;
@@ -81,6 +82,32 @@ export const KITCHEN_TOWEL_TRUTH = {
   role: 'single-object-truth-gate' as const,
 } as const;
 
+export const KITCHEN_PLATE_TRUTH = {
+  atlasUrl: '/rooms/kitchen/rebuild/truth/plate-truth-atlas.webp',
+  atlasWidth: 288,
+  atlasHeight: 125,
+  cropWidth: 135,
+  cropHeight: 85,
+  logicalBounds: { x: 555, y: 67, width: 135, height: 85 },
+  frames: {
+    reference: { x: 0, y: 0, width: 135, height: 85 },
+    support: { x: 137, y: 0, width: 135, height: 85 },
+    heroBody: { x: 0, y: 87, width: 70, height: 20 },
+    heroShadow: { x: 72, y: 87, width: 70, height: 20 },
+    stackBody: { x: 144, y: 87, width: 70, height: 29 },
+    stackShadow: { x: 216, y: 87, width: 70, height: 18 },
+  } satisfies Readonly<Record<'reference' | 'support' | 'heroBody' | 'heroShadow' | 'stackBody' | 'stackShadow', KitchenTruthAtlasFrame>>,
+  restPlacement: {
+    heroBody: { x: 18, y: 18 },
+    heroShadow: { x: 18, y: 25 },
+    stackBody: { x: 18, y: 28 },
+    stackShadow: { x: 18, y: 44 },
+  },
+  source: 'approved-master-local-extraction' as const,
+  supportSource: 'deterministic-local-cabinet-backing-reconstruction' as const,
+  role: 'two-object-truth-gate' as const,
+} as const;
+
 export function kitchenPanTruthLayers(
   bodyVisible: boolean,
   shadowVisible: boolean,
@@ -109,6 +136,50 @@ export function kitchenTowelTruthLayers(
   if (shadowVisible) layers.push('shadow');
   if (bodyVisible) layers.push('body');
   return layers;
+}
+
+export function kitchenPlateTruthLayers(
+  stackBodyVisible: boolean,
+  stackShadowVisible: boolean,
+  heroBodyVisible: boolean,
+  heroShadowVisible: boolean,
+): readonly KitchenPlateTruthLayer[] {
+  const layers: KitchenPlateTruthLayer[] = ['support'];
+  if (stackShadowVisible) layers.push('stackShadow');
+  if (stackBodyVisible) layers.push('stackBody');
+  if (heroShadowVisible) layers.push('heroShadow');
+  if (heroBodyVisible) layers.push('heroBody');
+  return layers;
+}
+
+export function validateKitchenPlateTruth(): readonly string[] {
+  const errors: string[] = [];
+  const truth = KITCHEN_PLATE_TRUTH;
+  if (!truth.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(truth.atlasUrl)) {
+    errors.push('plate atlas must be repository-local');
+  }
+  for (const [id, frame] of Object.entries(truth.frames)) {
+    if (frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 ||
+        frame.x + frame.width > truth.atlasWidth ||
+        frame.y + frame.height > truth.atlasHeight) {
+      errors.push(`plate atlas frame outside bounds: ${id}`);
+    }
+  }
+  const { x, y, width, height } = truth.logicalBounds;
+  if (width !== truth.cropWidth || height !== truth.cropHeight ||
+      x < 0 || y < 0 || x + width > 1000 || y + height > 600) {
+    errors.push('plate truth registration outside logical canvas');
+  }
+  for (const [id, placement] of Object.entries(truth.restPlacement)) {
+    const frame = truth.frames[id as keyof typeof truth.restPlacement];
+    if (placement.x < 0 || placement.y < 0 ||
+        placement.x + frame.width > truth.cropWidth ||
+        placement.y + frame.height > truth.cropHeight) {
+      errors.push(`plate rest placement outside crop: ${id}`);
+    }
+  }
+  return errors;
 }
 
 export function validateKitchenPanTruth(): readonly string[] {

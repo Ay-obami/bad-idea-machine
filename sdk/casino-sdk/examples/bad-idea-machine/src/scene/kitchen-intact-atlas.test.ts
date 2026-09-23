@@ -5,20 +5,22 @@ import {
   KITCHEN_INTACT_ATLAS,
   KITCHEN_INTACT_DRAW_ORDER,
   validateKitchenIntactAtlas,
+  type KitchenAtlasFrame,
 } from './kitchen-intact-atlas';
 
 describe('kitchen intact layer atlas', () => {
   it('covers the permanent shell, every intact architecture zone and every rest-state prop', () => {
     expect(validateKitchenIntactAtlas()).toEqual([]);
+    const frames: Readonly<Record<string, KitchenAtlasFrame>> = KITCHEN_INTACT_ATLAS.frames;
 
-    expect(KITCHEN_INTACT_ATLAS.frames['shell/permanent']).toBeDefined();
+    expect(frames['shell/permanent']).toBeDefined();
 
     for (const zone of KITCHEN_DESTRUCTION_BLUEPRINT.zones.filter(zone => zone.kind === 'destructible')) {
-      expect(KITCHEN_INTACT_ATLAS.frames[`zone/${zone.id}/intact`]).toBeDefined();
+      expect(frames[`zone/${zone.id}/intact`]).toBeDefined();
     }
 
     for (const prop of KITCHEN_DESTRUCTION_BLUEPRINT.props) {
-      expect(KITCHEN_INTACT_ATLAS.frames[`prop/${prop.id}/${prop.defaultState}`]).toBeDefined();
+      expect(frames[`prop/${prop.id}/${prop.defaultState}`]).toBeDefined();
     }
   });
 

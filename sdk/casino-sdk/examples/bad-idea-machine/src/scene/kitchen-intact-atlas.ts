@@ -78,7 +78,7 @@ export function propIdFromKitchenAtlasFrame(id: string): string | null {
 
 export function validateKitchenIntactAtlas(): readonly string[] {
   const errors: string[] = [];
-  const frames = KITCHEN_INTACT_ATLAS.frames;
+  const frames: Readonly<Record<string, KitchenAtlasFrame>> = KITCHEN_INTACT_ATLAS.frames;
 
   if (!frames['shell/permanent']) errors.push('missing permanent shell');
 

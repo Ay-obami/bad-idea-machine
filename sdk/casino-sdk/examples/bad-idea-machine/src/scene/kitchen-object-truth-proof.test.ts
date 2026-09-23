@@ -4,12 +4,15 @@ import {
   KITCHEN_PAN_TRUTH,
   KITCHEN_TOAST_TRUTH,
   KITCHEN_TOWEL_TRUTH,
+  KITCHEN_PLATE_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
   kitchenTowelTruthLayers,
+  kitchenPlateTruthLayers,
   validateKitchenPanTruth,
   validateKitchenToastTruth,
   validateKitchenTowelTruth,
+  validateKitchenPlateTruth,
 } from './kitchen-object-truth-proof';
 
 describe('kitchen single-object truth proofs', () => {
@@ -107,5 +110,27 @@ describe('kitchen single-object truth proofs', () => {
     expect(layers).not.toContain('face');
     expect(KITCHEN_TOAST_TRUTH.hiddenFaceSource)
       .toBe('deterministic-local-reconstruction-from-approved-toast-pixels');
+  });
+
+  it('keeps a separate hero plate and stationary stack above one local cabinet support', () => {
+    expect(validateKitchenPlateTruth()).toEqual([]);
+    expect(KITCHEN_PLATE_TRUTH.atlasUrl).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
+    expect(KITCHEN_PLATE_TRUTH.atlasUrl).not.toMatch(/creativeclaw|^https?:\/\//i);
+    expect(KITCHEN_PLATE_TRUTH.logicalBounds).toEqual({ x: 555, y: 67, width: 135, height: 85 });
+    expect(KITCHEN_PLATE_TRUTH.frames.heroBody).not.toEqual(KITCHEN_PLATE_TRUTH.frames.stackBody);
+    expect(KITCHEN_PLATE_TRUTH.restPlacement.heroBody.y).toBeLessThan(
+      KITCHEN_PLATE_TRUTH.restPlacement.stackBody.y,
+    );
+  });
+
+  it('lets each plate body and contact shadow toggle independently without spawning an object', () => {
+    expect(kitchenPlateTruthLayers(false, false, false, false)).toEqual(['support']);
+    expect(kitchenPlateTruthLayers(true, false, false, false)).toEqual(['support', 'stackBody']);
+    expect(kitchenPlateTruthLayers(false, true, false, false)).toEqual(['support', 'stackShadow']);
+    expect(kitchenPlateTruthLayers(false, false, true, false)).toEqual(['support', 'heroBody']);
+    expect(kitchenPlateTruthLayers(false, false, false, true)).toEqual(['support', 'heroShadow']);
+    expect(kitchenPlateTruthLayers(true, true, true, true)).toEqual([
+      'support', 'stackShadow', 'stackBody', 'heroShadow', 'heroBody',
+    ]);
   });
 });

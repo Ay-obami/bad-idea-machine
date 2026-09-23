@@ -4,13 +4,15 @@ import {
   KITCHEN_PAN_TRUTH,
   KITCHEN_TOAST_TRUTH,
   KITCHEN_TOWEL_TRUTH,
+  KITCHEN_PLATE_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
   kitchenTowelTruthLayers,
+  kitchenPlateTruthLayers,
   type KitchenTruthAtlasFrame,
 } from '../scene/kitchen-object-truth-proof';
 
-type TruthObject = 'pan' | 'toast' | 'towel';
+type TruthObject = 'pan' | 'toast' | 'towel' | 'plates';
 
 const button: CSSProperties = {
   minHeight: 40,
@@ -168,6 +170,79 @@ function TowelSprite({
   );
 }
 
+function PlateSprite({
+  frame,
+  left = 0,
+  top = 0,
+  zoom = 1,
+}: Readonly<{
+  frame: KitchenTruthAtlasFrame;
+  left?: number;
+  top?: number;
+  zoom?: number;
+}>) {
+  return (
+    <AtlasSprite
+      atlasUrl={KITCHEN_PLATE_TRUTH.atlasUrl}
+      atlasWidth={KITCHEN_PLATE_TRUTH.atlasWidth}
+      atlasHeight={KITCHEN_PLATE_TRUTH.atlasHeight}
+      frame={frame}
+      left={left}
+      top={top}
+      zoom={zoom}
+    />
+  );
+}
+
+function LayeredPlates({
+  stackBodyVisible,
+  stackShadowVisible,
+  heroBodyVisible,
+  heroShadowVisible,
+  zoom = 1,
+}: Readonly<{
+  stackBodyVisible: boolean;
+  stackShadowVisible: boolean;
+  heroBodyVisible: boolean;
+  heroShadowVisible: boolean;
+  zoom?: number;
+}>) {
+  const layers = kitchenPlateTruthLayers(
+    stackBodyVisible, stackShadowVisible, heroBodyVisible, heroShadowVisible,
+  );
+  return (
+    <div style={{
+      position: 'relative',
+      width: KITCHEN_PLATE_TRUTH.cropWidth * zoom,
+      height: KITCHEN_PLATE_TRUTH.cropHeight * zoom,
+      overflow: 'hidden',
+    }}>
+      {layers.map(id => (
+        <PlateSprite
+          key={id}
+          frame={KITCHEN_PLATE_TRUTH.frames[id]}
+          left={id === 'support' ? 0 : KITCHEN_PLATE_TRUTH.restPlacement[id].x}
+          top={id === 'support' ? 0 : KITCHEN_PLATE_TRUTH.restPlacement[id].y}
+          zoom={zoom}
+        />
+      ))}
+    </div>
+  );
+}
+
+function PlateReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
+  return (
+    <div style={{
+      position: 'relative',
+      width: KITCHEN_PLATE_TRUTH.cropWidth * zoom,
+      height: KITCHEN_PLATE_TRUTH.cropHeight * zoom,
+      overflow: 'hidden',
+    }}>
+      <PlateSprite frame={KITCHEN_PLATE_TRUTH.frames.reference} zoom={zoom} />
+    </div>
+  );
+}
+
 function LayeredToast({
   bodyVisible,
   shadowVisible,
@@ -305,6 +380,10 @@ export function KitchenObjectTruthProof() {
   const [bodyVisible, setBodyVisible] = useState(true);
   const [shadowVisible, setShadowVisible] = useState(true);
   const [blinkReference, setBlinkReference] = useState(false);
+  const [stackBodyVisible, setStackBodyVisible] = useState(true);
+  const [stackShadowVisible, setStackShadowVisible] = useState(true);
+  const [heroBodyVisible, setHeroBodyVisible] = useState(true);
+  const [heroShadowVisible, setHeroShadowVisible] = useState(true);
 
   const state = bodyVisible && shadowVisible
     ? 'body + shadow'
@@ -325,6 +404,10 @@ export function KitchenObjectTruthProof() {
     setBodyVisible(true);
     setShadowVisible(true);
     setBlinkReference(false);
+    setStackBodyVisible(true);
+    setStackShadowVisible(true);
+    setHeroBodyVisible(true);
+    setHeroShadowVisible(true);
   };
 
   const primary = () => {
@@ -353,6 +436,18 @@ export function KitchenObjectTruthProof() {
       );
     }
 
+    if (object === 'plates') {
+      return blinkReference ? <PlateReference zoom={2} /> : (
+        <LayeredPlates
+          stackBodyVisible={stackBodyVisible}
+          stackShadowVisible={stackShadowVisible}
+          heroBodyVisible={heroBodyVisible}
+          heroShadowVisible={heroShadowVisible}
+          zoom={2}
+        />
+      );
+    }
+
     return blinkReference ? (
       <TowelReference zoom={2} />
     ) : (
@@ -376,7 +471,7 @@ export function KitchenObjectTruthProof() {
           One object at a time · repository-local only
         </h1>
         <p style={{ maxWidth: 980, margin: 0, color: '#a9b5b6', lineHeight: 1.48 }}>
-          Pan, hero toast and oven towel are isolated from the rejected multi-object mask proof. Every active asset on this page is repository-local and comes from approved Kitchen pixels or deterministic local reconstruction. No Creative Claw asset or remote image is used.
+          Pan, hero toast, oven towel and independent cabinet plates have local truth gates. Every active asset on this page comes from approved Kitchen pixels or deterministic local reconstruction.
         </p>
       </header>
 
@@ -385,6 +480,7 @@ export function KitchenObjectTruthProof() {
           ['pan', 'Pan'],
           ['toast', 'Hero toast'],
           ['towel', 'Oven towel'],
+          ['plates', 'Hero plate + remaining stack'],
         ] as const).map(([id, label]) => (
           <button
             type="button"
@@ -398,20 +494,39 @@ export function KitchenObjectTruthProof() {
       </section>
 
       <section style={{ width: 'min(1320px,100%)', margin: '0 auto 12px', display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-        <button
+        {object === 'plates' ? (
+          <>
+            {([
+              ['Hero plate', heroBodyVisible, setHeroBodyVisible],
+              ['Hero contact shadow', heroShadowVisible, setHeroShadowVisible],
+              ['Remaining stack', stackBodyVisible, setStackBodyVisible],
+              ['Stack contact shadow', stackShadowVisible, setStackShadowVisible],
+            ] as const).map(([label, shown, toggle]) => (
+              <button key={label} type="button"
+                style={{ ...button, borderColor: shown ? '#7ce2a5' : '#8b4c48' }}
+                onClick={() => toggle(!shown)}>
+                {shown ? 'Hide' : 'Show'} {label}
+              </button>
+            ))}
+          </>
+        ) : (
+          <>
+          <button
           type="button"
           style={{ ...button, borderColor: bodyVisible ? '#7ce2a5' : '#8b4c48' }}
           onClick={() => setBodyVisible(v => !v)}
         >
           {bodyVisible ? 'Hide' : 'Show'} body
-        </button>
-        <button
+          </button>
+          <button
           type="button"
           style={{ ...button, borderColor: shadowVisible ? '#6bc8e6' : '#8b4c48' }}
           onClick={() => setShadowVisible(v => !v)}
         >
           {shadowVisible ? 'Hide' : 'Show'} shadow
-        </button>
+          </button>
+          </>
+        )}
         <button
           type="button"
           style={{ ...button, borderColor: blinkReference ? '#f4cb58' : '#42565c' }}
@@ -420,7 +535,7 @@ export function KitchenObjectTruthProof() {
           {blinkReference ? 'Show reconstruction' : 'Show reference'}
         </button>
         <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>
-          Current: {object} · {state}
+          Current: {object} · {object === 'plates' ? 'four independent toggles' : state}
         </span>
       </section>
 
@@ -433,7 +548,7 @@ export function KitchenObjectTruthProof() {
       }}>
         <figure style={{ ...card, margin: 0, padding: 12 }}>
           <figcaption style={{ marginBottom: 10, color: '#7ce2a5', fontWeight: 700 }}>
-            {blinkReference ? 'Approved reference crop' : `Reconstruction · ${state}`}
+            {blinkReference ? 'Approved reference crop' : object === 'plates' ? 'Independent plate reconstruction' : `Reconstruction · ${state}`}
           </figcaption>
 
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 360 }}>
@@ -465,6 +580,19 @@ export function KitchenObjectTruthProof() {
               <AirborneToastFace />
               <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
                 The rest sprite remains the exact visible photographed toast. This full face exists only so later rotation can reveal previously occluded bread instead of stretching the rest sprite or switching to a generated object.
+              </p>
+            </div>
+          ) : object === 'plates' ? (
+            <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+              <LayeredPlates
+                stackBodyVisible={stackBodyVisible}
+                stackShadowVisible={stackShadowVisible}
+                heroBodyVisible={heroBodyVisible}
+                heroShadowVisible={heroShadowVisible}
+              />
+              <PlateReference />
+              <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
+                Hide the hero plate to see the remaining stack missing one. Hide both bodies and shadows to inspect the reconstructed cabinet backing and the untouched lower crockery. Motion and hidden plate face are outside this static gate.
               </p>
             </div>
           ) : (

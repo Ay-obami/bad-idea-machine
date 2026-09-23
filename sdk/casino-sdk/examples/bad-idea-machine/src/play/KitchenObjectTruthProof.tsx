@@ -246,15 +246,17 @@ function PlateReference({ zoom = 1 }: Readonly<{ zoom?: number }>) {
 function LayeredToast({
   bodyVisible,
   shadowVisible,
+  remainingVisible,
   zoom = 1,
 }: Readonly<{
   bodyVisible: boolean;
   shadowVisible: boolean;
+  remainingVisible: boolean;
   zoom?: number;
 }>) {
   const layers = useMemo(
-    () => kitchenToastTruthLayers(bodyVisible, shadowVisible),
-    [bodyVisible, shadowVisible],
+    () => kitchenToastTruthLayers(bodyVisible, shadowVisible, remainingVisible),
+    [bodyVisible, shadowVisible, remainingVisible],
   );
 
   return (
@@ -268,6 +270,14 @@ function LayeredToast({
       }}
     >
       <ToastSprite frame={KITCHEN_TOAST_TRUTH.frames.support} zoom={zoom} />
+      {layers.includes('remainingBody') ? (
+        <ToastSprite
+          frame={KITCHEN_TOAST_TRUTH.frames.remainingBody}
+          left={KITCHEN_TOAST_TRUTH.restPlacement.remainingBody.x}
+          top={KITCHEN_TOAST_TRUTH.restPlacement.remainingBody.y}
+          zoom={zoom}
+        />
+      ) : null}
       {layers.includes('shadow') ? (
         <ToastSprite
           frame={KITCHEN_TOAST_TRUTH.frames.shadow}
@@ -379,6 +389,7 @@ export function KitchenObjectTruthProof() {
   const [object, setObject] = useState<TruthObject>('pan');
   const [bodyVisible, setBodyVisible] = useState(true);
   const [shadowVisible, setShadowVisible] = useState(true);
+  const [remainingToastVisible, setRemainingToastVisible] = useState(true);
   const [blinkReference, setBlinkReference] = useState(false);
   const [stackBodyVisible, setStackBodyVisible] = useState(true);
   const [stackShadowVisible, setStackShadowVisible] = useState(true);
@@ -403,6 +414,7 @@ export function KitchenObjectTruthProof() {
     setObject(next);
     setBodyVisible(true);
     setShadowVisible(true);
+    setRemainingToastVisible(true);
     setBlinkReference(false);
     setStackBodyVisible(true);
     setStackShadowVisible(true);
@@ -432,7 +444,7 @@ export function KitchenObjectTruthProof() {
       return blinkReference ? (
         <ToastReference zoom={2} />
       ) : (
-        <LayeredToast bodyVisible={bodyVisible} shadowVisible={shadowVisible} zoom={2} />
+        <LayeredToast bodyVisible={bodyVisible} shadowVisible={shadowVisible} remainingVisible={remainingToastVisible} zoom={2} />
       );
     }
 
@@ -509,6 +521,21 @@ export function KitchenObjectTruthProof() {
               </button>
             ))}
           </>
+        ) : object === 'toast' ? (
+          <>
+            <button type="button" style={{ ...button, borderColor: bodyVisible ? '#7ce2a5' : '#8b4c48' }}
+              onClick={() => setBodyVisible(v => !v)}>
+              {bodyVisible ? 'Hide' : 'Show'} hero toast
+            </button>
+            <button type="button" style={{ ...button, borderColor: remainingToastVisible ? '#7ce2a5' : '#8b4c48' }}
+              onClick={() => setRemainingToastVisible(v => !v)}>
+              {remainingToastVisible ? 'Hide' : 'Show'} remaining slice
+            </button>
+            <button type="button" style={{ ...button, borderColor: shadowVisible ? '#6bc8e6' : '#8b4c48' }}
+              onClick={() => setShadowVisible(v => !v)}>
+              {shadowVisible ? 'Hide' : 'Show'} hero shadow
+            </button>
+          </>
         ) : (
           <>
           <button
@@ -535,7 +562,9 @@ export function KitchenObjectTruthProof() {
           {blinkReference ? 'Show reconstruction' : 'Show reference'}
         </button>
         <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>
-          Current: {object} · {object === 'plates' ? 'four independent toggles' : state}
+          Current: {object} · {object === 'plates' ? 'four independent toggles' : object === 'toast'
+            ? `${bodyVisible ? 'hero visible' : 'hero hidden'} · ${remainingToastVisible ? 'other slice visible' : 'other slice hidden'}`
+            : state}
         </span>
       </section>
 
@@ -579,20 +608,22 @@ export function KitchenObjectTruthProof() {
             <div style={{ display: 'grid', gap: 16, justifyItems: 'center' }}>
               <AirborneToastFace />
               <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
-                The rest sprite remains the exact visible photographed toast. This full face exists only so later rotation can reveal previously occluded bread instead of stretching the rest sprite or switching to a generated object.
+                The launched toast and the slice left in the toaster are separate. Hide both to inspect the empty slot. This full face is only a diagnostic for bread hidden at rest; rotation is still blocked.
               </p>
             </div>
           ) : object === 'plates' ? (
             <div style={{ display: 'grid', gap: 12, justifyItems: 'center' }}>
+              <small style={{ color: '#a9b5b6' }}>Current toggles</small>
               <LayeredPlates
                 stackBodyVisible={stackBodyVisible}
                 stackShadowVisible={stackShadowVisible}
                 heroBodyVisible={heroBodyVisible}
                 heroShadowVisible={heroShadowVisible}
               />
+              <small style={{ color: '#a9b5b6' }}>Approved intact reference</small>
               <PlateReference />
               <p style={{ maxWidth: 420, margin: 0, color: '#9fabad', lineHeight: 1.45, textAlign: 'center' }}>
-                Hide the hero plate to see the remaining stack missing one. Hide both bodies and shadows to inspect the reconstructed cabinet backing and the untouched lower crockery. Motion and hidden plate face are outside this static gate.
+                The hero is only the thin top plate of the upper pile. The remaining stack is the upper plates beneath it. The cabinet wood, lower bowl and plates, and mugs stay in the support. Hide both plate bodies to see that support alone. Motion and the hidden plate face are outside this static gate.
               </p>
             </div>
           ) : (
@@ -617,7 +648,7 @@ export function KitchenObjectTruthProof() {
         <div style={{ ...card, padding: 12 }}>
           <strong>Support-only pass rule</strong>
           <p style={{ color: '#a9b5b6', marginBottom: 0, lineHeight: 1.45 }}>
-            With body and shadow hidden, the real support must remain believable. Toast keeps the toaster/remaining slices; towel reveals the complete oven handle and door.
+            With objects and shadows hidden, the real support must remain believable. Hiding both toast slices reveals an empty toaster slot; hiding the towel reveals a clean oven handle and door.
           </p>
         </div>
 

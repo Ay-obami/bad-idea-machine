@@ -1,5 +1,5 @@
 export type KitchenPanTruthLayer = 'support' | 'shadow' | 'body';
-export type KitchenToastTruthLayer = 'support' | 'shadow' | 'body';
+export type KitchenToastTruthLayer = 'support' | 'remainingBody' | 'shadow' | 'body';
 export type KitchenTowelTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenPlateTruthLayer = 'support' | 'stackShadow' | 'stackBody' | 'heroShadow' | 'heroBody';
 
@@ -45,10 +45,12 @@ export const KITCHEN_TOAST_TRUTH = {
     body: { x: 0, y: 132, width: 37, height: 19 },
     shadow: { x: 40, y: 132, width: 35, height: 18 },
     face: { x: 80, y: 132, width: 41, height: 31 },
-  } satisfies Readonly<Record<'reference' | 'support' | 'body' | 'shadow' | 'face', KitchenTruthAtlasFrame>>,
+    remainingBody: { x: 124, y: 132, width: 26, height: 22 },
+  } satisfies Readonly<Record<'reference' | 'support' | 'body' | 'shadow' | 'face' | 'remainingBody', KitchenTruthAtlasFrame>>,
   restPlacement: {
     body: { x: 58, y: 32 },
     shadow: { x: 60, y: 33 },
+    remainingBody: { x: 47, y: 30 },
   },
   source: 'approved-master-local-extraction' as const,
   hiddenFaceSource: 'deterministic-local-reconstruction-from-approved-toast-pixels' as const,
@@ -121,8 +123,10 @@ export function kitchenPanTruthLayers(
 export function kitchenToastTruthLayers(
   bodyVisible: boolean,
   shadowVisible: boolean,
+  remainingVisible = true,
 ): readonly KitchenToastTruthLayer[] {
   const layers: KitchenToastTruthLayer[] = ['support'];
+  if (remainingVisible) layers.push('remainingBody');
   if (shadowVisible) layers.push('shadow');
   if (bodyVisible) layers.push('body');
   return layers;
@@ -246,7 +250,7 @@ export function validateKitchenToastTruth(): readonly string[] {
   }
 
   for (const [id, placement] of Object.entries(truth.restPlacement)) {
-    const frame = truth.frames[id as 'body' | 'shadow'];
+    const frame = truth.frames[id as 'body' | 'shadow' | 'remainingBody'];
     if (placement.x < 0 ||
         placement.y < 0 ||
         placement.x + frame.width > truth.cropWidth ||

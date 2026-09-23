@@ -75,11 +75,12 @@ describe('kitchen single-object truth proofs', () => {
     );
   });
 
-  it('keeps the hero toast rest body and shadow independently optional over a support that preserves the remaining toast', () => {
-    expect(kitchenToastTruthLayers(false, false)).toEqual(['support']);
-    expect(kitchenToastTruthLayers(false, true)).toEqual(['support', 'shadow']);
-    expect(kitchenToastTruthLayers(true, false)).toEqual(['support', 'body']);
-    expect(kitchenToastTruthLayers(true, true)).toEqual(['support', 'shadow', 'body']);
+  it('separates the remaining slice from the hero and reveals an empty support when both are hidden', () => {
+    expect(kitchenToastTruthLayers(false, false, false)).toEqual(['support']);
+    expect(kitchenToastTruthLayers(false, false, true)).toEqual(['support', 'remainingBody']);
+    expect(kitchenToastTruthLayers(false, true, false)).toEqual(['support', 'shadow']);
+    expect(kitchenToastTruthLayers(true, false, false)).toEqual(['support', 'body']);
+    expect(kitchenToastTruthLayers(true, true)).toEqual(['support', 'remainingBody', 'shadow', 'body']);
   });
 
   it('registers the oven towel as a repository-local atlas over a clean oven support', () => {

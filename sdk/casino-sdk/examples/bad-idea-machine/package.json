@@ -13,6 +13,7 @@
     "verify-room-assets": "node scripts/verify-room-assets.mjs",
     "verify-plate-truth": "python scripts/verify-plate-truth.py",
     "verify-kettle-truth": "python scripts/verify-kettle-truth.py",
+    "verify-pan-support": "python scripts/verify-pan-support.py",
     "verify-object-supports": "python scripts/verify-object-supports.py",
     "verify-audio-assets": "node scripts/verify-audio-assets.mjs"
   },

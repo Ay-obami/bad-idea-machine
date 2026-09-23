@@ -467,6 +467,11 @@ export function KitchenObjectTruthProof() {
       : shadowVisible
         ? 'shadow only'
         : 'support only';
+  const kettleState = [
+    bodyVisible ? 'kettle' : null,
+    shadowVisible ? 'contact shadow' : null,
+    reflectionVisible ? 'counter reflection' : null,
+  ].filter(Boolean).join(' + ') || 'support only';
 
   const card: CSSProperties = {
     border: '1px solid #32464b',
@@ -654,7 +659,7 @@ export function KitchenObjectTruthProof() {
         </button>
         <span style={{ alignSelf: 'center', color: '#a9b5b6', fontSize: 12 }}>
           Current: {object} · {object === 'plates' ? 'four independent toggles' : object === 'kettle'
-            ? 'kettle, contact shadow and counter reflection independently toggle' : object === 'toast'
+            ? kettleState : object === 'toast'
             ? `${bodyVisible ? 'hero visible' : 'hero hidden'} · ${remainingToastVisible ? 'other slice visible' : 'other slice hidden'}`
             : state}
         </span>
@@ -669,7 +674,7 @@ export function KitchenObjectTruthProof() {
       }}>
         <figure style={{ ...card, margin: 0, padding: 12 }}>
           <figcaption style={{ marginBottom: 10, color: '#7ce2a5', fontWeight: 700 }}>
-            {blinkReference ? 'Approved reference crop' : object === 'plates' ? 'Independent plate reconstruction' : `Reconstruction · ${state}`}
+            {blinkReference ? 'Approved reference crop' : object === 'plates' ? 'Independent plate reconstruction' : `Reconstruction · ${object === 'kettle' ? kettleState : state}`}
           </figcaption>
 
           <div style={{ display: 'grid', placeItems: 'center', minHeight: 360 }}>

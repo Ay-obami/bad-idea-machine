@@ -1,5 +1,5 @@
 export const KITCHEN_APPROVED_MASTER = {
-  sourceUrl: '/rooms/kitchen/rebuild/reference/approved-master.webp',
+  sourceUrl: '/rooms/kitchen/rebuild/truth/approved-master.webp',
   sourceWidth: 1000,
   sourceHeight: 600,
   originalSourceWidth: 1619,

@@ -4,7 +4,7 @@ import { KITCHEN_APPROVED_MASTER } from './kitchen-master';
 
 describe('approved Kitchen master reference', () => {
   it('is repository-local and independent of external image hosting', () => {
-    expect(KITCHEN_APPROVED_MASTER.sourceUrl).toMatch(/^\/rooms\/kitchen\/rebuild\/reference\//);
+    expect(KITCHEN_APPROVED_MASTER.sourceUrl).toBe('/rooms/kitchen/rebuild/truth/approved-master.webp');
     expect(KITCHEN_APPROVED_MASTER.sourceUrl).not.toMatch(/creativeclaw|cdn\./i);
     expect(KITCHEN_APPROVED_MASTER.source).toBe('repository-local-materialized-master');
   });

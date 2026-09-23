@@ -39,6 +39,19 @@ rest = build.composite(parts).convert('RGB')
 mae = sum(ImageStat.Stat(ImageChops.difference(rest, expected)).mean)/3
 assert mae < 1.2, f'intact plate reconstruction drifted: {mae:.3f}'
 assert parts['heroBody'].getchannel('A').getbbox() != parts['stackBody'].getchannel('A').getbbox()
+hero_bounds = parts['heroBody'].getchannel('A').getbbox()
+stack_bounds = parts['stackBody'].getchannel('A').getbbox()
+assert hero_bounds and stack_bounds
+# The approved master has successive bright plate rims near y=90, 93 and 97.
+# A single top plate may contain the first rim, but the later rims belong to
+# the remaining stack even when the hero is hidden.
+assert build.Y + hero_bounds[3] <= 96, 'hero body contains a second plate rim'
+assert build.Y + stack_bounds[1] <= 93, 'remaining stack loses an upper plate'
+for x in range(555, 579):
+    for y in range(88, 121):
+        assert parts['stackBody'].getchannel('A').getpixel((x-build.X,y-build.Y)) < 64, (
+            f'stack body contains left cabinet pixels at {x},{y}'
+        )
 for shadow in ('heroShadow','stackShadow'):
     assert {p[:3] for p in parts[shadow].get_flattened_data() if p[3]} == {(31,20,13)}, f'{shadow} contains architecture pixels'
 

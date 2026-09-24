@@ -21,3 +21,7 @@ On the deployed checkpoint, the cabinet-hidden view showed the backing instead o
 ## Intended cabinet damage composition
 
 The game should not make the entire cabinet vanish as a clean rectangle. At low damage, keep the approved cabinet carcass, shelves, dishes and door in place while the hinge and one plate change state. At moderate damage, the door hangs and the plate stack is disturbed; photographed cabinet edges and supports still define the opening. At severe damage, break or displace specific shelf and carcass pieces, with irregular gaps exposing a locally authored wall behind them. Those gaps need coherent trim, tile, depth, shadows, and debris; the wall should occupy only genuinely exposed space. The approved intact master remains the source of every unchanged photographed surface. The current full-rectangle toggle is a separation test, not a target game frame or approved removal state.
+
+## First stationary damage preview
+
+The local proof now offers **Preview stressed hinge**. This preserves the exact photographed cabinet, door, shelves and remaining plate stack, adds a small stress mark on the door wood beside its existing hinge, and slips only the independent hero plate with its shadow. The master comparison remains unchanged. **Isolate backing (diagnostic only)** retains the full-rectangle ownership check but labels it explicitly as a diagnostic; it is not a game frame. This checkpoint contains one static low-damage pose only. Door-hanging, broken shelves, irregular exposed wall, debris and motion are not authored or accepted yet.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetSurface } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetPlatePose, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -47,11 +47,12 @@ function loadAssets(): Promise<Record<Asset, HTMLImageElement>> {
   }))).then(entries => Object.fromEntries(entries) as Record<Asset, HTMLImageElement>);
 }
 
-function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLImageElement>, visible: ReadonlySet<Layer>, reference: boolean, cabinetVisible: boolean) {
+function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLImageElement>, visible: ReadonlySet<Layer>, reference: boolean, cabinetMode: KitchenCabinetMode) {
   context.clearRect(0, 0, 1000, 600);
   context.drawImage(assets.master, 0, 0);
-  const cabinetSurface = kitchenCabinetSurface(cabinetVisible, reference);
+  const cabinetSurface = kitchenCabinetSurface(cabinetMode, reference);
   if (reference) return;
+  const cabinetVisible = cabinetMode !== 'backing-diagnostic';
 
   // The exact photographed cabinet and the proposed unseen wall are separate
   // local layers; the approved full-room master is never modified.
@@ -84,6 +85,18 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     const [x, y] = at(truth.logicalBounds, placement);
     drawLayer(layer, asset, frame, x, y);
   };
+  const drawHeroPlate = (layer: 'hero plate' | 'hero plate shadow', frame: KitchenTruthAtlasFrame, placement: { x: number; y: number }) => {
+    if (!visible.has(layer)) return;
+    const [x, y] = at(plates.logicalBounds, placement);
+    const pose = kitchenCabinetPlatePose(cabinetMode);
+    if (pose.rotation === 0) { drawCrop('plates', frame, x, y); return; }
+    context.save();
+    context.translate(578 + pose.x, 90 + pose.y);
+    context.rotate(pose.rotation);
+    context.drawImage(assets.plates, frame.x, frame.y, frame.width, frame.height,
+      x - 578, y - 90, frame.width, frame.height);
+    context.restore();
+  };
 
   if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
   const toasterLayers = kitchenToasterTruthLayers(
@@ -100,7 +113,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);
   if (cabinetVisible) {
     drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, plates.restPlacement.stackShadow);
-    drawPlaced('hero plate shadow', 'plates', plates, plates.frames.heroShadow, plates.restPlacement.heroShadow);
+    drawHeroPlate('hero plate shadow', plates.frames.heroShadow, plates.restPlacement.heroShadow);
   }
   drawPlaced('kettle shadow', 'kettle', kettle, kettle.frames.shadow, kettle.restPlacement.shadow);
   drawPlaced('kettle reflection', 'kettle', kettle, kettle.frames.reflection, kettle.restPlacement.reflection);
@@ -111,7 +124,22 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('towel', 'towel', towel, towel.frames.body, towel.restPlacement.body);
   if (cabinetVisible) {
     drawPlaced('plate stack', 'plates', plates, plates.frames.stackBody, plates.restPlacement.stackBody);
-    drawPlaced('hero plate', 'plates', plates, plates.frames.heroBody, plates.restPlacement.heroBody);
+    drawHeroPlate('hero plate', plates.frames.heroBody, plates.restPlacement.heroBody);
+    if (cabinetMode === 'hinge-stressed') {
+      // Local hinge stress, with the approved door and carcass still in place.
+      context.save();
+      context.lineCap = 'round';
+      context.lineJoin = 'round';
+      context.lineWidth = .8;
+      context.strokeStyle = 'rgba(58, 31, 18, .45)';
+      context.beginPath();
+      context.moveTo(700, 71);
+      context.lineTo(702, 76);
+      context.lineTo(700, 79);
+      context.lineTo(703, 84);
+      context.stroke();
+      context.restore();
+    }
   }
   drawPlaced('kettle', 'kettle', kettle, kettle.frames.body, kettle.restPlacement.body);
 }
@@ -127,7 +155,8 @@ export function KitchenLocalIntactProof() {
   const [error, setError] = useState('');
   const [visible, setVisible] = useState<ReadonlySet<Layer>>(() => new Set(allLayers));
   const [reference, setReference] = useState(false);
-  const [cabinetVisible, setCabinetVisible] = useState(true);
+  const [cabinetMode, setCabinetMode] = useState<KitchenCabinetMode>('intact');
+  const cabinetVisible = cabinetMode !== 'backing-diagnostic';
 
   useEffect(() => {
     let mounted = true;
@@ -136,8 +165,8 @@ export function KitchenLocalIntactProof() {
   }, []);
   useEffect(() => {
     const context = canvas.current?.getContext('2d');
-    if (context && assets) drawRoom(context, assets, visible, reference, cabinetVisible);
-  }, [assets, visible, reference, cabinetVisible]);
+    if (context && assets) drawRoom(context, assets, visible, reference, cabinetMode);
+  }, [assets, visible, reference, cabinetMode]);
 
   const toggle = (layer: Layer) => setVisible(previous => {
     const next = new Set(previous);
@@ -155,8 +184,11 @@ export function KitchenLocalIntactProof() {
       <button type="button" style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12 }} onClick={() => setReference(value => !value)}>
         {reference ? 'Show layered assembly' : 'Show approved master'}
       </button>
-      <button type="button" aria-pressed={cabinetVisible} style={{ ...controlStyle, border: '1px solid #7ce2a5', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetVisible(value => !value)}>
-        {cabinetVisible ? 'Hide open plate cabinet' : 'Show open plate cabinet'}
+      <button type="button" aria-pressed={cabinetMode === 'hinge-stressed'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'hinge-stressed' ? 'intact' : 'hinge-stressed')}>
+        {cabinetMode === 'hinge-stressed' ? 'Restore intact cabinet' : 'Preview stressed hinge'}
+      </button>
+      <button type="button" aria-pressed={cabinetMode === 'backing-diagnostic'} style={{ ...controlStyle, border: '1px solid #7ce2a5', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'backing-diagnostic' ? 'intact' : 'backing-diagnostic')}>
+        {cabinetMode === 'backing-diagnostic' ? 'Restore cabinet from diagnostic' : 'Isolate backing (diagnostic only)'}
       </button>
       <div style={{ width: '100%', aspectRatio: '5 / 3', background: '#020405' }}>
         <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
@@ -175,7 +207,7 @@ export function KitchenLocalIntactProof() {
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The open cabinet retains its exact approved pixels. Hiding it shows a proposed room-matched backing for the wall that was never photographed; this backing still needs visual acceptance. Plates and their shadows depend on the cabinet support. The remaining architecture and aftermath states still need local assets. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The stressed-hinge preview keeps the photographed cabinet and remaining stack in place while the independent hero plate begins to slip. Isolating the backing removes the entire cabinet only to inspect layer ownership; its visible rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

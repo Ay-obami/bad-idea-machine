@@ -1,5 +1,7 @@
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
 
+export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'backing-diagnostic';
+
 /** Exact intact cabinet plus a separately authored proposal for its unseen backing. */
 export const KITCHEN_CABINET_ARCHITECTURE = {
   zoneId: 'plate-cabinet',
@@ -10,9 +12,15 @@ export const KITCHEN_CABINET_ARCHITECTURE = {
   backingStatus: 'proposed',
 } as const;
 
-export function kitchenCabinetSurface(cabinetVisible: boolean, reference: boolean): 'master' | 'cabinet' | 'backing' {
+export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
   if (reference) return 'master';
-  return cabinetVisible ? 'cabinet' : 'backing';
+  return mode === 'backing-diagnostic' ? 'backing' : 'cabinet';
+}
+
+export function kitchenCabinetPlatePose(mode: KitchenCabinetMode): Readonly<{ x: number; y: number; rotation: number }> {
+  return mode === 'hinge-stressed'
+    ? { x: 3, y: 2, rotation: 0.09 }
+    : { x: 0, y: 0, rotation: 0 };
 }
 
 export function validateKitchenCabinetArchitecture(): readonly string[] {

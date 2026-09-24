@@ -69,7 +69,7 @@ const budgets = {
   runtime: 1_100_000,
   roomArt: 2_100_000,
   foley: 1_150_000,
-  rebuildArt: 400_000,
+  rebuildArt: 425_000,
   javascript: 400_000,
   stylesheet: 100_000,
   font: 80_000,

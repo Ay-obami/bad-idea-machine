@@ -15,6 +15,7 @@
     "verify-kettle-truth": "python scripts/verify-kettle-truth.py",
     "verify-pan-support": "python scripts/verify-pan-support.py",
     "verify-toaster-truth": "python scripts/verify-toaster-truth.py",
+    "verify-cabinet-architecture": "python scripts/verify-cabinet-architecture.py",
     "verify-object-supports": "python scripts/verify-object-supports.py",
     "verify-audio-assets": "node scripts/verify-audio-assets.mjs"
   },

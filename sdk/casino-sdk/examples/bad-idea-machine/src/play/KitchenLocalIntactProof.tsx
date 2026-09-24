@@ -151,11 +151,14 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
         const { bounds: fascia, freeEdgeDrop } = KITCHEN_CABINET_SHELF_FASCIA;
         // Only the photographed front strip drops; the bowl-bearing shelf
         // surface and the cabinet's outer frame remain in their rest positions.
-        for (let x = fascia.x; x < fascia.x + fascia.width; x++) {
-          const drop = Math.round(freeEdgeDrop * (x - fascia.x) / (fascia.width - 1));
-          context.drawImage(shelf.fascia, x - cabinet.x, fascia.y - cabinet.y, 1, fascia.height,
-            x, fascia.y + drop, 1, fascia.height);
-        }
+        // Rotate the complete strip around its fixed end so its photographed
+        // wood edge stays continuous instead of stepping down in columns.
+        context.save();
+        context.translate(fascia.x, fascia.y);
+        context.rotate(Math.atan2(freeEdgeDrop, fascia.width - 1));
+        context.drawImage(shelf.fascia, fascia.x - cabinet.x, fascia.y - cabinet.y,
+          fascia.width, fascia.height, 0, 0, fascia.width, fascia.height);
+        context.restore();
       } else {
         context.drawImage(shelf.fascia, cabinet.x, cabinet.y);
       }

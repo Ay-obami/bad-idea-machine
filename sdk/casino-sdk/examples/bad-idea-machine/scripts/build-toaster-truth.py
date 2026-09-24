@@ -62,6 +62,19 @@ def clean_support(source, master):
             feather = max(0, min(1, (i+1)/2, (10-i)/2, (j+1)/2, (10-j)/2))
             color = tuple(round(old[c] + feather*.7*(sample[c]-background[c])) for c in range(3))
             support.putpixel((x, y), color + (255,))
+
+    # The old plugged outlet leaves a dark, rectangular trail below the plate.
+    # Continue the neighboring tile rows across it, fading outside the lead.
+    for y in range(61, 91):
+        for x in range(114, 138):
+            left, right = support.getpixel((112, y)), source.getpixel((140, y))
+            u = (x - 112) / 28
+            target = tuple(round((1-u)*left[c] + u*right[c]) for c in range(3))
+            weight = min(1, max(0, (x-114)/3), max(0, (138-x)/3),
+                         max(0, (y-61)/4), max(0, (91-y)/4))
+            old = support.getpixel((x, y))
+            support.putpixel((x, y), tuple(round((1-weight)*old[c] + weight*target[c])
+                                              for c in range(3)) + (255,))
     return support
 
 

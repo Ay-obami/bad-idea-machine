@@ -25,6 +25,12 @@ assert support.getchannel('A').getextrema() == (255, 255)
 assert support.getpixel((65, 65))[0] > 135, 'toaster metal remains on wall support'
 assert sum(support.getpixel((83, 95))[:3]) < 90, 'toaster base remains on backsplash'
 assert support.getpixel((124, 70))[1] > 70, 'power lead remains on outlet support'
+for row in (68, 72, 76, 80):
+    left = support.getpixel((112, row))[:3]
+    middle = support.getpixel((124, row))[:3]
+    right = support.getpixel((140, row))[:3]
+    assert all(min(left[c], right[c])-2 <= middle[c] <= max(left[c], right[c])+2
+               for c in range(3)), f'dark outlet lead patch remains in tile row {row}'
 assert support.getpixel((65, 118))[0] < 150, 'toaster reflection remains on stone'
 assert parts['body'].getchannel('A').getextrema() == (0, 255)
 assert parts['body'].getpixel((40, 38))[:3] == reference.getpixel((75, 80))[:3], 'toaster front must retain exact approved pixels'

@@ -1,6 +1,6 @@
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
 
-export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'backing-diagnostic';
+export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'backing-diagnostic';
 
 /** Exact intact cabinet plus a separately authored proposal for its unseen backing. */
 export const KITCHEN_CABINET_ARCHITECTURE = {
@@ -25,6 +25,19 @@ export const KITCHEN_PLATE_TILT = {
   source: 'proposed-local-visible-face-from-approved-ceramic-palette',
 } as const;
 
+/** A photographed door silhouette and a single static hinge-failure pose. */
+export const KITCHEN_CABINET_DOOR = {
+  bounds: { x: 686, y: 0, width: 74, height: 150 },
+  hinge: { x: 688, y: 74 },
+  freeEdgeDrop: 16,
+  source: 'approved-master-cabinet-pixels',
+} as const;
+
+export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
+  if (mode === 'backing-diagnostic') return 'none';
+  return mode === 'hinge-dropped' ? 'dropped' : 'rest';
+}
+
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
   if (reference) return 'master';
   return mode === 'backing-diagnostic' ? 'backing' : 'cabinet';
@@ -32,7 +45,7 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 
 export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-stressed' ? 'tilted' : 'photographed';
+  return mode === 'hinge-stressed' || mode === 'hinge-dropped' ? 'tilted' : 'photographed';
 }
 
 export function validateKitchenCabinetArchitecture(): readonly string[] {
@@ -58,6 +71,14 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       tilt.placement.x + tilt.frames.face.width > zone.bounds.x + zone.bounds.width ||
       tilt.placement.y + tilt.frames.face.height > zone.bounds.y + zone.bounds.height) {
     errors.push('stressed plate must remain inside the photographed cabinet');
+  }
+  const door = KITCHEN_CABINET_DOOR;
+  if (door.bounds.x < zone.bounds.x || door.bounds.y < zone.bounds.y ||
+      door.bounds.x + door.bounds.width > zone.bounds.x + zone.bounds.width ||
+      door.bounds.y + door.bounds.height > zone.bounds.y + zone.bounds.height ||
+      door.hinge.x < door.bounds.x || door.hinge.x > door.bounds.x + door.bounds.width ||
+      door.hinge.y < door.bounds.y || door.hinge.y > door.bounds.y + door.bounds.height) {
+    errors.push('cabinet door silhouette and hinge must remain in the photographed cabinet');
   }
   if (zone.backingStatus !== 'proposed') errors.push('unphotographed cabinet backing cannot be accepted as master art');
   return errors;

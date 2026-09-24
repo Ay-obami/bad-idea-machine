@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_PLATE_TILT, kitchenCabinetHeroFace, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -12,7 +12,7 @@ import {
 type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall shadow'
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
-  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection';
+  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -21,6 +21,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['towel', 'towel shadow'],
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
   ['kettle', 'kettle shadow', 'kettle reflection'],
+  ['cabinet door'],
 ];
 const allLayers = layerGroups.flat();
 const assetUrls = {
@@ -48,6 +49,57 @@ function loadAssets(): Promise<Record<Asset, HTMLImageElement>> {
   }))).then(entries => Object.fromEntries(entries) as Record<Asset, HTMLImageElement>);
 }
 
+function doorSilhouette(x: number, y: number) {
+  if (y < 0 || y >= KITCHEN_CABINET_DOOR.bounds.height) return false;
+  // The photographed left edge bows around the hinge. The right edge and
+  // bottom retain the photographed wood, including its grain and highlights.
+  const left = y < 56 ? 689 : y < 91 ? 686 : 687;
+  return x >= left && x < 760;
+}
+
+function cabinetDoorLayers(cabinet: HTMLImageElement) {
+  const { bounds } = KITCHEN_CABINET_ARCHITECTURE;
+  const source = document.createElement('canvas');
+  source.width = bounds.width;
+  source.height = bounds.height;
+  const sourceContext = source.getContext('2d', { willReadFrequently: true });
+  if (!sourceContext) throw new Error('Could not inspect approved cabinet pixels');
+  sourceContext.drawImage(cabinet, 0, 0);
+  const original = sourceContext.getImageData(0, 0, bounds.width, bounds.height);
+  const door = sourceContext.createImageData(bounds.width, bounds.height);
+  const support = sourceContext.createImageData(bounds.width, bounds.height);
+  support.data.set(original.data);
+  for (let y = 0; y < bounds.height; y++) {
+    for (let x = 0; x < bounds.width; x++) {
+      const globalX = bounds.x + x;
+      if (!doorSilhouette(globalX, y)) continue;
+      const destination = (y * bounds.width + x) * 4;
+      door.data.set(original.data.subarray(destination, destination + 4), destination);
+      // The hidden continuation is a local cabinet recess. Sample the nearby
+      // photographed inner wood and soften its variation across the unseen
+      // area; only thin slivers are used by the dropped pose.
+      const sampleY = Math.min(y, 86);
+      for (let channel = 0; channel < 3; channel++) {
+        let sum = 0;
+        for (let sampleX = 665; sampleX < 677; sampleX++) {
+          sum += original.data[(sampleY * bounds.width + sampleX - bounds.x) * 4 + channel];
+        }
+        const mean = sum / 12;
+        const grainX = 670 + (globalX - KITCHEN_CABINET_DOOR.bounds.x) % 8;
+        const grain = original.data[(sampleY * bounds.width + grainX - bounds.x) * 4 + channel];
+        support.data[destination + channel] = Math.round(mean + (grain - mean) * .12);
+      }
+    }
+  }
+  sourceContext.putImageData(door, 0, 0);
+  const doorCanvas = document.createElement('canvas');
+  doorCanvas.width = bounds.width;
+  doorCanvas.height = bounds.height;
+  doorCanvas.getContext('2d')?.putImageData(door, 0, 0);
+  sourceContext.putImageData(support, 0, 0);
+  return { door: doorCanvas, support: source };
+}
+
 function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLImageElement>, visible: ReadonlySet<Layer>, reference: boolean, cabinetMode: KitchenCabinetMode) {
   context.clearRect(0, 0, 1000, 600);
   context.drawImage(assets.master, 0, 0);
@@ -60,6 +112,24 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   const cabinet = KITCHEN_CABINET_ARCHITECTURE.bounds;
   context.clearRect(cabinet.x, cabinet.y, cabinet.width, cabinet.height);
   context.drawImage(assets[cabinetSurface], cabinet.x, cabinet.y);
+  if (cabinetVisible) {
+    const separated = cabinetDoorLayers(assets.cabinet);
+    context.drawImage(separated.support, cabinet.x, cabinet.y);
+    if (visible.has('cabinet door')) {
+      if (kitchenCabinetDoorPose(cabinetMode) === 'dropped') {
+        const { bounds: door, freeEdgeDrop } = KITCHEN_CABINET_DOOR;
+        // One static perspective pose: the upper wood and hinge stay at their
+        // photographed positions while only the free lower corner sags.
+        for (let x = door.x; x < door.x + door.width; x++) {
+          const drop = freeEdgeDrop * (x - door.x) / (door.width - 1);
+          context.drawImage(separated.door, x - cabinet.x, 0, 1, door.height,
+            x, door.y, 1, door.height + drop);
+        }
+      } else {
+        context.drawImage(separated.door, cabinet.x, cabinet.y);
+      }
+    }
+  }
 
   const drawCrop = (asset: Asset, frame: KitchenTruthAtlasFrame, x: number, y: number) => {
     context.drawImage(assets[asset], frame.x, frame.y, frame.width, frame.height, x, y, frame.width, frame.height);
@@ -126,7 +196,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   if (cabinetVisible) {
     drawPlaced('plate stack', 'plates', plates, plates.frames.stackBody, plates.restPlacement.stackBody);
     drawHeroPlate('hero plate', plates.frames.heroBody, plates.restPlacement.heroBody);
-    if (cabinetMode === 'hinge-stressed') {
+    if (cabinetMode === 'hinge-stressed' || cabinetMode === 'hinge-dropped') {
       // Local hinge stress, with the approved door and carcass still in place.
       context.save();
       context.lineCap = 'round';
@@ -185,6 +255,9 @@ export function KitchenLocalIntactProof() {
       <button type="button" style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12 }} onClick={() => setReference(value => !value)}>
         {reference ? 'Show layered assembly' : 'Show approved master'}
       </button>
+      <button type="button" aria-pressed={cabinetMode === 'hinge-dropped'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'hinge-dropped' ? 'intact' : 'hinge-dropped')}>
+        {cabinetMode === 'hinge-dropped' ? 'Restore door on hinge' : 'Preview hanging door'}
+      </button>
       <button type="button" aria-pressed={cabinetMode === 'hinge-stressed'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'hinge-stressed' ? 'intact' : 'hinge-stressed')}>
         {cabinetMode === 'hinge-stressed' ? 'Restore intact cabinet' : 'Preview stressed hinge'}
       </button>
@@ -201,14 +274,14 @@ export function KitchenLocalIntactProof() {
         <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(new Set())}>Hide extracted layers</button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
-        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle'][index]}</strong>
-        {group.map(layer => <button key={layer} type="button" aria-pressed={visible.has(layer)} disabled={index === 4 && !cabinetVisible} onClick={() => toggle(layer)}
-          style={{ ...controlStyle, opacity: index === 4 && !cabinetVisible ? .5 : 1, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
+        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet'][index]}</strong>
+        {group.map(layer => <button key={layer} type="button" aria-pressed={visible.has(layer)} disabled={(index === 4 || index === 6) && !cabinetVisible} onClick={() => toggle(layer)}
+          style={{ ...controlStyle, opacity: (index === 4 || index === 6) && !cabinetVisible ? .5 : 1, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
           {visible.has(layer) ? 'Hide' : 'Show'} {layer}
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The stressed-hinge preview keeps the photographed cabinet and remaining stack in place while the independent hero plate exposes a proposed new face and contact shadow. Isolating the backing removes the entire cabinet only to inspect layer ownership; its visible rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The photographed cabinet, shelves and remaining stack stay fixed while the separate door and hero plate show proposed static hinge states. Hiding the door exposes an unphotographed support diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

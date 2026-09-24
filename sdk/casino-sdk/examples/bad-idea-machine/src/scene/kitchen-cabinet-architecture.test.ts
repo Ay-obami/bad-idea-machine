@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetHeroFace, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -25,5 +25,14 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetHeroFace('intact')).toBe('photographed');
     expect(kitchenCabinetHeroFace('hinge-stressed')).toBe('tilted');
     expect(kitchenCabinetHeroFace('backing-diagnostic')).toBe('none');
+    expect(kitchenCabinetHeroFace('hinge-dropped')).toBe('tilted');
+  });
+
+  it('keeps the photographed door at rest and limits the drop to the static preview', () => {
+    expect(KITCHEN_CABINET_DOOR.source).toBe('approved-master-cabinet-pixels');
+    expect(kitchenCabinetDoorPose('intact')).toBe('rest');
+    expect(kitchenCabinetDoorPose('hinge-stressed')).toBe('rest');
+    expect(kitchenCabinetDoorPose('hinge-dropped')).toBe('dropped');
+    expect(kitchenCabinetDoorPose('backing-diagnostic')).toBe('none');
   });
 });

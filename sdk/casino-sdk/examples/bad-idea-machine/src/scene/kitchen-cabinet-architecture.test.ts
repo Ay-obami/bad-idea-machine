@@ -45,7 +45,7 @@ describe('cabinet surface selection', () => {
 
   it('keeps the shelf surface and dishes supported while only its photographed front strip loosens', () => {
     expect(KITCHEN_CABINET_SHELF_FASCIA.source).toBe('approved-master-cabinet-pixels');
-    expect(KITCHEN_CABINET_SHELF_FASCIA.bounds).toEqual({ x: 629, y: 43, width: 55, height: 11 });
+    expect(KITCHEN_CABINET_SHELF_FASCIA.bounds).toEqual({ x: 629, y: 40, width: 55, height: 12 });
     expect(kitchenCabinetShelfPose('intact')).toBe('rest');
     expect(kitchenCabinetShelfPose('hinge-dropped')).toBe('rest');
     expect(kitchenCabinetShelfPose('shelf-loose')).toBe('loose');

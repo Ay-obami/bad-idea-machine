@@ -35,9 +35,9 @@ export const KITCHEN_CABINET_DOOR = {
 
 /** Photographed upper-shelf front strip; the shelf surface stays in place. */
 export const KITCHEN_CABINET_SHELF_FASCIA = {
-  bounds: { x: 629, y: 43, width: 55, height: 11 },
-  backingSampleOffsetY: 15,
-  freeEdgeDrop: 8,
+  bounds: { x: 629, y: 40, width: 55, height: 12 },
+  backingSampleOffsetY: 17,
+  freeEdgeDrop: 6,
   source: 'approved-master-cabinet-pixels',
 } as const;
 

@@ -274,10 +274,12 @@ const controlStyle: CSSProperties = {
 
 export function KitchenLocalIntactProof() {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const cabinetDetail = useRef<HTMLCanvasElement>(null);
   const [assets, setAssets] = useState<Record<Asset, HTMLImageElement> | null>(null);
   const [error, setError] = useState('');
   const [visible, setVisible] = useState<ReadonlySet<Layer>>(() => new Set(allLayers));
   const [reference, setReference] = useState(false);
+  const [showCabinetDetail, setShowCabinetDetail] = useState(false);
   const [cabinetMode, setCabinetMode] = useState<KitchenCabinetMode>('intact');
   const cabinetVisible = cabinetMode !== 'backing-diagnostic';
 
@@ -288,8 +290,16 @@ export function KitchenLocalIntactProof() {
   }, []);
   useEffect(() => {
     const context = canvas.current?.getContext('2d');
-    if (context && assets) drawRoom(context, assets, visible, reference, cabinetMode);
-  }, [assets, visible, reference, cabinetMode]);
+    if (context && assets) {
+      drawRoom(context, assets, visible, reference, cabinetMode);
+      const detail = cabinetDetail.current?.getContext('2d');
+      if (detail && canvas.current) {
+        const { x, y, width, height } = KITCHEN_CABINET_ARCHITECTURE.bounds;
+        detail.clearRect(0, 0, width, height);
+        detail.drawImage(canvas.current, x, y, width, height, 0, 0, width, height);
+      }
+    }
+  }, [assets, visible, reference, cabinetMode, showCabinetDetail]);
 
   const toggle = (layer: Layer) => setVisible(previous => {
     const next = new Set(previous);
@@ -322,6 +332,15 @@ export function KitchenLocalIntactProof() {
       <div style={{ width: '100%', aspectRatio: '5 / 3', background: '#020405' }}>
         <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
       </div>
+      <button type="button" aria-pressed={showCabinetDetail} style={{ ...controlStyle, border: '1px solid #f4cb58', marginTop: 12 }} onClick={() => setShowCabinetDetail(value => !value)}>
+        {showCabinetDetail ? 'Close cabinet detail' : 'Inspect cabinet close-up'}
+      </button>
+      {showCabinetDetail ? <div style={{ marginTop: 10, maxWidth: 615 }}>
+        <canvas ref={cabinetDetail} width={KITCHEN_CABINET_ARCHITECTURE.bounds.width} height={KITCHEN_CABINET_ARCHITECTURE.bounds.height}
+          role="img" aria-label={reference ? 'Approved cabinet detail' : 'Layered cabinet detail'}
+          style={{ display: 'block', width: '100%', height: 'auto' }} />
+        <small style={{ color: '#b5c3c5' }}>The same cabinet pixels enlarged three times; the room above remains at its original camera.</small>
+      </div> : null}
       {error ? <p role="alert">{error}</p> : null}
       {!assets && !error ? <p>Loading approved local assets…</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>

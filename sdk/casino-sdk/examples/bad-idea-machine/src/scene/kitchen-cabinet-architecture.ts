@@ -38,7 +38,7 @@ export const KITCHEN_CABINET_DOOR = {
 export const KITCHEN_CABINET_SHELF_FASCIA = {
   bounds: { x: 629, y: 40, width: 55, height: 12 },
   backingSampleOffsetY: 17,
-  freeEdgeDrop: 6,
+  freeEdgeDrop: 10,
   source: 'approved-master-cabinet-pixels',
 } as const;
 

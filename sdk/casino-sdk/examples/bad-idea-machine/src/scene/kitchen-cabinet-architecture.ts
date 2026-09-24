@@ -19,7 +19,7 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 
 export function kitchenCabinetPlatePose(mode: KitchenCabinetMode): Readonly<{ x: number; y: number; rotation: number }> {
   return mode === 'hinge-stressed'
-    ? { x: 3, y: 2, rotation: 0.09 }
+    ? { x: 10, y: 4, rotation: 0.25 }
     : { x: 0, y: 0, rotation: 0 };
 }
 

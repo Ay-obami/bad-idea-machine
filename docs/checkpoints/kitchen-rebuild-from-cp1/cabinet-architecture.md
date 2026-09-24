@@ -25,3 +25,5 @@ The game should not make the entire cabinet vanish as a clean rectangle. At low 
 ## First stationary damage preview
 
 The local proof now offers **Preview stressed hinge**. This preserves the exact photographed cabinet, door, shelves and remaining plate stack, adds a small stress mark on the door wood beside its existing hinge, and slips only the independent hero plate with its shadow. The master comparison remains unchanged. **Isolate backing (diagnostic only)** retains the full-rectangle ownership check but labels it explicitly as a diagnostic; it is not a game frame. This checkpoint contains one static low-damage pose only. Door-hanging, broken shelves, irregular exposed wall, debris and motion are not authored or accepted yet.
+
+The first deployed pose kept the structure clean but the plate slip was too subtle at normal room size. The next review pose moves and tips the independent hero plate farther over the stack; the exact cabinet image and stationary stack remain fixed. This revised pose still needs deployed visual acceptance, and a newly visible plate face would require separate authored art if the eventual motion exposes it.

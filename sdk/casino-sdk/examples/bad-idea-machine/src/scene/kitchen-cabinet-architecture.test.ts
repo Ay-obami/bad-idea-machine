@@ -26,6 +26,6 @@ describe('cabinet surface selection', () => {
     const stress = kitchenCabinetPlatePose('hinge-stressed');
     expect(stress.x).toBeGreaterThan(0);
     expect(stress.y).toBeGreaterThan(0);
-    expect(stress.rotation).toBeGreaterThan(0);
+    expect(Math.sin(stress.rotation) * 60 + stress.y).toBeGreaterThan(15);
   });
 });

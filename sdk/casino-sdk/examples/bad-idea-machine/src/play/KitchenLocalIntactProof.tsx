@@ -3,16 +3,19 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
-  KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH,
+  KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
+  kitchenToasterTruthLayers,
   type KitchenTruthAtlasFrame,
 } from '../scene/kitchen-object-truth-proof';
 
-type Layer = 'pan' | 'pan shadow' | 'hero toast' | 'other toast' | 'toast shadow'
+type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall shadow'
+  | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
   | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
+  ['toaster', 'toaster cord', 'toaster wall shadow', 'toaster contact shadow', 'toaster reflection'],
   ['hero toast', 'other toast', 'toast shadow'],
   ['towel', 'towel shadow'],
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
@@ -25,6 +28,7 @@ const assetUrls = {
   panShadow: KITCHEN_PAN_TRUTH.shadowUrl,
   panBody: KITCHEN_PAN_TRUTH.bodyUrl,
   toast: KITCHEN_TOAST_TRUTH.atlasUrl,
+  toaster: KITCHEN_TOASTER_TRUTH.atlasUrl,
   towel: KITCHEN_TOWEL_TRUTH.atlasUrl,
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
@@ -52,25 +56,36 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     if (visible.has(layer)) drawCrop(asset, frame, x, y);
   };
   const toast = KITCHEN_TOAST_TRUTH;
+  const toaster = KITCHEN_TOASTER_TRUTH;
   const towel = KITCHEN_TOWEL_TRUTH;
   const plates = KITCHEN_PLATE_TRUTH;
   const kettle = KITCHEN_KETTLE_TRUTH;
 
   // Replace the photographed objects with their clean local supports first.
   context.drawImage(assets.panSupport, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
-  drawCrop('toast', toast.frames.support, toast.logicalBounds.x, toast.logicalBounds.y);
+  drawCrop('toaster', toaster.frames.support, toaster.logicalBounds.x, toaster.logicalBounds.y);
   drawCrop('towel', towel.frames.support, towel.logicalBounds.x, towel.logicalBounds.y);
   drawCrop('plates', plates.frames.support, plates.logicalBounds.x, plates.logicalBounds.y);
   drawCrop('kettle', kettle.frames.support, kettle.logicalBounds.x, kettle.logicalBounds.y);
 
   const at = (bounds: { x: number; y: number }, placement: { x: number; y: number }) =>
     [bounds.x + placement.x, bounds.y + placement.y] as const;
-  const drawPlaced = (layer: Layer, asset: Asset, truth: typeof toast | typeof towel | typeof plates | typeof kettle, frame: KitchenTruthAtlasFrame, placement: { x: number; y: number }) => {
+  const drawPlaced = (layer: Layer, asset: Asset, truth: typeof toaster | typeof toast | typeof towel | typeof plates | typeof kettle, frame: KitchenTruthAtlasFrame, placement: { x: number; y: number }) => {
     const [x, y] = at(truth.logicalBounds, placement);
     drawLayer(layer, asset, frame, x, y);
   };
 
   if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
+  const toasterLayers = kitchenToasterTruthLayers(
+    visible.has('toaster'), visible.has('toaster cord'), visible.has('toaster wall shadow'),
+    visible.has('toaster contact shadow'), visible.has('toaster reflection'),
+  );
+  for (const id of toasterLayers) {
+    if (id === 'support') continue;
+    const frame = toaster.frames[id];
+    const placement = toaster.restPlacement[id];
+    drawCrop('toaster', frame, toaster.logicalBounds.x + placement.x, toaster.logicalBounds.y + placement.y);
+  }
   drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);
   drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, plates.restPlacement.stackShadow);
@@ -135,14 +150,14 @@ export function KitchenLocalIntactProof() {
         <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(new Set())}>Hide extracted layers</button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
-        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toast', 'Towel', 'Plates', 'Kettle'][index]}</strong>
+        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle'][index]}</strong>
         {group.map(layer => <button key={layer} type="button" aria-pressed={visible.has(layer)} onClick={() => toggle(layer)}
           style={{ ...controlStyle, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
           {visible.has(layer) ? 'Hide' : 'Show'} {layer}
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The toaster housing and its cord are still in the toast support; the rest of the destructible architecture and all aftermath states need their own approved local assets. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The toaster, its cord, wall shadow, contact shadow and stone reflection are now separate from the clean counter and unplugged outlet. Destructible architecture and aftermath states still need approved local assets. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

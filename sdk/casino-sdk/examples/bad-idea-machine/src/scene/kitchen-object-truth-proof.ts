@@ -3,6 +3,7 @@ export type KitchenToastTruthLayer = 'support' | 'remainingBody' | 'shadow' | 'b
 export type KitchenTowelTruthLayer = 'support' | 'shadow' | 'body';
 export type KitchenPlateTruthLayer = 'support' | 'stackShadow' | 'stackBody' | 'heroShadow' | 'heroBody';
 export type KitchenKettleTruthLayer = 'support' | 'shadow' | 'reflection' | 'body';
+export type KitchenToasterTruthLayer = 'support' | 'wallShadow' | 'contactShadow' | 'reflection' | 'body' | 'cord';
 
 export type KitchenTruthAtlasFrame = Readonly<{
   x: number;
@@ -57,6 +58,66 @@ export const KITCHEN_TOAST_TRUTH = {
   hiddenFaceSource: 'deterministic-local-reconstruction-from-approved-toast-pixels' as const,
   role: 'single-object-truth-gate' as const,
 } as const;
+
+export const KITCHEN_TOASTER_TRUTH = {
+  atlasUrl: '/rooms/kitchen/rebuild/truth/toaster-truth-atlas.webp',
+  atlasWidth: 180,
+  atlasHeight: 235,
+  logicalBounds: { x: 585, y: 205, width: 150, height: 130 },
+  frames: {
+    support: { x: 0, y: 0, width: 150, height: 130 },
+    body: { x: 0, y: 132, width: 90, height: 72 },
+    cord: { x: 92, y: 132, width: 25, height: 52 },
+    wallShadow: { x: 120, y: 132, width: 30, height: 65 },
+    contactShadow: { x: 0, y: 207, width: 90, height: 18 },
+    reflection: { x: 92, y: 207, width: 75, height: 21 },
+  } satisfies Readonly<Record<KitchenToasterTruthLayer, KitchenTruthAtlasFrame>>,
+  restPlacement: {
+    body: { x: 35, y: 42 },
+    cord: { x: 113, y: 40 },
+    wallShadow: { x: 25, y: 45 },
+    contactShadow: { x: 35, y: 100 },
+    reflection: { x: 35, y: 108 },
+  },
+  source: 'approved-master-local-extraction' as const,
+  supportSource: 'deterministic-local-wall-outlet-counter-reconstruction' as const,
+  role: 'stationary-toaster-truth-gate' as const,
+} as const;
+
+export function kitchenToasterTruthLayers(
+  body: boolean, cord: boolean, wallShadow: boolean,
+  contactShadow: boolean, reflection: boolean,
+): readonly KitchenToasterTruthLayer[] {
+  const layers: KitchenToasterTruthLayer[] = ['support'];
+  if (wallShadow) layers.push('wallShadow');
+  if (contactShadow) layers.push('contactShadow');
+  if (reflection) layers.push('reflection');
+  if (body) layers.push('body');
+  if (cord) layers.push('cord');
+  return layers;
+}
+
+export function validateKitchenToasterTruth(): readonly string[] {
+  const truth = KITCHEN_TOASTER_TRUTH;
+  const errors: string[] = [];
+  if (!truth.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(truth.atlasUrl)) errors.push('toaster atlas must be repository-local');
+  for (const [id, frame] of Object.entries(truth.frames)) {
+    if (frame.x < 0 || frame.y < 0 || frame.width <= 0 || frame.height <= 0 ||
+        frame.x + frame.width > truth.atlasWidth || frame.y + frame.height > truth.atlasHeight) {
+      errors.push(`toaster atlas frame outside bounds: ${id}`);
+    }
+  }
+  for (const [id, placement] of Object.entries(truth.restPlacement)) {
+    const frame = truth.frames[id as keyof typeof truth.restPlacement];
+    if (placement.x < 0 || placement.y < 0 ||
+        placement.x + frame.width > truth.logicalBounds.width ||
+        placement.y + frame.height > truth.logicalBounds.height) {
+      errors.push(`toaster rest placement outside crop: ${id}`);
+    }
+  }
+  return errors;
+}
 
 export const KITCHEN_TOWEL_TRUTH = {
   atlasUrl: '/rooms/kitchen/rebuild/truth/towel-truth-atlas.webp',

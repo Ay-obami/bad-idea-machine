@@ -6,16 +6,19 @@ import {
   KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH,
   KITCHEN_KETTLE_TRUTH,
+  KITCHEN_TOASTER_TRUTH,
   kitchenPanTruthLayers,
   kitchenToastTruthLayers,
   kitchenTowelTruthLayers,
   kitchenPlateTruthLayers,
   kitchenKettleTruthLayers,
+  kitchenToasterTruthLayers,
   validateKitchenPanTruth,
   validateKitchenToastTruth,
   validateKitchenTowelTruth,
   validateKitchenPlateTruth,
   validateKitchenKettleTruth,
+  validateKitchenToasterTruth,
 } from './kitchen-object-truth-proof';
 
 describe('kitchen single-object truth proofs', () => {
@@ -148,6 +151,21 @@ describe('kitchen single-object truth proofs', () => {
     expect(kitchenKettleTruthLayers(true, false, false)).toEqual(['support', 'body']);
     expect(kitchenKettleTruthLayers(true, true, true)).toEqual([
       'support', 'shadow', 'reflection', 'body',
+    ]);
+  });
+
+  it('separates the toaster, cord, wall shadow, contact shadow and reflection over a clean counter', () => {
+    expect(validateKitchenToasterTruth()).toEqual([]);
+    expect(KITCHEN_TOASTER_TRUTH.atlasUrl).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
+    expect(KITCHEN_TOASTER_TRUTH.logicalBounds).toEqual({ x: 585, y: 205, width: 150, height: 130 });
+    expect(kitchenToasterTruthLayers(false, false, false, false, false)).toEqual(['support']);
+    expect(kitchenToasterTruthLayers(true, false, false, false, false)).toEqual(['support', 'body']);
+    expect(kitchenToasterTruthLayers(false, true, false, false, false)).toEqual(['support', 'cord']);
+    expect(kitchenToasterTruthLayers(false, false, true, false, false)).toEqual(['support', 'wallShadow']);
+    expect(kitchenToasterTruthLayers(false, false, false, true, false)).toEqual(['support', 'contactShadow']);
+    expect(kitchenToasterTruthLayers(false, false, false, false, true)).toEqual(['support', 'reflection']);
+    expect(kitchenToasterTruthLayers(true, true, true, true, true)).toEqual([
+      'support', 'wallShadow', 'contactShadow', 'reflection', 'body', 'cord',
     ]);
   });
 });

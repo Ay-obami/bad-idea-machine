@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetSurface } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -26,6 +26,7 @@ const allLayers = layerGroups.flat();
 const assetUrls = {
   master: KITCHEN_APPROVED_MASTER.sourceUrl,
   cabinet: KITCHEN_CABINET_ARCHITECTURE.intactUrl,
+  backing: KITCHEN_CABINET_ARCHITECTURE.backingUrl,
   panSupport: KITCHEN_PAN_TRUTH.supportUrl,
   panShadow: KITCHEN_PAN_TRUTH.shadowUrl,
   panBody: KITCHEN_PAN_TRUTH.bodyUrl,
@@ -49,13 +50,14 @@ function loadAssets(): Promise<Record<Asset, HTMLImageElement>> {
 function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLImageElement>, visible: ReadonlySet<Layer>, reference: boolean, cabinetVisible: boolean) {
   context.clearRect(0, 0, 1000, 600);
   context.drawImage(assets.master, 0, 0);
+  const cabinetSurface = kitchenCabinetSurface(cabinetVisible, reference);
   if (reference) return;
 
-  // Diagnostic opening: the approved master does not photograph the wall
-  // behind this cabinet. Its exact intact pixels are an independent layer.
+  // The exact photographed cabinet and the proposed unseen wall are separate
+  // local layers; the approved full-room master is never modified.
   const cabinet = KITCHEN_CABINET_ARCHITECTURE.bounds;
   context.clearRect(cabinet.x, cabinet.y, cabinet.width, cabinet.height);
-  if (cabinetVisible) context.drawImage(assets.cabinet, cabinet.x, cabinet.y);
+  context.drawImage(assets[cabinetSurface], cabinet.x, cabinet.y);
 
   const drawCrop = (asset: Asset, frame: KitchenTruthAtlasFrame, x: number, y: number) => {
     context.drawImage(assets[asset], frame.x, frame.y, frame.width, frame.height, x, y, frame.width, frame.height);
@@ -173,7 +175,7 @@ export function KitchenLocalIntactProof() {
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The open cabinet is an independent exact-approved layer; hiding it shows an unfilled dark shell opening because the wall behind it was not photographed. Plates and their shadows depend on that cabinet support. The remaining architecture and aftermath states still need local assets. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The open cabinet retains its exact approved pixels. Hiding it shows a proposed room-matched backing for the wall that was never photographed; this backing still needs visual acceptance. Plates and their shadows depend on the cabinet support. The remaining architecture and aftermath states still need local assets. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

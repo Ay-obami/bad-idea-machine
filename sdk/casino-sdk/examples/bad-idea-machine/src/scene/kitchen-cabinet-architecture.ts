@@ -1,6 +1,6 @@
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
 
-export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'backing-diagnostic';
+export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'shelf-loose' | 'backing-diagnostic';
 
 /** Exact intact cabinet plus a separately authored proposal for its unseen backing. */
 export const KITCHEN_CABINET_ARCHITECTURE = {
@@ -33,16 +33,29 @@ export const KITCHEN_CABINET_DOOR = {
   source: 'approved-master-cabinet-pixels',
 } as const;
 
+/** Photographed upper-shelf front strip; the shelf surface stays in place. */
+export const KITCHEN_CABINET_SHELF_FASCIA = {
+  bounds: { x: 629, y: 43, width: 55, height: 11 },
+  backingSampleOffsetY: 15,
+  freeEdgeDrop: 8,
+  source: 'approved-master-cabinet-pixels',
+} as const;
+
 /** The remaining photographed stack slides on its shelf in the hanging-door preview. */
 export const KITCHEN_CABINET_STACK_SLIDE = { x: 5, y: 1 } as const;
 
 export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
-  return mode === 'hinge-dropped' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
+  return mode === 'hinge-dropped' || mode === 'shelf-loose' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
 }
 
 export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-dropped' ? 'dropped' : 'rest';
+  return mode === 'hinge-dropped' || mode === 'shelf-loose' ? 'dropped' : 'rest';
+}
+
+export function kitchenCabinetShelfPose(mode: KitchenCabinetMode): 'rest' | 'loose' | 'none' {
+  if (mode === 'backing-diagnostic') return 'none';
+  return mode === 'shelf-loose' ? 'loose' : 'rest';
 }
 
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
@@ -52,7 +65,7 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 
 export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-stressed' || mode === 'hinge-dropped' ? 'tilted' : 'photographed';
+  return mode === 'hinge-stressed' || mode === 'hinge-dropped' || mode === 'shelf-loose' ? 'tilted' : 'photographed';
 }
 
 export function validateKitchenCabinetArchitecture(): readonly string[] {
@@ -86,6 +99,12 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       door.hinge.x < door.bounds.x || door.hinge.x > door.bounds.x + door.bounds.width ||
       door.hinge.y < door.bounds.y || door.hinge.y > door.bounds.y + door.bounds.height) {
     errors.push('cabinet door silhouette and hinge must remain in the photographed cabinet');
+  }
+  const shelf = KITCHEN_CABINET_SHELF_FASCIA;
+  if (shelf.bounds.x < zone.bounds.x || shelf.bounds.y < zone.bounds.y ||
+      shelf.bounds.x + shelf.bounds.width > door.bounds.x ||
+      shelf.bounds.y + shelf.bounds.height + shelf.backingSampleOffsetY + shelf.freeEdgeDrop > zone.bounds.y + zone.bounds.height) {
+    errors.push('shelf front strip or its backing sample lies outside the photographed cabinet');
   }
   if (zone.backingStatus !== 'proposed') errors.push('unphotographed cabinet backing cannot be accepted as master art');
   return errors;

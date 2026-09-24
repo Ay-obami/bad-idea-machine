@@ -61,7 +61,7 @@ const foleyBytes = sum(foley);
 const runtimeBytes = sum(runtime);
 
 if (roomArt.length !== 44) throw new Error(`Production room-art count is ${roomArt.length}; expected 44`);
-if (rebuildArt.length > 12) throw new Error(`Kitchen rebuild-art count is ${rebuildArt.length}; limit is 12`);
+if (rebuildArt.length > 13) throw new Error(`Kitchen rebuild-art count is ${rebuildArt.length}; limit is 13`);
 if (foley.length !== 17) throw new Error(`Production foley count is ${foley.length}; expected 17`);
 
 const budgets = {

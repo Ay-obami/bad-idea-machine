@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetPlatePose, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_PLATE_TILT, kitchenCabinetHeroFace, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -34,6 +34,7 @@ const assetUrls = {
   toaster: KITCHEN_TOASTER_TRUTH.atlasUrl,
   towel: KITCHEN_TOWEL_TRUTH.atlasUrl,
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
+  plateTilt: KITCHEN_PLATE_TILT.atlasUrl,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
 type Asset = keyof typeof assetUrls;
@@ -87,15 +88,15 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   };
   const drawHeroPlate = (layer: 'hero plate' | 'hero plate shadow', frame: KitchenTruthAtlasFrame, placement: { x: number; y: number }) => {
     if (!visible.has(layer)) return;
+    const face = kitchenCabinetHeroFace(cabinetMode);
+    if (face === 'none') return;
+    if (face === 'tilted') {
+      const tiltFrame = layer === 'hero plate' ? KITCHEN_PLATE_TILT.frames.face : KITCHEN_PLATE_TILT.frames.contact;
+      drawCrop('plateTilt', tiltFrame, KITCHEN_PLATE_TILT.placement.x, KITCHEN_PLATE_TILT.placement.y);
+      return;
+    }
     const [x, y] = at(plates.logicalBounds, placement);
-    const pose = kitchenCabinetPlatePose(cabinetMode);
-    if (pose.rotation === 0) { drawCrop('plates', frame, x, y); return; }
-    context.save();
-    context.translate(578 + pose.x, 90 + pose.y);
-    context.rotate(pose.rotation);
-    context.drawImage(assets.plates, frame.x, frame.y, frame.width, frame.height,
-      x - 578, y - 90, frame.width, frame.height);
-    context.restore();
+    drawCrop('plates', frame, x, y);
   };
 
   if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
@@ -207,7 +208,7 @@ export function KitchenLocalIntactProof() {
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The stressed-hinge preview keeps the photographed cabinet and remaining stack in place while the independent hero plate begins to slip. Isolating the backing removes the entire cabinet only to inspect layer ownership; its visible rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The stressed-hinge preview keeps the photographed cabinet and remaining stack in place while the independent hero plate exposes a proposed new face and contact shadow. Isolating the backing removes the entire cabinet only to inspect layer ownership; its visible rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

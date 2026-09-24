@@ -12,15 +12,27 @@ export const KITCHEN_CABINET_ARCHITECTURE = {
   backingStatus: 'proposed',
 } as const;
 
+/** Unphotographed top face, visible only in the stationary stressed preview. */
+export const KITCHEN_PLATE_TILT = {
+  atlasUrl: '/rooms/kitchen/rebuild/truth/plate-tilt-atlas.webp',
+  atlasWidth: 166,
+  atlasHeight: 40,
+  frames: {
+    face: { x: 0, y: 0, width: 82, height: 40 },
+    contact: { x: 84, y: 0, width: 82, height: 40 },
+  },
+  placement: { x: 575, y: 76 },
+  source: 'proposed-local-visible-face-from-approved-ceramic-palette',
+} as const;
+
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
   if (reference) return 'master';
   return mode === 'backing-diagnostic' ? 'backing' : 'cabinet';
 }
 
-export function kitchenCabinetPlatePose(mode: KitchenCabinetMode): Readonly<{ x: number; y: number; rotation: number }> {
-  return mode === 'hinge-stressed'
-    ? { x: 10, y: 4, rotation: 0.25 }
-    : { x: 0, y: 0, rotation: 0 };
+export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
+  if (mode === 'backing-diagnostic') return 'none';
+  return mode === 'hinge-stressed' ? 'tilted' : 'photographed';
 }
 
 export function validateKitchenCabinetArchitecture(): readonly string[] {
@@ -34,6 +46,18 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
   if ([zone.intactUrl, zone.backingUrl].some(url =>
       !url.startsWith('/rooms/kitchen/rebuild/truth/') || /creativeclaw|^https?:\/\//i.test(url))) {
     errors.push('cabinet surfaces must be repository-local');
+  }
+  const tilt = KITCHEN_PLATE_TILT;
+  if (!tilt.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(tilt.atlasUrl)) errors.push('plate face must be repository-local');
+  for (const [id, frame] of Object.entries(tilt.frames)) {
+    if (frame.x < 0 || frame.y < 0 || frame.x + frame.width > tilt.atlasWidth ||
+        frame.y + frame.height > tilt.atlasHeight) errors.push(`plate tilt frame outside atlas: ${id}`);
+  }
+  if (tilt.placement.x < zone.bounds.x || tilt.placement.y < zone.bounds.y ||
+      tilt.placement.x + tilt.frames.face.width > zone.bounds.x + zone.bounds.width ||
+      tilt.placement.y + tilt.frames.face.height > zone.bounds.y + zone.bounds.height) {
+    errors.push('stressed plate must remain inside the photographed cabinet');
   }
   if (zone.backingStatus !== 'proposed') errors.push('unphotographed cabinet backing cannot be accepted as master art');
   return errors;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetPlatePose, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, kitchenCabinetHeroFace, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -21,11 +21,9 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetSurface('intact', true)).toBe('master');
   });
 
-  it('moves only the hero plate in the first damage proof', () => {
-    expect(kitchenCabinetPlatePose('intact')).toEqual({ x: 0, y: 0, rotation: 0 });
-    const stress = kitchenCabinetPlatePose('hinge-stressed');
-    expect(stress.x).toBeGreaterThan(0);
-    expect(stress.y).toBeGreaterThan(0);
-    expect(Math.sin(stress.rotation) * 60 + stress.y).toBeGreaterThan(15);
+  it('uses an exposed face only in the stationary stressed pose', () => {
+    expect(kitchenCabinetHeroFace('intact')).toBe('photographed');
+    expect(kitchenCabinetHeroFace('hinge-stressed')).toBe('tilted');
+    expect(kitchenCabinetHeroFace('backing-diagnostic')).toBe('none');
   });
 });

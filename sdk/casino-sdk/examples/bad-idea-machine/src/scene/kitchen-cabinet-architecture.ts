@@ -33,6 +33,13 @@ export const KITCHEN_CABINET_DOOR = {
   source: 'approved-master-cabinet-pixels',
 } as const;
 
+/** The remaining photographed stack slides on its shelf in the hanging-door preview. */
+export const KITCHEN_CABINET_STACK_SLIDE = { x: 5, y: 1 } as const;
+
+export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
+  return mode === 'hinge-dropped' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
+}
+
 export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
   return mode === 'hinge-dropped' ? 'dropped' : 'rest';

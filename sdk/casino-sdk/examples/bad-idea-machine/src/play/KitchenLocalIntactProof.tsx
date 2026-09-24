@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -141,6 +141,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   const toaster = KITCHEN_TOASTER_TRUTH;
   const towel = KITCHEN_TOWEL_TRUTH;
   const plates = KITCHEN_PLATE_TRUTH;
+  const stackOffset = kitchenCabinetStackOffset(cabinetMode);
   const kettle = KITCHEN_KETTLE_TRUTH;
 
   // Replace the photographed objects with their clean local supports first.
@@ -183,7 +184,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);
   if (cabinetVisible) {
-    drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, plates.restPlacement.stackShadow);
+    drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, {
+      x: plates.restPlacement.stackShadow.x + stackOffset.x,
+      y: plates.restPlacement.stackShadow.y + stackOffset.y,
+    });
     drawHeroPlate('hero plate shadow', plates.frames.heroShadow, plates.restPlacement.heroShadow);
   }
   drawPlaced('kettle shadow', 'kettle', kettle, kettle.frames.shadow, kettle.restPlacement.shadow);
@@ -194,7 +198,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('hero toast', 'toast', toast, toast.frames.body, toast.restPlacement.body);
   drawPlaced('towel', 'towel', towel, towel.frames.body, towel.restPlacement.body);
   if (cabinetVisible) {
-    drawPlaced('plate stack', 'plates', plates, plates.frames.stackBody, plates.restPlacement.stackBody);
+    drawPlaced('plate stack', 'plates', plates, plates.frames.stackBody, {
+      x: plates.restPlacement.stackBody.x + stackOffset.x,
+      y: plates.restPlacement.stackBody.y + stackOffset.y,
+    });
     drawHeroPlate('hero plate', plates.frames.heroBody, plates.restPlacement.heroBody);
     if (cabinetMode === 'hinge-stressed' || cabinetMode === 'hinge-dropped') {
       // Local hinge stress, with the approved door and carcass still in place.

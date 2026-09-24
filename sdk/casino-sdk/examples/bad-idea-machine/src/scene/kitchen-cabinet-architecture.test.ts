@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -34,5 +34,11 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetDoorPose('hinge-stressed')).toBe('rest');
     expect(kitchenCabinetDoorPose('hinge-dropped')).toBe('dropped');
     expect(kitchenCabinetDoorPose('backing-diagnostic')).toBe('none');
+  });
+
+  it('slides the separate photographed stack only with the dropped door', () => {
+    expect(kitchenCabinetStackOffset('intact')).toEqual({ x: 0, y: 0 });
+    expect(kitchenCabinetStackOffset('hinge-stressed')).toEqual({ x: 0, y: 0 });
+    expect(kitchenCabinetStackOffset('hinge-dropped')).toEqual({ x: 5, y: 1 });
   });
 });

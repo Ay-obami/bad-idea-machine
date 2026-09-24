@@ -27,9 +27,10 @@ export const KITCHEN_PLATE_TILT = {
 
 /** A photographed door silhouette and a single static hinge-failure pose. */
 export const KITCHEN_CABINET_DOOR = {
-  bounds: { x: 686, y: 0, width: 74, height: 150 },
-  hinge: { x: 688, y: 74 },
+  bounds: { x: 694, y: 0, width: 76, height: 150 },
+  hinge: { x: 695, y: 74 },
   freeEdgeDrop: 16,
+  hiddenSupportSample: { x: 790, y: 0, width: 24, height: 150 },
   source: 'approved-master-cabinet-pixels',
 } as const;
 
@@ -99,6 +100,12 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       door.hinge.x < door.bounds.x || door.hinge.x > door.bounds.x + door.bounds.width ||
       door.hinge.y < door.bounds.y || door.hinge.y > door.bounds.y + door.bounds.height) {
     errors.push('cabinet door silhouette and hinge must remain in the photographed cabinet');
+  }
+  if (door.hiddenSupportSample.x < zone.bounds.x + zone.bounds.width ||
+      door.hiddenSupportSample.x + door.hiddenSupportSample.width > 1000 ||
+      door.hiddenSupportSample.y !== door.bounds.y ||
+      door.hiddenSupportSample.height !== door.bounds.height) {
+    errors.push('door-hidden support must sample the adjacent approved cabinet face');
   }
   const shelf = KITCHEN_CABINET_SHELF_FASCIA;
   if (shelf.bounds.x < zone.bounds.x || shelf.bounds.y < zone.bounds.y ||

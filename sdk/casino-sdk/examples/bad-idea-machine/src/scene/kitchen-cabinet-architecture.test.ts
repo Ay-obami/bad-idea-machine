@@ -30,6 +30,8 @@ describe('cabinet surface selection', () => {
 
   it('keeps the photographed door at rest and limits the drop to the static preview', () => {
     expect(KITCHEN_CABINET_DOOR.source).toBe('approved-master-cabinet-pixels');
+    expect(KITCHEN_CABINET_DOOR.bounds).toEqual({ x: 694, y: 0, width: 76, height: 150 });
+    expect(KITCHEN_CABINET_DOOR.hiddenSupportSample).toEqual({ x: 790, y: 0, width: 24, height: 150 });
     expect(kitchenCabinetDoorPose('intact')).toBe('rest');
     expect(kitchenCabinetDoorPose('hinge-stressed')).toBe('rest');
     expect(kitchenCabinetDoorPose('hinge-dropped')).toBe('dropped');

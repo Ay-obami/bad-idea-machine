@@ -51,14 +51,15 @@ function loadAssets(): Promise<Record<Asset, HTMLImageElement>> {
 
 function doorSilhouette(x: number, y: number) {
   if (y < 0 || y >= KITCHEN_CABINET_DOOR.bounds.height) return false;
-  // The photographed left edge bows around the hinge. The right edge and
-  // bottom retain the photographed wood, including its grain and highlights.
-  const left = y < 56 ? 689 : y < 91 ? 686 : 687;
-  return x >= left && x < 760;
+  // The stationary jamb and hinge anchor stay with the cabinet. The door
+  // body includes its bright photographed free edge through x = 769.
+  return x >= KITCHEN_CABINET_DOOR.bounds.x &&
+    x < KITCHEN_CABINET_DOOR.bounds.x + KITCHEN_CABINET_DOOR.bounds.width;
 }
 
-function cabinetDoorLayers(cabinet: HTMLImageElement) {
+function cabinetDoorLayers(cabinet: HTMLImageElement, master: HTMLImageElement) {
   const { bounds } = KITCHEN_CABINET_ARCHITECTURE;
+  const { bounds: doorBounds, hiddenSupportSample } = KITCHEN_CABINET_DOOR;
   const source = document.createElement('canvas');
   source.width = bounds.width;
   source.height = bounds.height;
@@ -66,6 +67,15 @@ function cabinetDoorLayers(cabinet: HTMLImageElement) {
   if (!sourceContext) throw new Error('Could not inspect approved cabinet pixels');
   sourceContext.drawImage(cabinet, 0, 0);
   const original = sourceContext.getImageData(0, 0, bounds.width, bounds.height);
+  const sampleCanvas = document.createElement('canvas');
+  sampleCanvas.width = hiddenSupportSample.width;
+  sampleCanvas.height = hiddenSupportSample.height;
+  const sampleContext = sampleCanvas.getContext('2d', { willReadFrequently: true });
+  if (!sampleContext) throw new Error('Could not inspect adjoining approved cabinet pixels');
+  sampleContext.drawImage(master, hiddenSupportSample.x, hiddenSupportSample.y,
+    hiddenSupportSample.width, hiddenSupportSample.height, 0, 0,
+    hiddenSupportSample.width, hiddenSupportSample.height);
+  const neighbor = sampleContext.getImageData(0, 0, hiddenSupportSample.width, hiddenSupportSample.height);
   const door = sourceContext.createImageData(bounds.width, bounds.height);
   const support = sourceContext.createImageData(bounds.width, bounds.height);
   support.data.set(original.data);
@@ -75,20 +85,12 @@ function cabinetDoorLayers(cabinet: HTMLImageElement) {
       if (!doorSilhouette(globalX, y)) continue;
       const destination = (y * bounds.width + x) * 4;
       door.data.set(original.data.subarray(destination, destination + 4), destination);
-      // The hidden continuation is a local cabinet recess. Sample the nearby
-      // photographed inner wood and soften its variation across the unseen
-      // area; only thin slivers are used by the dropped pose.
-      const sampleY = Math.min(y, 86);
-      for (let channel = 0; channel < 3; channel++) {
-        let sum = 0;
-        for (let sampleX = 665; sampleX < 677; sampleX++) {
-          sum += original.data[(sampleY * bounds.width + sampleX - bounds.x) * 4 + channel];
-        }
-        const mean = sum / 12;
-        const grainX = 670 + (globalX - KITCHEN_CABINET_DOOR.bounds.x) % 8;
-        const grain = original.data[(sampleY * bounds.width + grainX - bounds.x) * 4 + channel];
-        support.data[destination + channel] = Math.round(mean + (grain - mean) * .12);
-      }
+      // Continue the neighboring photographed cabinet face behind the open
+      // door. This is proposed unseen support, never a replacement master.
+      const sampleX = Math.round((globalX - doorBounds.x) /
+        (doorBounds.width - 1) * (hiddenSupportSample.width - 1));
+      const sample = (y * hiddenSupportSample.width + sampleX) * 4;
+      support.data.set(neighbor.data.subarray(sample, sample + 4), destination);
     }
   }
   sourceContext.putImageData(door, 0, 0);
@@ -141,7 +143,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   context.clearRect(cabinet.x, cabinet.y, cabinet.width, cabinet.height);
   context.drawImage(assets[cabinetSurface], cabinet.x, cabinet.y);
   if (cabinetVisible) {
-    const separated = cabinetDoorLayers(assets.cabinet);
+    const separated = cabinetDoorLayers(assets.cabinet, assets.master);
     const shelf = cabinetShelfLayers(separated.support);
     context.drawImage(shelf.support, cabinet.x, cabinet.y);
     if (visible.has('shelf fascia')) {
@@ -334,7 +336,7 @@ export function KitchenLocalIntactProof() {
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The photographed cabinet and shelf surface stay in place while the independent door, upper shelf fascia, hero plate, and remaining stack show proposed static states. Hiding the door exposes an unphotographed support diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The photographed cabinet and shelf surface stay in place while the independent door, upper shelf fascia, hero plate, and remaining stack show proposed static states. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not a game frame or accepted damage art. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

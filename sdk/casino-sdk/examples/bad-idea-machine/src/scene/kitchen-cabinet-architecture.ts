@@ -12,19 +12,6 @@ export const KITCHEN_CABINET_ARCHITECTURE = {
   backingStatus: 'proposed',
 } as const;
 
-/** Unphotographed top face, visible only in the stationary stressed preview. */
-export const KITCHEN_PLATE_TILT = {
-  atlasUrl: '/rooms/kitchen/rebuild/truth/plate-tilt-atlas.webp',
-  atlasWidth: 166,
-  atlasHeight: 40,
-  frames: {
-    face: { x: 0, y: 0, width: 82, height: 40 },
-    contact: { x: 84, y: 0, width: 82, height: 40 },
-  },
-  placement: { x: 575, y: 76 },
-  source: 'proposed-local-visible-face-from-approved-ceramic-palette',
-} as const;
-
 /** A photographed door silhouette and a single static hinge-failure pose. */
 export const KITCHEN_CABINET_DOOR = {
   bounds: { x: 694, y: 0, width: 76, height: 150 },
@@ -120,18 +107,6 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
   if ([zone.intactUrl, zone.backingUrl].some(url =>
       !url.startsWith('/rooms/kitchen/rebuild/truth/') || /creativeclaw|^https?:\/\//i.test(url))) {
     errors.push('cabinet surfaces must be repository-local');
-  }
-  const tilt = KITCHEN_PLATE_TILT;
-  if (!tilt.atlasUrl.startsWith('/rooms/kitchen/rebuild/truth/') ||
-      /creativeclaw|^https?:\/\//i.test(tilt.atlasUrl)) errors.push('plate face must be repository-local');
-  for (const [id, frame] of Object.entries(tilt.frames)) {
-    if (frame.x < 0 || frame.y < 0 || frame.x + frame.width > tilt.atlasWidth ||
-        frame.y + frame.height > tilt.atlasHeight) errors.push(`plate tilt frame outside atlas: ${id}`);
-  }
-  if (tilt.placement.x < zone.bounds.x || tilt.placement.y < zone.bounds.y ||
-      tilt.placement.x + tilt.frames.face.width > zone.bounds.x + zone.bounds.width ||
-      tilt.placement.y + tilt.frames.face.height > zone.bounds.y + zone.bounds.height) {
-    errors.push('stressed plate must remain inside the photographed cabinet');
   }
   if (!KITCHEN_TIER1_CERAMIC.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
       /creativeclaw|^https?:\/\//i.test(KITCHEN_TIER1_CERAMIC.url)) {

@@ -41,3 +41,5 @@ The deployed `d4a1126` review showed the fragments wholly on the right-hand wood
 ## Tier 1 cabinet pose correction
 
 The blueprint assigns Tier 1 `hinge-stressed` with the remaining stack `missing-one`. The local Tier 1 renderer had incorrectly reused the Tier 2 hanging-door pose and shifted that remaining stack 5×1 pixels. The stationary correction keeps the photographed door at rest, adds only the existing fine hinge-stress line, and seats the remaining photographed stack and its independent contact at their approved rest positions. Tier 2 retains the separate hanging-door study. This requires deployed inspection at room and enlarged cabinet scale before calling the pose accepted.
+
+The production `6053d9f` close-up shows the upper stack seated on the photographed shelf and the door at rest. Hiding the stack body leaves its independently controlled shadow; hiding that shadow exposes a clean shelf with the lower dishes and mugs still photographed. This accepts the corrected bounded Tier 1 cabinet/stack pose. It does not accept a finished terminal image, inferred hidden door face, or additional tiers.

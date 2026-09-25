@@ -46,6 +46,7 @@ describe('cabinet surface selection', () => {
 
   it('uses local ceramic debris and removes the whole hero plate in the terminal proposal', () => {
     expect(KITCHEN_TIER1_CERAMIC.url).toBe('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp');
+    expect(KITCHEN_TIER1_CERAMIC.bounds).toEqual({ x: 530, y: 299, width: 68, height: 40 });
     expect(kitchenCabinetHeroFace('tier1-terminal')).toBe('none');
     expect(kitchenCabinetDoorPose('tier1-terminal')).toBe('dropped');
     expect(kitchenCabinetStackOffset('tier1-terminal')).toEqual({ x: 5, y: 1 });

@@ -13,3 +13,7 @@ The original rest assembly, its plate stack, toast, pan, toaster, towel, kettle,
 At room and enlarged cabinet scale, inspect the debris position and material against the approved room. Hide the debris body: no plate fragment may remain. Hide its contact alone: no ceramic body may disappear. Hide the remaining upper stack and shadow: its shelf must be clean. The hero plate must not remain whole anywhere in the proposed terminal composition. The pan, toaster, kettle, towel and their contacts must stay registered at their approved rest positions. No rectangular patch, prop ghost or older Kitchen image is acceptable.
 
 This is a stationary proposal pending a deployed visual review. It is not a finished outcome, accepted debris placement, complete Tier 1 damage, motion, or permission to expand to other tiers. The rejected loose shelf, broad cabinet backing and inferred door-hidden face remain diagnostic or withdrawn. Animation remains blocked.
+
+## First deployed review
+
+The initial `fa4dad2` deployment made the local-only route load and the former remote atlas was no longer requested by that route. The ceramic cutout was too large at 120×80 logical pixels and extended from the stove into the oven-control face. It **failed** the support and scale gate. The next static placement keeps the same cutout but displays it at 68×40 pixels over the stove's right burner region. That smaller composition requires a new deployed visual review before it can be accepted.

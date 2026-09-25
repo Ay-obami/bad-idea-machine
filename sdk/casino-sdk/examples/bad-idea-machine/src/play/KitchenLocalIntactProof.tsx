@@ -44,6 +44,7 @@ const assetUrls = {
   ceramic: KITCHEN_TIER1_CERAMIC.url,
   floorCeramic: KITCHEN_TIER1_FLOOR_CERAMIC_STUDY.url,
   soot: KITCHEN_TIER2_SOOT_STUDY.url,
+  cabinetSoot: KITCHEN_TIER2_CABINET_SOOT_STUDY.url,
   grease: KITCHEN_TIER2_GREASE_STUDY.url,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
@@ -120,7 +121,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     const { x, y, width, height } = KITCHEN_TIER2_CABINET_SOOT_STUDY.bounds;
     context.save();
     context.globalAlpha = KITCHEN_TIER2_CABINET_SOOT_STUDY.opacity;
-    context.drawImage(assets.soot, x, y, width, height);
+    context.drawImage(assets.cabinetSoot, x, y, width, height);
     context.restore();
   }
   if (cabinetMode === 'tier2-study' && visible.has('backsplash soot study')) {

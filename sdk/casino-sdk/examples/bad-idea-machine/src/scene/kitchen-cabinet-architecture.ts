@@ -67,10 +67,11 @@ export const KITCHEN_TIER2_SOOT_STUDY = {
   status: 'visual-study',
 } as const;
 
-/** The same alpha-only residue material, independently placed on the upper cabinet underside. */
+/** Separate alpha-only underside deposit; no cabinet or tile pixels are baked into this overlay. */
 export const KITCHEN_TIER2_CABINET_SOOT_STUDY = {
-  bounds: { x: 414, y: 105, width: 140, height: 60 },
-  opacity: .23,
+  url: '/rooms/kitchen/rebuild/truth/tier2-cabinet-soot-edge-study.webp',
+  bounds: { x: 350, y: 110, width: 215, height: 60 },
+  opacity: .4,
   status: 'visual-study',
 } as const;
 
@@ -146,7 +147,9 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
   }
   const cabinetSoot = KITCHEN_TIER2_CABINET_SOOT_STUDY.bounds;
   const stoveCabinet = KITCHEN_DESTRUCTION_BLUEPRINT.zones.find(item => item.id === 'upper-stove-cabinet');
-  if (!stoveCabinet || cabinetSoot.x < stoveCabinet.bounds.x || cabinetSoot.y < stoveCabinet.bounds.y ||
+  if (!KITCHEN_TIER2_CABINET_SOOT_STUDY.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(KITCHEN_TIER2_CABINET_SOOT_STUDY.url) ||
+      !stoveCabinet || cabinetSoot.x < stoveCabinet.bounds.x || cabinetSoot.y < stoveCabinet.bounds.y ||
       cabinetSoot.x + cabinetSoot.width > stoveCabinet.bounds.x + stoveCabinet.bounds.width ||
       cabinetSoot.y + cabinetSoot.height > stoveCabinet.bounds.y + stoveCabinet.bounds.height) {
     errors.push('Tier 2 cabinet soot must stay within the upper-stove-cabinet zone');

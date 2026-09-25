@@ -70,7 +70,8 @@ export const KITCHEN_TIER2_SOOT_STUDY = {
 /** Separate alpha-only underside deposit; no cabinet or tile pixels are baked into this overlay. */
 export const KITCHEN_TIER2_CABINET_SOOT_STUDY = {
   url: '/rooms/kitchen/rebuild/truth/tier2-cabinet-soot-edge-study.webp',
-  bounds: { x: 350, y: 110, width: 215, height: 60 },
+  crop: { x: 0, y: 0, width: 450, height: 100 },
+  bounds: { x: 350, y: 134, width: 215, height: 36 },
   opacity: .4,
   status: 'visual-study',
 } as const;

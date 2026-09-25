@@ -119,9 +119,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   if (reference) return;
   if (cabinetMode === 'tier2-study' && visible.has('cabinet soot study')) {
     const { x, y, width, height } = KITCHEN_TIER2_CABINET_SOOT_STUDY.bounds;
+    const crop = KITCHEN_TIER2_CABINET_SOOT_STUDY.crop;
     context.save();
     context.globalAlpha = KITCHEN_TIER2_CABINET_SOOT_STUDY.opacity;
-    context.drawImage(assets.cabinetSoot, x, y, width, height);
+    context.drawImage(assets.cabinetSoot, crop.x, crop.y, crop.width, crop.height, x, y, width, height);
     context.restore();
   }
   if (cabinetMode === 'tier2-study' && visible.has('backsplash soot study')) {

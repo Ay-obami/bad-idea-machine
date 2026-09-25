@@ -1,6 +1,6 @@
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
 
-export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'tier1-terminal' | 'backing-diagnostic';
+export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'tier1-terminal' | 'tier2-study' | 'backing-diagnostic';
 
 /** Exact intact cabinet plus a separately authored proposal for its unseen backing. */
 export const KITCHEN_CABINET_ARCHITECTURE = {
@@ -52,13 +52,25 @@ export const KITCHEN_TIER1_PROP_POSE = {
   toastContact: { x: 717, y: 306 },
 } as const;
 
+/** Proposed local backsplash residue. It contains no room or replacement tile. */
+export const KITCHEN_TIER2_SOOT_STUDY = {
+  url: '/rooms/kitchen/rebuild/truth/tier2-soot-study.webp',
+  bounds: { x: 390, y: 175, width: 180, height: 120 },
+  opacity: .28,
+  status: 'visual-study',
+} as const;
+
+export function kitchenCabinetHasTerminalProps(mode: KitchenCabinetMode): boolean {
+  return mode === 'tier1-terminal' || mode === 'tier2-study';
+}
+
 export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
-  return mode === 'hinge-dropped' || mode === 'tier1-terminal' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
+  return mode === 'hinge-dropped' || kitchenCabinetHasTerminalProps(mode) ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
 }
 
 export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-dropped' || mode === 'tier1-terminal' ? 'dropped' : 'rest';
+  return mode === 'hinge-dropped' || kitchenCabinetHasTerminalProps(mode) ? 'dropped' : 'rest';
 }
 
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
@@ -67,7 +79,7 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 }
 
 export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
-  if (mode === 'backing-diagnostic' || mode === 'tier1-terminal') return 'none';
+  if (mode === 'backing-diagnostic' || kitchenCabinetHasTerminalProps(mode)) return 'none';
   // The proposed exposed face visibly hovered above the photographed stack.
   // Keep the approved resting plate seated until a supported pose is authored.
   return 'photographed';
@@ -100,6 +112,15 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
   if (!KITCHEN_TIER1_CERAMIC.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
       /creativeclaw|^https?:\/\//i.test(KITCHEN_TIER1_CERAMIC.url)) {
     errors.push('terminal ceramic cutout must be repository-local');
+  }
+  const soot = KITCHEN_TIER2_SOOT_STUDY;
+  const backsplash = KITCHEN_DESTRUCTION_BLUEPRINT.zones.find(item => item.id === 'backsplash');
+  if (!soot.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(soot.url) || !backsplash ||
+      soot.bounds.x < backsplash.bounds.x || soot.bounds.y < backsplash.bounds.y ||
+      soot.bounds.x + soot.bounds.width > backsplash.bounds.x + backsplash.bounds.width ||
+      soot.bounds.y + soot.bounds.height > backsplash.bounds.y + backsplash.bounds.height) {
+    errors.push('Tier 2 soot study must be repository-local and confined to the backsplash');
   }
   const door = KITCHEN_CABINET_DOOR;
   if (door.bounds.x < zone.bounds.x || door.bounds.y < zone.bounds.y ||

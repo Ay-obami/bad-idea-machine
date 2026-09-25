@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, KITCHEN_TIER2_SOOT_STUDY, kitchenCabinetDoorPose, kitchenCabinetHasTerminalProps, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -13,7 +13,7 @@ type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall s
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
   | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door'
-  | 'ceramic debris' | 'ceramic debris contact';
+  | 'ceramic debris' | 'ceramic debris contact' | 'backsplash soot study';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -24,6 +24,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['kettle', 'kettle shadow', 'kettle reflection'],
   ['cabinet door'],
   ['ceramic debris', 'ceramic debris contact'],
+  ['backsplash soot study'],
 ];
 const allLayers = layerGroups.flat();
 const assetUrls = {
@@ -38,6 +39,7 @@ const assetUrls = {
   towel: KITCHEN_TOWEL_TRUTH.atlasUrl,
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
   ceramic: KITCHEN_TIER1_CERAMIC.url,
+  soot: KITCHEN_TIER2_SOOT_STUDY.url,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
 type Asset = keyof typeof assetUrls;
@@ -109,6 +111,13 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   context.drawImage(assets.master, 0, 0);
   const cabinetSurface = kitchenCabinetSurface(cabinetMode, reference);
   if (reference) return;
+  if (cabinetMode === 'tier2-study' && visible.has('backsplash soot study')) {
+    const { x, y, width, height } = KITCHEN_TIER2_SOOT_STUDY.bounds;
+    context.save();
+    context.globalAlpha = KITCHEN_TIER2_SOOT_STUDY.opacity;
+    context.drawImage(assets.soot, x, y, width, height);
+    context.restore();
+  }
   const cabinetVisible = cabinetMode !== 'backing-diagnostic';
 
   // The exact photographed cabinet and the proposed unseen wall are separate
@@ -169,7 +178,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     drawCrop('plates', frame, x, y);
   };
 
-  const terminal = cabinetMode === 'tier1-terminal';
+  const terminal = kitchenCabinetHasTerminalProps(cabinetMode);
   const panOffset = terminal ? KITCHEN_TIER1_PROP_POSE.pan : { x: 0, y: 0 };
   const panContactOffset = terminal ? KITCHEN_TIER1_PROP_POSE.panContact : { x: 0, y: 0 };
   if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x + panContactOffset.x, KITCHEN_PAN_TRUTH.logicalBounds.y + panContactOffset.y);
@@ -196,7 +205,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('kettle shadow', 'kettle', kettle, kettle.frames.shadow, kettle.restPlacement.shadow);
   drawPlaced('kettle reflection', 'kettle', kettle, kettle.frames.reflection, kettle.restPlacement.reflection);
 
-  if (cabinetMode === 'tier1-terminal' && visible.has('ceramic debris contact')) {
+  if (terminal && visible.has('ceramic debris contact')) {
     const { x, y, width, height } = KITCHEN_TIER1_CERAMIC.bounds;
     context.save();
     context.filter = 'brightness(0) blur(1px)';
@@ -233,7 +242,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     }
   }
   drawPlaced('kettle', 'kettle', kettle, kettle.frames.body, kettle.restPlacement.body);
-  if (cabinetMode === 'tier1-terminal' && visible.has('ceramic debris')) {
+  if (terminal && visible.has('ceramic debris')) {
     const { x, y, width, height } = KITCHEN_TIER1_CERAMIC.bounds;
     context.drawImage(assets.ceramic, x, y, width, height);
   }
@@ -298,11 +307,14 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
       <button type="button" aria-pressed={cabinetMode === 'tier1-terminal'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'tier1-terminal' ? 'intact' : 'tier1-terminal')}>
         {cabinetMode === 'tier1-terminal' ? 'Restore intact room' : 'Preview local Tier 1 proposal'}
       </button>
+      <button type="button" aria-pressed={cabinetMode === 'tier2-study'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'tier2-study' ? 'intact' : 'tier2-study')}>
+        {cabinetMode === 'tier2-study' ? 'Restore intact room' : 'Preview Tier 2 soot study'}
+      </button>
       <button type="button" aria-pressed={cabinetMode === 'backing-diagnostic'} style={{ ...controlStyle, border: '1px solid #7ce2a5', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'backing-diagnostic' ? 'intact' : 'backing-diagnostic')}>
         {cabinetMode === 'backing-diagnostic' ? 'Restore cabinet from diagnostic' : 'Isolate backing (diagnostic only)'}
       </button>
       <div style={{ width: '100%', aspectRatio: '5 / 3', background: '#020405' }}>
-        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : cabinetMode === 'tier1-terminal' ? 'Local Kitchen Tier 1 stationary proposal' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : cabinetMode === 'tier2-study' ? 'Kitchen Tier 2 soot visual study' : cabinetMode === 'tier1-terminal' ? 'Local Kitchen Tier 1 stationary proposal' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
       </div>
       <button type="button" aria-pressed={showCabinetDetail} style={{ ...controlStyle, border: '1px solid #f4cb58', marginTop: 12 }} onClick={() => setShowCabinetDetail(value => !value)}>
         {showCabinetDetail ? 'Close cabinet detail' : 'Inspect cabinet close-up'}
@@ -317,16 +329,17 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
       {!assets && !error ? <p>Loading approved local assets…</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
         <button type="button" style={{ ...controlStyle, border: '1px solid #7ce2a5' }} onClick={() => setVisible(new Set(allLayers))}>Show all</button>
-        <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(cabinetMode === 'tier1-terminal' ? new Set<Layer>(['cabinet door']) : new Set<Layer>())}>
-          {cabinetMode === 'tier1-terminal' ? 'Hide props, contacts, and debris' : 'Hide extracted layers'}
+        <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(kitchenCabinetHasTerminalProps(cabinetMode) ? new Set<Layer>(['cabinet door']) : new Set<Layer>())}>
+          {kitchenCabinetHasTerminalProps(cabinetMode) ? 'Hide props, contacts, and damage' : 'Hide extracted layers'}
         </button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
-        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris'][index]}</strong>
+        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris', 'Backsplash'][index]}</strong>
         {group.map(layer => { const disabled = ((index === 4 || index === 6) && !cabinetVisible) ||
-          ((layer === 'hero plate' || layer === 'hero plate shadow') && cabinetMode === 'tier1-terminal') ||
-          (index === 7 && cabinetMode !== 'tier1-terminal');
-          const absent = cabinetMode === 'tier1-terminal' && (layer === 'hero plate' || layer === 'hero plate shadow');
+          ((layer === 'hero plate' || layer === 'hero plate shadow') && kitchenCabinetHasTerminalProps(cabinetMode)) ||
+          (index === 7 && !kitchenCabinetHasTerminalProps(cabinetMode)) ||
+          (index === 8 && cabinetMode !== 'tier2-study');
+          const absent = kitchenCabinetHasTerminalProps(cabinetMode) && (layer === 'hero plate' || layer === 'hero plate shadow');
           return <button key={layer} type="button" aria-pressed={absent ? false : visible.has(layer)} disabled={disabled} onClick={() => toggle(layer)}
           style={{ ...controlStyle, opacity: disabled ? .5 : 1, border: `1px solid ${!absent && visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
           {absent ? layer === 'hero plate' ? 'Hero plate absent (broken)' : 'Hero plate contact absent' : `${visible.has(layer) ? 'Hide' : 'Show'} ${layer}`}

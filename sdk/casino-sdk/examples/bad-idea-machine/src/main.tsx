@@ -122,6 +122,14 @@ function RootView() {
     );
   }
 
+  if (scene === 'kitchen-tier2-study') {
+    return (
+      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
+        <KitchenLocalIntactProof initialMode="tier2-study" />
+      </Suspense>
+    );
+  }
+
   if (scene === 'kitchen-object-truth') {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>

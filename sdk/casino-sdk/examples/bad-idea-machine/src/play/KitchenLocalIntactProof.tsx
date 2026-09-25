@@ -331,13 +331,13 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
         {cabinetMode === 'tier1-terminal' ? 'Restore intact room' : 'Preview local Tier 1 proposal'}
       </button>
       <button type="button" aria-pressed={cabinetMode === 'tier2-study'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'tier2-study' ? 'intact' : 'tier2-study')}>
-        {cabinetMode === 'tier2-study' ? 'Restore intact room' : 'Preview Tier 2 soot study'}
+        {cabinetMode === 'tier2-study' ? 'Restore intact room' : 'Preview Tier 2 residue study'}
       </button>
       <button type="button" aria-pressed={cabinetMode === 'backing-diagnostic'} style={{ ...controlStyle, border: '1px solid #7ce2a5', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'backing-diagnostic' ? 'intact' : 'backing-diagnostic')}>
         {cabinetMode === 'backing-diagnostic' ? 'Restore cabinet from diagnostic' : 'Isolate backing (diagnostic only)'}
       </button>
       <div style={{ width: '100%', aspectRatio: '5 / 3', background: '#020405' }}>
-        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : cabinetMode === 'tier2-study' ? 'Kitchen Tier 2 soot visual study' : cabinetMode === 'tier1-terminal' ? 'Local Kitchen Tier 1 stationary proposal' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : cabinetMode === 'tier2-study' ? 'Kitchen Tier 2 residue visual study' : cabinetMode === 'tier1-terminal' ? 'Local Kitchen Tier 1 stationary proposal' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
       </div>
       <button type="button" aria-pressed={showCabinetDetail} style={{ ...controlStyle, border: '1px solid #f4cb58', marginTop: 12 }} onClick={() => setShowCabinetDetail(value => !value)}>
         {showCabinetDetail ? 'Close cabinet detail' : 'Inspect cabinet close-up'}
@@ -369,7 +369,7 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
         </button>; })}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The photographed cabinet and clean shelf stay in their approved positions while the independent door, hero plate, remaining stack, and their contact shadows can be inspected. The local Tier 1 pose replaces the whole hero plate with proposed ceramic debris and an independent contact layer; it needs visual acceptance and is not a gameplay frame. The shelf-fascia extraction and loose-shelf trial failed visual review and are withdrawn. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion is approved here.
+        This is a stationary assembly check. The photographed cabinet and clean shelf stay in their approved positions while the independent door, hero plate, remaining stack, and their contact shadows can be inspected. The local Tier 1 pose replaces the whole hero plate with proposed stove ceramic and separately controlled wood-floor ceramic and contacts. These are bounded static studies, not a finished ending or a gameplay frame. The shelf-fascia extraction and loose-shelf trial failed visual review and are withdrawn. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion is approved here.
       </p>
     </div>
   </main>;

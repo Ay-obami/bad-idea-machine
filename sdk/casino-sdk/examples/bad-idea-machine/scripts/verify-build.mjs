@@ -41,6 +41,12 @@ for (const file of files.filter(file => file.path.endsWith('.css'))) {
     throw new Error(`Production CSS ${file.path} contains root-absolute /assets URLs`);
   }
 }
+for (const file of files.filter(file => file.path.endsWith('.js'))) {
+  const javascript = readFileSync(join(distPath, file.path), 'utf8');
+  if (javascript.includes('cdn.creativeclaw.co')) {
+    throw new Error(`Production JavaScript ${file.path} still imports a retired remote Kitchen atlas`);
+  }
+}
 
 if (files.some(file => file.path.startsWith('cinematic/'))) {
   throw new Error('Retired /cinematic production assets are still present');

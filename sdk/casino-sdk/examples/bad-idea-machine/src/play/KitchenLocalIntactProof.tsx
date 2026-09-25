@@ -318,16 +318,19 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
       {!assets && !error ? <p>Loading approved local assets…</p> : null}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, marginTop: 14 }}>
         <button type="button" style={{ ...controlStyle, border: '1px solid #7ce2a5' }} onClick={() => setVisible(new Set(allLayers))}>Show all</button>
-        <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(new Set())}>Hide extracted layers</button>
+        <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(cabinetMode === 'tier1-terminal' ? new Set<Layer>(['cabinet door']) : new Set<Layer>())}>
+          {cabinetMode === 'tier1-terminal' ? 'Hide props, contacts, and debris' : 'Hide extracted layers'}
+        </button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
         <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris'][index]}</strong>
         {group.map(layer => { const disabled = ((index === 4 || index === 6) && !cabinetVisible) ||
           ((layer === 'hero plate' || layer === 'hero plate shadow') && cabinetMode === 'tier1-terminal') ||
           (index === 7 && cabinetMode !== 'tier1-terminal');
-          return <button key={layer} type="button" aria-pressed={visible.has(layer)} disabled={disabled} onClick={() => toggle(layer)}
-          style={{ ...controlStyle, opacity: disabled ? .5 : 1, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
-          {visible.has(layer) ? 'Hide' : 'Show'} {layer}
+          const absent = cabinetMode === 'tier1-terminal' && (layer === 'hero plate' || layer === 'hero plate shadow');
+          return <button key={layer} type="button" aria-pressed={absent ? false : visible.has(layer)} disabled={disabled} onClick={() => toggle(layer)}
+          style={{ ...controlStyle, opacity: disabled ? .5 : 1, border: `1px solid ${!absent && visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
+          {absent ? layer === 'hero plate' ? 'Hero plate absent (broken)' : 'Hero plate contact absent' : `${visible.has(layer) ? 'Hide' : 'Show'} ${layer}`}
         </button>; })}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>

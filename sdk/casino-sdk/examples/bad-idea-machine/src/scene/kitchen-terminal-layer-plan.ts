@@ -80,7 +80,7 @@ function architectureLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] 
       kind: 'architecture' as const,
       ownerId: zone.id,
       state,
-      path: `/rooms/kitchen/terminal/tier-${tier}/architecture/${zone.id}/${state}.webp`,
+      path: `/rooms/kitchen/terminal/shared/architecture/${zone.id}/${state}.webp`,
     };
   });
 }
@@ -97,7 +97,7 @@ function propLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       kind: 'prop' as const,
       ownerId: prop.id,
       state,
-      path: `/rooms/kitchen/terminal/tier-${tier}/props/${prop.id}/${state}.webp`,
+      path: `/rooms/kitchen/terminal/shared/props/${prop.id}/${state}.webp`,
     };
   });
 }
@@ -114,7 +114,7 @@ function shadowLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       kind: 'shadow' as const,
       ownerId: prop.id,
       state,
-      path: `/rooms/kitchen/terminal/tier-${tier}/shadows/${prop.id}/${state}.webp`,
+      path: `/rooms/kitchen/terminal/shared/shadows/${prop.id}/${state}.webp`,
     };
   });
 }
@@ -126,7 +126,7 @@ function debrisLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
     kind: 'debris' as const,
     ownerId,
     state,
-    path: `/rooms/kitchen/terminal/tier-${tier}/debris/${ownerId}/${state}.webp`,
+    path: `/rooms/kitchen/terminal/shared/debris/${ownerId}/${state}.webp`,
   }));
 }
 
@@ -140,7 +140,7 @@ function hazardLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       kind: 'hazard' as const,
       ownerId: 'fire',
       state: hazards.fire,
-      path: `/rooms/kitchen/terminal/tier-${tier}/hazards/fire/${hazards.fire}.webp`,
+      path: `/rooms/kitchen/terminal/shared/hazards/fire/${hazards.fire}.webp`,
     },
     {
       id: `tier/${tier}/hazard/smoke/${hazards.smoke}`,
@@ -148,7 +148,7 @@ function hazardLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       kind: 'hazard' as const,
       ownerId: 'smoke',
       state: hazards.smoke,
-      path: `/rooms/kitchen/terminal/tier-${tier}/hazards/smoke/${hazards.smoke}.webp`,
+      path: `/rooms/kitchen/terminal/shared/hazards/smoke/${hazards.smoke}.webp`,
     },
     {
       id: `tier/${tier}/hazard/power/${hazards.power}`,
@@ -156,7 +156,7 @@ function hazardLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       kind: 'hazard' as const,
       ownerId: 'power',
       state: hazards.power,
-      path: `/rooms/kitchen/terminal/tier-${tier}/hazards/power/${hazards.power}.webp`,
+      path: `/rooms/kitchen/terminal/shared/hazards/power/${hazards.power}.webp`,
     },
   ].filter(layer => layer.state !== 'none' && layer.state !== 'normal');
 }
@@ -184,14 +184,20 @@ export function kitchenTerminalLayersForTier(tier: OutcomeTier): KitchenTerminal
 export function validateKitchenTerminalLayerPlan(): readonly string[] {
   const errors: string[] = [];
   const ids = new Set<string>();
-  const paths = new Set<string>();
+  const paths = new Map<string, string>();
+  const sourcesByState = new Map<string, string>();
 
   for (const layer of KITCHEN_TERMINAL_LAYER_PLAN) {
     if (ids.has(layer.id)) errors.push(`duplicate terminal layer id: ${layer.id}`);
     ids.add(layer.id);
 
-    if (paths.has(layer.path)) errors.push(`duplicate terminal layer path: ${layer.path}`);
-    paths.add(layer.path);
+    const stateKey = `${layer.kind}/${layer.ownerId}/${layer.state}`;
+    const previous = paths.get(layer.path);
+    if (previous && previous !== stateKey) errors.push(`conflicting terminal layer path: ${layer.path}`);
+    paths.set(layer.path, stateKey);
+    const source = sourcesByState.get(stateKey);
+    if (source && source !== layer.path) errors.push(`state has conflicting terminal sources: ${stateKey}`);
+    sourcesByState.set(stateKey, layer.path);
 
     if (layer.kind === 'full-frame') {
       errors.push(`forbidden full-frame terminal layer: ${layer.id}`);

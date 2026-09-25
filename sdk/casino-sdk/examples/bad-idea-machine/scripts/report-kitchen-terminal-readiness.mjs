@@ -8,8 +8,10 @@ const server = await createServer({ root, server: { middlewareMode: true }, appT
 try {
   const { KITCHEN_TERMINAL_LAYER_PLAN } = await server.ssrLoadModule('/src/scene/kitchen-terminal-layer-plan.ts');
   const byTier = new Map();
+  const uniqueSources = new Map();
   for (const layer of KITCHEN_TERMINAL_LAYER_PLAN) {
     const present = existsSync(fileURLToPath(new URL(`../public${layer.path}`, import.meta.url)));
+    uniqueSources.set(layer.path, present);
     const tier = byTier.get(layer.tier) ?? { present: 0, missing: [] };
     if (present) tier.present++;
     else tier.missing.push(layer);
@@ -24,8 +26,8 @@ try {
       for (const layer of missing) process.stdout.write(`  ${layer.path}\n`);
     }
   }
-  const totalMissing = [...byTier.values()].reduce((sum, tier) => sum + tier.missing.length, 0);
-  process.stdout.write(`Static terminal art gate: ${totalMissing === 0 ? 'files present; visual approval still required' : `${totalMissing} files missing; blocked`}\n`);
+  const totalMissing = [...uniqueSources.values()].filter(present => !present).length;
+  process.stdout.write(`Static terminal art gate: ${totalMissing === 0 ? 'sources present; visual approval still required' : `${totalMissing} unique sources missing across ${KITCHEN_TERMINAL_LAYER_PLAN.length} tier references; blocked`}\n`);
   if (process.argv.includes('--strict') && totalMissing > 0) process.exitCode = 1;
 } finally {
   await server.close();

@@ -1,6 +1,6 @@
 # Tier 1 static asset map
 
-The approved 1000×600 Kitchen master is authoritative. This map connects the Tier 1 blueprint to the repository-local stationary proof. A source listed below means pixels or a bounded layer are available for compositing; it does **not** mean the corresponding `/rooms/kitchen/terminal/tier-1/…` file exists or that a final static ending has passed visual approval. Reuse intact photography in its original camera rather than duplicating the master into ten replacement images.
+The approved 1000×600 Kitchen master is authoritative. This map connects the Tier 1 blueprint to the repository-local stationary proof. A source listed below means pixels or a bounded layer are available for compositing; it does **not** mean the corresponding `/rooms/kitchen/terminal/shared/…` source is resolved or that a final static ending has passed visual approval. Reuse intact photography in its original camera rather than duplicating the master into ten replacement images.
 
 The plan now contains **28 active visual slots** for Tier 1. `fire=none`, `smoke=none`, `power=normal`, and `cabinet-debris=none` are empty states and need no WebP. The readiness audit reports 0/28 files at the proposed terminal paths. The local proof does render much of this composition from separate `rebuild/truth` sources; those source-backed parts are itemized below.
 

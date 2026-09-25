@@ -78,4 +78,16 @@ describe('kitchen terminal layer plan', () => {
       layer.kind === 'full-frame',
     )).toBe(false);
   });
+
+  it('reuses the same authored source for the same state across tiers', () => {
+    const byState = new Map<string, string>();
+    for (const layer of KITCHEN_TERMINAL_LAYER_PLAN) {
+      const key = `${layer.kind}/${layer.ownerId}/${layer.state}`;
+      const previous = byState.get(key);
+      if (previous) expect(layer.path).toBe(previous);
+      byState.set(key, layer.path);
+      expect(layer.path).not.toContain(`/tier-${layer.tier}/`);
+    }
+    expect(byState.size).toBeLessThan(KITCHEN_TERMINAL_LAYER_PLAN.length);
+  });
 });

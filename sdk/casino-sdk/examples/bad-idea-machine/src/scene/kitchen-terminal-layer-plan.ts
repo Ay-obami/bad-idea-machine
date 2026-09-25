@@ -120,7 +120,7 @@ function shadowLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
 }
 
 function debrisLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
-  return Object.entries(debrisStates[tier]).map(([ownerId, state]) => ({
+  return Object.entries(debrisStates[tier]).filter(([, state]) => state !== 'none').map(([ownerId, state]) => ({
     id: `tier/${tier}/debris/${ownerId}/${state}`,
     tier,
     kind: 'debris' as const,
@@ -158,7 +158,7 @@ function hazardLayers(tier: OutcomeTier): readonly KitchenTerminalLayer[] {
       state: hazards.power,
       path: `/rooms/kitchen/terminal/tier-${tier}/hazards/power/${hazards.power}.webp`,
     },
-  ];
+  ].filter(layer => layer.state !== 'none' && layer.state !== 'normal');
 }
 
 export const KITCHEN_TERMINAL_LAYER_PLAN: readonly KitchenTerminalLayer[] = TIERS.flatMap(tier => [
@@ -227,12 +227,13 @@ export function validateKitchenTerminalLayerPlan(): readonly string[] {
     }
 
     const debrisOwners = new Set(plan.debris.map(layer => layer.ownerId));
-    for (const required of ['ceramic-debris', 'cabinet-debris', 'floor-debris']) {
+    for (const required of Object.entries(debrisStates[tier]).filter(([, state]) => state !== 'none').map(([owner]) => owner)) {
       if (!debrisOwners.has(required)) errors.push(`tier ${tier}: missing debris family ${required}`);
     }
 
     const hazardOwners = new Set(plan.hazards.map(layer => layer.ownerId));
-    for (const required of ['fire', 'smoke', 'power']) {
+    for (const required of Object.entries(KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier].hazards)
+      .filter(([, state]) => state !== 'none' && state !== 'normal').map(([owner]) => owner)) {
       if (!hazardOwners.has(required)) errors.push(`tier ${tier}: missing hazard layer ${required}`);
     }
   }

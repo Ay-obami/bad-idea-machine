@@ -10,7 +10,7 @@ import {
 } from '../scene/kitchen-object-truth-proof';
 
 type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall shadow'
-  | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
+  | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow' | 'other toast contact'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
   | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door'
   | 'ceramic debris' | 'ceramic debris contact' | 'floor ceramic study' | 'floor ceramic contact' | 'cabinet soot study' | 'backsplash soot study' | 'stove grease study';
@@ -18,7 +18,7 @@ type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall s
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
   ['toaster', 'toaster cord', 'toaster wall shadow', 'toaster contact shadow', 'toaster reflection'],
-  ['hero toast', 'other toast', 'toast shadow'],
+  ['hero toast', 'other toast', 'toast shadow', 'other toast contact'],
   ['towel', 'towel shadow'],
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
   ['kettle', 'kettle shadow', 'kettle reflection'],
@@ -213,6 +213,15 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   }
   if (terminal) drawLayer('toast shadow', 'toast', toast.frames.shadow, KITCHEN_TIER1_PROP_POSE.toastContact.x, KITCHEN_TIER1_PROP_POSE.toastContact.y);
   else drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
+  if (visible.has('other toast contact')) {
+    const [x, y] = at(toast.logicalBounds, toast.restPlacement.remainingBody);
+    const { x: sx, y: sy, width, height } = toast.frames.remainingBody;
+    context.save();
+    context.filter = 'brightness(0) blur(.7px)';
+    context.globalAlpha = .18;
+    context.drawImage(assets.toast, sx, sy, width, height, x, y + 1, width, height);
+    context.restore();
+  }
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);
   if (cabinetVisible) {
     drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, {

@@ -24,7 +24,7 @@ describe('kitchen terminal layer plan', () => {
         KITCHEN_DESTRUCTION_BLUEPRINT.props.length,
       );
       expect(plan.debris.length).toBeGreaterThan(0);
-      expect(plan.hazards.length).toBeGreaterThanOrEqual(3);
+      expect(plan.hazards.length).toBeLessThanOrEqual(3);
     }
   });
 
@@ -56,7 +56,7 @@ describe('kitchen terminal layer plan', () => {
       );
 
       expect(debrisIds.has('ceramic-debris')).toBe(true);
-      expect(debrisIds.has('cabinet-debris')).toBe(true);
+      expect(debrisIds.has('cabinet-debris')).toBe(tier !== 1);
       expect(debrisIds.has('floor-debris')).toBe(true);
     }
   });
@@ -64,11 +64,12 @@ describe('kitchen terminal layer plan', () => {
   it('keeps fire, smoke and power treatment outside architecture images', () => {
     for (const tier of [0, 1, 2, 3, 4] as const) {
       const hazards = kitchenTerminalLayersForTier(tier).hazards;
-      expect(hazards.map(layer => layer.ownerId).sort()).toEqual([
-        'fire',
-        'power',
-        'smoke',
-      ]);
+      const profile = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier].hazards;
+      const expected = Object.entries(profile)
+        .filter(([, state]) => state !== 'none' && state !== 'normal')
+        .map(([owner]) => owner).sort();
+      expect(hazards.map(layer => layer.ownerId).sort()).toEqual(expected);
+      expect(hazards.every(layer => layer.state !== 'none' && layer.state !== 'normal')).toBe(true);
     }
   });
 

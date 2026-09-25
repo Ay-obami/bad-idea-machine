@@ -67,6 +67,13 @@ export const KITCHEN_TIER2_SOOT_STUDY = {
   status: 'visual-study',
 } as const;
 
+/** The same alpha-only residue material, independently placed on the upper cabinet underside. */
+export const KITCHEN_TIER2_CABINET_SOOT_STUDY = {
+  bounds: { x: 414, y: 105, width: 140, height: 60 },
+  opacity: .23,
+  status: 'visual-study',
+} as const;
+
 /** Separate stove-plane residue under props and their independent contacts. */
 export const KITCHEN_TIER2_GREASE_STUDY = {
   url: '/rooms/kitchen/rebuild/truth/tier2-grease-study.webp',
@@ -136,6 +143,13 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       soot.bounds.x + soot.bounds.width > backsplash.bounds.x + backsplash.bounds.width ||
       soot.bounds.y + soot.bounds.height > backsplash.bounds.y + backsplash.bounds.height) {
     errors.push('Tier 2 soot study must be repository-local and confined to the backsplash');
+  }
+  const cabinetSoot = KITCHEN_TIER2_CABINET_SOOT_STUDY.bounds;
+  const stoveCabinet = KITCHEN_DESTRUCTION_BLUEPRINT.zones.find(item => item.id === 'upper-stove-cabinet');
+  if (!stoveCabinet || cabinetSoot.x < stoveCabinet.bounds.x || cabinetSoot.y < stoveCabinet.bounds.y ||
+      cabinetSoot.x + cabinetSoot.width > stoveCabinet.bounds.x + stoveCabinet.bounds.width ||
+      cabinetSoot.y + cabinetSoot.height > stoveCabinet.bounds.y + stoveCabinet.bounds.height) {
+    errors.push('Tier 2 cabinet soot must stay within the upper-stove-cabinet zone');
   }
   const grease = KITCHEN_TIER2_GREASE_STUDY;
   const stove = KITCHEN_DESTRUCTION_BLUEPRINT.zones.find(item => item.id === 'stove-range');

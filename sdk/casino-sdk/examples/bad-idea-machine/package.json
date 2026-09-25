@@ -10,6 +10,7 @@
     "check-types": "tsc --noEmit",
     "simulate": "node scripts/simulate-flows.mjs",
     "verify-build": "node scripts/verify-build.mjs",
+    "report-kitchen-terminal-readiness": "node scripts/report-kitchen-terminal-readiness.mjs",
     "verify-room-assets": "node scripts/verify-room-assets.mjs",
     "verify-plate-truth": "python scripts/verify-plate-truth.py",
     "verify-plate-tilt": "python scripts/verify-plate-tilt.py",

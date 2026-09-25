@@ -96,3 +96,9 @@ No new motion proof is accepted until all of the following are complete:
    - intact reconstruction and all five static endings must be reviewed before animation resumes
 
 Only after these gates pass do we return to one causal motion chain.
+
+## Terminal asset readiness audit
+
+Run `npm run report-kitchen-terminal-readiness` from the Kitchen example directory for a per-tier file count, or add `-- --details` for every missing path. `-- --strict` exits unsuccessfully while any planned terminal file is absent. The normal development build remains available during art production. On this checkpoint the five-tier plan names 160 terminal paths, and **none of those paths is authored yet** (32 per tier). The local `rebuild/truth` assets and the Tier 1/Tier 2 visual studies are real files used by the stationary proof, but they are not substitutes for the listed terminal state assets. Plan-shape tests and a passing build therefore do not satisfy the static aftermath gate.
+
+An additional transparent cabinet-stain candidate was rejected before integration because its pale opaque material would obscure the approved cabinet paint. The deployed faint cabinet soot study remains an independently toggled residue check, not `smoke-stained` final architecture.

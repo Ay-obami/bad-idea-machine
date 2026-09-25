@@ -10,6 +10,8 @@ import type { KitchenTerminalLayer } from './kitchen-terminal-layer-plan';
 export type KitchenTerminalSourceEvidence = Readonly<{
   url: string;
   frame?: string;
+  relatedUrls?: readonly string[];
+  sharedPhysicalDebris?: boolean;
   status: 'direct' | 'composition' | 'study';
 }>;
 
@@ -40,12 +42,26 @@ const sources: Readonly<Record<string, KitchenTerminalSourceEvidence>> = {
   'prop/toast/landed': { ...atlas(KITCHEN_TOAST_TRUTH.atlasUrl, 'body'), status: 'composition' },
   'shadow/toast/landed': { ...atlas(KITCHEN_TOAST_TRUTH.atlasUrl, 'shadow'), status: 'composition' },
   'prop/toast-stack/stacked': atlas(KITCHEN_TOAST_TRUTH.atlasUrl, 'remainingBody'),
+  // The narrow slot seam is drawn separately in the proof, using the photographed toaster as its support.
+  'shadow/toast-stack/stacked': composition(KITCHEN_TOASTER_TRUTH.atlasUrl),
   'prop/kettle/resting': atlas(KITCHEN_KETTLE_TRUTH.atlasUrl, 'body'),
   'shadow/kettle/resting': atlas(KITCHEN_KETTLE_TRUTH.atlasUrl, 'shadow+reflection'),
+  'prop/hero-plate/shattered': {
+    ...study('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp'),
+    relatedUrls: ['/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp'],
+    sharedPhysicalDebris: true,
+  },
+  'shadow/hero-plate/shattered': study('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp'),
   'prop/plate-stack/missing-one': atlas(KITCHEN_PLATE_TRUTH.atlasUrl, 'stackBody'),
   'shadow/plate-stack/missing-one': atlas(KITCHEN_PLATE_TRUTH.atlasUrl, 'stackShadow'),
   'prop/oven-towel/hanging': atlas(KITCHEN_TOWEL_TRUTH.atlasUrl, 'body'),
   'shadow/oven-towel/hanging': atlas(KITCHEN_TOWEL_TRUTH.atlasUrl, 'shadow'),
+  'debris/ceramic-debris/one-plate-shards': {
+    ...study('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp'),
+    relatedUrls: ['/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp'],
+    sharedPhysicalDebris: true,
+  },
+  'debris/floor-debris/light-local': study('/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp'),
 };
 
 export function kitchenTerminalSourceEvidence(layer: KitchenTerminalLayer): KitchenTerminalSourceEvidence | undefined {

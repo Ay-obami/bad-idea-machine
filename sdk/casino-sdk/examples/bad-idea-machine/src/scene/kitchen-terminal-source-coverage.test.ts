@@ -23,6 +23,10 @@ describe('Kitchen terminal source evidence', () => {
       expect(active.has(key), key).toBe(true);
       expect(evidence.url.startsWith('/rooms/kitchen/rebuild/truth/'), key).toBe(true);
       expect(existsSync(new URL(`../../public${evidence.url}`, import.meta.url)), key).toBe(true);
+      for (const related of evidence.relatedUrls ?? []) {
+        expect(related.startsWith('/rooms/kitchen/rebuild/truth/'), key).toBe(true);
+        expect(existsSync(new URL(`../../public${related}`, import.meta.url)), key).toBe(true);
+      }
       if (evidence.frame) {
         const frames = framesByUrl.get(evidence.url);
         expect(frames, key).toBeDefined();
@@ -31,11 +35,19 @@ describe('Kitchen terminal source evidence', () => {
     }
   });
 
-  it('does not promote a visual study or a whole hero plate to completed shattered art', () => {
+  it('keeps the shattered hero and debris on one physical study, not two plate bodies', () => {
+    const hero = KITCHEN_TERMINAL_LAYER_PLAN.find(layer => layer.kind === 'prop' && layer.ownerId === 'hero-plate' && layer.state === 'shattered');
+    const debris = KITCHEN_TERMINAL_LAYER_PLAN.find(layer => layer.kind === 'debris' && layer.ownerId === 'ceramic-debris' && layer.state === 'one-plate-shards');
+    expect(hero).toBeDefined();
+    expect(debris).toBeDefined();
+    const heroEvidence = kitchenTerminalSourceEvidence(hero!);
+    const debrisEvidence = kitchenTerminalSourceEvidence(debris!);
+    expect(heroEvidence?.status).toBe('study');
+    expect(heroEvidence?.sharedPhysicalDebris).toBe(true);
+    expect(debrisEvidence?.sharedPhysicalDebris).toBe(true);
+    expect(heroEvidence?.url).toBe(debrisEvidence?.url);
+    expect(heroEvidence?.relatedUrls).toEqual(debrisEvidence?.relatedUrls);
     for (const layer of KITCHEN_TERMINAL_LAYER_PLAN) {
-      if (layer.kind === 'prop' && layer.ownerId === 'hero-plate' && layer.state === 'shattered') {
-        expect(kitchenTerminalSourceEvidence(layer)).toBeUndefined();
-      }
       if (layer.kind === 'architecture' && layer.state === 'smoke-stained') {
         expect(kitchenTerminalSourceEvidence(layer)?.status).not.toBe('direct');
       }

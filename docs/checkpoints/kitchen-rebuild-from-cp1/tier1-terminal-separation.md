@@ -1,68 +1,15 @@
-# Kitchen Tier 1 terminal separation gate
+# Kitchen Tier 1 terminal separation · local proposal
 
-Branch: `feat/room-native-rebuild-cp1`
+Review route: `/?scene=kitchen-tier1-separation` on `feat/room-native-rebuild-cp1`.
 
-## Purpose
+The former route rendered an older remote intact atlas and Creative Claw aftermath atlas. Those assets are not authoritative for this Kitchen rebuild. The route now opens the repository-local stationary assembly with a Tier 1 **proposal** selected. The approved 1000×600 master remains the exact room and source for its cabinet, door, props, supports and contact layers. The master is never regenerated or replaced.
 
-This checkpoint proves that a final aftermath can be decomposed beyond architecture zones.
+This proposal keeps the approved cabinet shelves and photographed lower dishes, drops the independently extracted door, slides the independent upper stack and removes the hero plate body and its shadow. A small supplemental ceramic-debris cutout, generated with the built-in image tool using the approved master as a lighting/material reference, is positioned on the stove. Its separate contact is derived from that cutout's alpha at render time. Debris and contact can be toggled independently. The new WebP decodes at 120×80; it does not contain an alternate room or a whole intact plate.
 
-The Tier 1 terminal frame is rendered in this order:
+The original rest assembly, its plate stack, toast, pan, toaster, towel, kettle, and independent shadows remain individually controllable. The intact reference switch continues to display the unmodified master. The supplemental 10,000-byte cutout raises the Kitchen rebuild-art budget from 425,000 to 435,000 bytes and the count from 13 to 14; the total authored-room and full-bundle limits remain unchanged.
 
-1. Tier 1 architecture crops.
-2. Every terminal prop, shadow and debris footprint is restored to a genuine clean support surface.
-3. Contact shadows are reapplied independently.
-4. Prop bodies are reapplied independently.
-5. Persistent debris is reapplied independently.
+## Visual acceptance gate
 
-The proof route is:
+At room and enlarged cabinet scale, inspect the debris position and material against the approved room. Hide the debris body: no plate fragment may remain. Hide its contact alone: no ceramic body may disappear. Hide the remaining upper stack and shadow: its shelf must be clean. The hero plate must not remain whole anywhere in the proposed terminal composition. The pan, toaster, kettle, towel and their contacts must stay registered at their approved rest positions. No rectangular patch, prop ghost or older Kitchen image is acceptable.
 
-`/?scene=kitchen-tier1-separation`
-
-## Why Tier 1 comes first
-
-Tier 1 is the least damaged ending. Almost every surface should remain visually clean, so sloppy masks, rectangular patches, duplicated props, fake support surfaces and contaminated shadows are easiest to see here.
-
-Higher tiers must not inherit Tier 1 masks automatically. Tier 1 must pass before terminal extraction expands to Tiers 0, 2, 3 and 4.
-
-## Independent terminal families
-
-The complete terminal contract now requires, for all five tiers:
-
-- one architecture layer for every shell/destructible zone;
-- one independent final-state layer for every prop;
-- one independent contact-shadow layer for every prop;
-- separate ceramic, cabinet and floor debris families;
-- separate fire, smoke and power layers;
-- no full-frame aftermath layer.
-
-The Tier 1 proof currently implements real extraction masks for:
-
-- pan + pan shadow;
-- toaster + toaster shadow;
-- hero toast + landed shadow;
-- remaining toast stack + shadow;
-- kettle + shadow;
-- remaining plate stack + shelf shadow;
-- shattered hero plate represented by ceramic debris rather than a whole plate body;
-- oven towel + oven-front occlusion shadow;
-- ceramic debris;
-- floor debris;
-- cabinet debris slot (empty at Tier 1).
-
-## Acceptance criteria
-
-Tier 1 fails if any of the following occur:
-
-- hiding Props leaves a visible duplicate/object ghost;
-- hiding Props reveals an obvious rectangular replacement patch;
-- hiding Shadows removes part of the object body or architectural material;
-- hiding Debris removes counter/cabinet architecture that should belong to the zone state;
-- pan/toaster/kettle/plates/towel no longer have believable support surfaces;
-- the shattered hero plate still exists as a whole plate anywhere in the terminal frame;
-- enabling all layer families does not visually converge on the Tier 1 authoring reference.
-
-## Current boundary
-
-Motion remains blocked.
-
-After Tier 1 passes visually, the extraction/masking strategy is extended to the other four final tiers. Only after all five terminal compositions can independently toggle architecture / props / shadows / debris / hazards do we return to causal animation.
+This is a stationary proposal pending a deployed visual review. It is not a finished outcome, accepted debris placement, complete Tier 1 damage, motion, or permission to expand to other tiers. The rejected loose shelf, broad cabinet backing and inferred door-hidden face remain diagnostic or withdrawn. Animation remains blocked.

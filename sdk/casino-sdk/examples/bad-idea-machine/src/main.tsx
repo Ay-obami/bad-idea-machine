@@ -29,11 +29,6 @@ const KitchenAftermathStaticProof = lazy(async () => {
   return { default: module.KitchenAftermathStaticProof };
 });
 
-const KitchenTier1SeparationProof = lazy(async () => {
-  const module = await import('./play/KitchenTier1SeparationProof');
-  return { default: module.KitchenTier1SeparationProof };
-});
-
 const KitchenObjectTruthProof = lazy(async () => {
   const module = await import('./play/KitchenObjectTruthProof');
   return { default: module.KitchenObjectTruthProof };
@@ -122,7 +117,7 @@ function RootView() {
   if (scene === 'kitchen-tier1-separation') {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
-        <KitchenTier1SeparationProof />
+        <KitchenLocalIntactProof initialMode="tier1-terminal" />
       </Suspense>
     );
   }

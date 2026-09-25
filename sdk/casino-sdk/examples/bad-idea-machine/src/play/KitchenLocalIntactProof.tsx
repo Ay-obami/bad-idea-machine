@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -12,7 +12,8 @@ import {
 type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall shadow'
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
-  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door';
+  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door'
+  | 'ceramic debris' | 'ceramic debris contact';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -22,6 +23,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
   ['kettle', 'kettle shadow', 'kettle reflection'],
   ['cabinet door'],
+  ['ceramic debris', 'ceramic debris contact'],
 ];
 const allLayers = layerGroups.flat();
 const assetUrls = {
@@ -36,6 +38,7 @@ const assetUrls = {
   towel: KITCHEN_TOWEL_TRUTH.atlasUrl,
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
   plateTilt: KITCHEN_PLATE_TILT.atlasUrl,
+  ceramic: KITCHEN_TIER1_CERAMIC.url,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
 type Asset = keyof typeof assetUrls;
@@ -195,6 +198,15 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   drawPlaced('kettle shadow', 'kettle', kettle, kettle.frames.shadow, kettle.restPlacement.shadow);
   drawPlaced('kettle reflection', 'kettle', kettle, kettle.frames.reflection, kettle.restPlacement.reflection);
 
+  if (cabinetMode === 'tier1-terminal' && visible.has('ceramic debris contact')) {
+    const { x, y, width, height } = KITCHEN_TIER1_CERAMIC.bounds;
+    context.save();
+    context.filter = 'brightness(0) blur(1px)';
+    context.globalAlpha = .34;
+    context.drawImage(assets.ceramic, x, y + 2, width, height);
+    context.restore();
+  }
+
   if (visible.has('pan')) context.drawImage(assets.panBody, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
   drawPlaced('other toast', 'toast', toast, toast.frames.remainingBody, toast.restPlacement.remainingBody);
   drawPlaced('hero toast', 'toast', toast, toast.frames.body, toast.restPlacement.body);
@@ -222,6 +234,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     }
   }
   drawPlaced('kettle', 'kettle', kettle, kettle.frames.body, kettle.restPlacement.body);
+  if (cabinetMode === 'tier1-terminal' && visible.has('ceramic debris')) {
+    const { x, y, width, height } = KITCHEN_TIER1_CERAMIC.bounds;
+    context.drawImage(assets.ceramic, x, y, width, height);
+  }
 }
 
 const controlStyle: CSSProperties = {
@@ -229,7 +245,7 @@ const controlStyle: CSSProperties = {
   background: '#142327', color: '#edf0e9', font: '600 12px Rubik, sans-serif',
 };
 
-export function KitchenLocalIntactProof() {
+export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMode?: KitchenCabinetMode }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const cabinetDetail = useRef<HTMLCanvasElement>(null);
   const [assets, setAssets] = useState<Record<Asset, HTMLImageElement> | null>(null);
@@ -237,7 +253,7 @@ export function KitchenLocalIntactProof() {
   const [visible, setVisible] = useState<ReadonlySet<Layer>>(() => new Set(allLayers));
   const [reference, setReference] = useState(false);
   const [showCabinetDetail, setShowCabinetDetail] = useState(false);
-  const [cabinetMode, setCabinetMode] = useState<KitchenCabinetMode>('intact');
+  const [cabinetMode, setCabinetMode] = useState<KitchenCabinetMode>(initialMode);
   const cabinetVisible = cabinetMode !== 'backing-diagnostic';
 
   useEffect(() => {
@@ -266,7 +282,7 @@ export function KitchenLocalIntactProof() {
 
   return <main style={{ minHeight: '100vh', background: '#071014', color: '#edf0e9', padding: 20, fontFamily: 'Rubik, sans-serif' }}>
     <div style={{ maxWidth: 1100, margin: 'auto' }}>
-      <small style={{ color: '#f4cb58' }}>CHECKPOINT 2D · LOCAL INTACT ASSEMBLY</small>
+      <small style={{ color: '#f4cb58' }}>CHECKPOINT 2D · LOCAL STATIONARY ASSEMBLY</small>
       <h1 style={{ margin: '8px 0', font: '800 clamp(22px,3vw,34px) Poppins, sans-serif' }}>Approved Kitchen · stationary room proof</h1>
       <p style={{ color: '#b5c3c5', lineHeight: 1.5 }}>
         One 1000×600 camera. The room and all active crops use the repository-local approved master. Toggle the extracted objects and their contacts, then compare the intact assembly with the reference.
@@ -280,11 +296,14 @@ export function KitchenLocalIntactProof() {
       <button type="button" aria-pressed={cabinetMode === 'hinge-stressed'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'hinge-stressed' ? 'intact' : 'hinge-stressed')}>
         {cabinetMode === 'hinge-stressed' ? 'Restore intact cabinet' : 'Preview stressed hinge'}
       </button>
+      <button type="button" aria-pressed={cabinetMode === 'tier1-terminal'} style={{ ...controlStyle, border: '1px solid #f4cb58', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'tier1-terminal' ? 'intact' : 'tier1-terminal')}>
+        {cabinetMode === 'tier1-terminal' ? 'Restore intact room' : 'Preview local Tier 1 proposal'}
+      </button>
       <button type="button" aria-pressed={cabinetMode === 'backing-diagnostic'} style={{ ...controlStyle, border: '1px solid #7ce2a5', marginBottom: 12, marginLeft: 8 }} onClick={() => setCabinetMode(mode => mode === 'backing-diagnostic' ? 'intact' : 'backing-diagnostic')}>
         {cabinetMode === 'backing-diagnostic' ? 'Restore cabinet from diagnostic' : 'Isolate backing (diagnostic only)'}
       </button>
       <div style={{ width: '100%', aspectRatio: '5 / 3', background: '#020405' }}>
-        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
+        <canvas ref={canvas} width={1000} height={600} role="img" aria-label={reference ? 'Approved Kitchen master' : cabinetMode === 'tier1-terminal' ? 'Local Kitchen Tier 1 stationary proposal' : 'Layered Kitchen intact reconstruction'} style={{ display: 'block', width: '100%', height: '100%' }} />
       </div>
       <button type="button" aria-pressed={showCabinetDetail} style={{ ...controlStyle, border: '1px solid #f4cb58', marginTop: 12 }} onClick={() => setShowCabinetDetail(value => !value)}>
         {showCabinetDetail ? 'Close cabinet detail' : 'Inspect cabinet close-up'}
@@ -302,14 +321,17 @@ export function KitchenLocalIntactProof() {
         <button type="button" style={{ ...controlStyle, border: '1px solid #8b4c48' }} onClick={() => setVisible(new Set())}>Hide extracted layers</button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
-        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet'][index]}</strong>
-        {group.map(layer => <button key={layer} type="button" aria-pressed={visible.has(layer)} disabled={(index === 4 || index === 6) && !cabinetVisible} onClick={() => toggle(layer)}
-          style={{ ...controlStyle, opacity: (index === 4 || index === 6) && !cabinetVisible ? .5 : 1, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
+        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris'][index]}</strong>
+        {group.map(layer => { const disabled = ((index === 4 || index === 6) && !cabinetVisible) ||
+          ((layer === 'hero plate' || layer === 'hero plate shadow') && cabinetMode === 'tier1-terminal') ||
+          (index === 7 && cabinetMode !== 'tier1-terminal');
+          return <button key={layer} type="button" aria-pressed={visible.has(layer)} disabled={disabled} onClick={() => toggle(layer)}
+          style={{ ...controlStyle, opacity: disabled ? .5 : 1, border: `1px solid ${visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>
           {visible.has(layer) ? 'Hide' : 'Show'} {layer}
-        </button>)}
+        </button>; })}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The photographed cabinet and clean shelf stay in their approved positions while the independent door, hero plate, remaining stack, and their contact shadows can be inspected. The shelf-fascia extraction and loose-shelf trial failed visual review and are withdrawn. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The photographed cabinet and clean shelf stay in their approved positions while the independent door, hero plate, remaining stack, and their contact shadows can be inspected. The local Tier 1 pose replaces the whole hero plate with proposed ceramic debris and an independent contact layer; it needs visual acceptance and is not a gameplay frame. The shelf-fascia extraction and loose-shelf trial failed visual review and are withdrawn. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion is approved here.
       </p>
     </div>
   </main>;

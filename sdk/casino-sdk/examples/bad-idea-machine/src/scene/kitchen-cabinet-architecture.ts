@@ -1,6 +1,6 @@
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
 
-export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'backing-diagnostic';
+export type KitchenCabinetMode = 'intact' | 'hinge-stressed' | 'hinge-dropped' | 'tier1-terminal' | 'backing-diagnostic';
 
 /** Exact intact cabinet plus a separately authored proposal for its unseen backing. */
 export const KITCHEN_CABINET_ARCHITECTURE = {
@@ -37,13 +37,20 @@ export const KITCHEN_CABINET_DOOR = {
 /** The remaining photographed stack slides on its shelf in the hanging-door preview. */
 export const KITCHEN_CABINET_STACK_SLIDE = { x: 5, y: 1 } as const;
 
+/** Supplemental ceramic cutout; the approved room master is never replaced. */
+export const KITCHEN_TIER1_CERAMIC = {
+  url: '/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp',
+  bounds: { x: 494, y: 286, width: 120, height: 80 },
+  status: 'stationary-proposal',
+} as const;
+
 export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
-  return mode === 'hinge-dropped' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
+  return mode === 'hinge-dropped' || mode === 'tier1-terminal' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
 }
 
 export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-dropped' ? 'dropped' : 'rest';
+  return mode === 'hinge-dropped' || mode === 'tier1-terminal' ? 'dropped' : 'rest';
 }
 
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {
@@ -52,7 +59,7 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 }
 
 export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
-  if (mode === 'backing-diagnostic') return 'none';
+  if (mode === 'backing-diagnostic' || mode === 'tier1-terminal') return 'none';
   return mode === 'hinge-stressed' || mode === 'hinge-dropped' ? 'tilted' : 'photographed';
 }
 
@@ -79,6 +86,10 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       tilt.placement.x + tilt.frames.face.width > zone.bounds.x + zone.bounds.width ||
       tilt.placement.y + tilt.frames.face.height > zone.bounds.y + zone.bounds.height) {
     errors.push('stressed plate must remain inside the photographed cabinet');
+  }
+  if (!KITCHEN_TIER1_CERAMIC.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(KITCHEN_TIER1_CERAMIC.url)) {
+    errors.push('terminal ceramic cutout must be repository-local');
   }
   const door = KITCHEN_CABINET_DOOR;
   if (door.bounds.x < zone.bounds.x || door.bounds.y < zone.bounds.y ||

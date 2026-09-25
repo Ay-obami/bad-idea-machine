@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -42,5 +42,13 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetStackOffset('intact')).toEqual({ x: 0, y: 0 });
     expect(kitchenCabinetStackOffset('hinge-stressed')).toEqual({ x: 0, y: 0 });
     expect(kitchenCabinetStackOffset('hinge-dropped')).toEqual({ x: 5, y: 1 });
+  });
+
+  it('uses local ceramic debris and removes the whole hero plate in the terminal proposal', () => {
+    expect(KITCHEN_TIER1_CERAMIC.url).toBe('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp');
+    expect(kitchenCabinetHeroFace('tier1-terminal')).toBe('none');
+    expect(kitchenCabinetDoorPose('tier1-terminal')).toBe('dropped');
+    expect(kitchenCabinetStackOffset('tier1-terminal')).toEqual({ x: 5, y: 1 });
+    expect(kitchenCabinetSurface('tier1-terminal', false)).toBe('cabinet');
   });
 });

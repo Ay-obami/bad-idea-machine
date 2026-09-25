@@ -215,11 +215,12 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   else drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
   if (visible.has('other toast contact')) {
     const [x, y] = at(toast.logicalBounds, toast.restPlacement.remainingBody);
-    const { x: sx, y: sy, width, height } = toast.frames.remainingBody;
     context.save();
-    context.filter = 'brightness(0) blur(.7px)';
-    context.globalAlpha = .18;
-    context.drawImage(assets.toast, sx, sy, width, height, x, y + 1, width, height);
+    context.filter = 'blur(.7px)';
+    context.fillStyle = 'rgba(30, 20, 14, .20)';
+    context.beginPath();
+    context.ellipse(x + 13, y + 18, 10, 1.4, 0, 0, Math.PI * 2);
+    context.fill();
     context.restore();
   }
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);

@@ -27,7 +27,7 @@ The plan now contains **28 active visual slots** for Tier 1. `fire=none`, `smoke
 | pan contact / nudged | `pan-shadow.webp`, shifted +6,+1 | Bounded grate contact accepted; resolve reusable state |
 | toaster contact / resting | Truth atlas wall/contact shadows and reflection | Reuse all three independently |
 | toast contact / landed | Toast truth atlas shadow at (717,306) | Bounded counter contact accepted; resolve reusable state |
-| toast-stack contact / stacked | Proposed separate low-alpha contact derived from remaining toast alpha; own toggle | Inspect live for a dark duplicate or artificial outline; keep separate from hero toast contact |
+| toast-stack contact / stacked | Proposed narrow slot contact under remaining photographed toast; own toggle | Inspect live for clean hide and attached slot support; keep separate from hero toast contact |
 | kettle contact / resting | Kettle truth atlas shadow and reflection | Reuse both independently |
 | hero-plate contact / shattered | Separately toggled blur of stove and floor ceramic alpha | Complete contacts for the final shard field |
 | plate-stack contact / missing-one | Plate truth atlas stack shadow at approved rest position | Bounded clean shelf/stack isolation accepted |
@@ -35,4 +35,4 @@ The plan now contains **28 active visual slots** for Tier 1. `fire=none`, `smoke
 | ceramic-debris / one-plate-shards | Supplemental stove and floor study bodies | Same missing coherent fracture/debris composition as hero-plate; avoid double drawing |
 | floor-debris / light-local | Wood-floor ceramic study body and contact | Expand only if needed to read as a believable local accident |
 
-The hero plate and ceramic debris rows refer to the **same physical fragments**. A future resolver must draw each body/contact once, even if both blueprint owners reference that event. The remaining toast sits in the toaster slots; its proposed alpha-derived contact now has its own control, but still needs a deployed support/isolation review. Cabinet smoke belongs to Tier 2 and cannot be used to imply Tier 1 damage.
+The hero plate and ceramic debris rows refer to the **same physical fragments**. A future resolver must draw each body/contact once, even if both blueprint owners reference that event. The first remaining-toast contact trial copied the full toast silhouette as a dark shadow; live review showed an obvious toast-shaped ghost when the body was hidden, so that trial failed. The revised contact is a short low-opacity seam confined to the toaster slot and still needs deployed review. Cabinet smoke belongs to Tier 2 and cannot be used to imply Tier 1 damage.

@@ -80,14 +80,14 @@ export function GameScreen({
           <span className="brand-badge">BIM</span>
           <div>
             <strong>BAD IDEA MACHINE</strong>
-            <small>CHOOSE YOUR ROOM. DESTROY IT RESPONSIBLY.</small>
+            <small>ONE KITCHEN. ONE VERY BAD IDEA.</small>
           </div>
         </div>
 
         <div className="reference-play__header-actions">
           {onBackToGallery && canLeave && (
             <button type="button" className="reference-play__back" onClick={onBackToGallery}>
-              BACK TO ROOMS
+              BACK TO KITCHEN ENTRY
             </button>
           )}
           <div className="game-header__network">
@@ -131,8 +131,8 @@ export function GameScreen({
       <footer className="game-footer reference-play__footer">
         <span>96% THEORETICAL RTP · BEFORE ROUNDING</span>
         <span>{demoMode ? 'DEMO · BROWSER RANDOMNESS' : 'CHAIN VRF'}</span>
-        <span>2 CHAOS ENVIRONMENTS</span>
-        <span>THE ROOM CHANGES. THE MATH DOES NOT.</span>
+        <span>KITCHEN MELTDOWN</span>
+        <span>THE SCENE DOES NOT CHANGE THE MATH.</span>
       </footer>
     </main>
   );

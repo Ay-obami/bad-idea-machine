@@ -29,8 +29,8 @@
 | Checkpoint | Deliverable | Status | Deploy instruction |
 |---|---|---|---|
 | 0 | This plan + design | Approved | No deployment: documentation only |
-| 1 | Kitchen entry and truthful controls | Kitchen-only revision code pending verification | Preview Kitchen entry and controls |
-| 2 | Convincing kitchen visual proof | Pending | Preview checkpoint 2; inspect idle and contact sequence before expanding art |
+| 1 | Kitchen entry and truthful controls | Kitchen-only entry and copy verified on deployed source; full flow review pending | Preview Kitchen entry and controls |
+| 2 | Convincing kitchen visual proof | Stationary layer work partial; motion/contact sequence pending | Inspect idle and contact sequence before expanding art |
 | 3 | Complete kitchen destruction | Pending | Preview checkpoint 3; play repeated kitchen demo rounds |
 | 4 | Recovery, fairness, accessibility, and controls | Pending | Preview checkpoint 4; hosted flows also require the local simulator |
 | 5 | Verified release candidate | Pending | Production candidate only after all acceptance gates pass |
@@ -222,3 +222,5 @@ Current source-based Vercel settings, to recheck at each handoff: repository roo
 ### Kitchen-only scope revision
 
 Garage Mayhem is removed from all remaining checkpoints and release criteria due to the time available. The gallery now offers Kitchen alone and a saved Garage selection opens Kitchen. Existing dormant Garage source is historical code; it is not an implementation promise or a release gate. The approved Kitchen master and stationary layer proofs remain the current visual baseline. The proposed tilted hero plate failed the cabinet contact review and is withdrawn: the approved photographed hero plate remains seated in hinge previews until a supported pose is authored. No animation is authorized by this revision.
+
+The deployed `9881768` review showed one Kitchen entry, no Garage selector in the play controls, and a photographed hero plate visually seated on the cabinet stack in the enlarged hanging-door proof. The old play footer still described two environments; its copy was corrected in the next source revision. Static Kitchen separation is a subtask of checkpoint 2, not completion of its required causal sequence. Checkpoint 3 Kitchen terminal artwork and full round remain open, followed by recovery/fairness/accessibility and release verification.

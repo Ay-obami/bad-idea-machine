@@ -47,7 +47,7 @@ export const KITCHEN_TIER1_CERAMIC = {
 /** Separate floor shard study; transparent pixels do not replace the master. */
 export const KITCHEN_TIER1_FLOOR_CERAMIC_STUDY = {
   url: '/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp',
-  bounds: { x: 456, y: 535, width: 112, height: 63 },
+  bounds: { x: 475, y: 560, width: 85, height: 44 },
   status: 'visual-study',
 } as const;
 

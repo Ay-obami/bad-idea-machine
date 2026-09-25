@@ -44,13 +44,6 @@ export const KITCHEN_TIER1_CERAMIC = {
   status: 'stationary-proposal',
 } as const;
 
-/** Separate floor shard study; transparent pixels do not replace the master. */
-export const KITCHEN_TIER1_FLOOR_CERAMIC_STUDY = {
-  url: '/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp',
-  bounds: { x: 475, y: 560, width: 85, height: 44 },
-  status: 'visual-study',
-} as const;
-
 /** Stationary Tier 1 prop placements relative to their clean local supports. */
 export const KITCHEN_TIER1_PROP_POSE = {
   pan: { x: 6, y: 2 },

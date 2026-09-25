@@ -13,7 +13,7 @@ type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall s
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow' | 'other toast contact'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
   | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door'
-  | 'ceramic debris' | 'ceramic debris contact' | 'floor ceramic study' | 'floor ceramic contact' | 'cabinet soot study' | 'backsplash soot study' | 'stove grease study';
+  | 'ceramic debris' | 'ceramic debris contact' | 'ceramic splinters' | 'ceramic splinter contacts' | 'floor ceramic study' | 'floor ceramic contact' | 'cabinet soot study' | 'backsplash soot study' | 'stove grease study';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -23,7 +23,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
   ['kettle', 'kettle shadow', 'kettle reflection'],
   ['cabinet door'],
-  ['ceramic debris', 'ceramic debris contact'],
+  ['ceramic debris', 'ceramic debris contact', 'ceramic splinters', 'ceramic splinter contacts'],
   ['floor ceramic study', 'floor ceramic contact'],
   ['cabinet soot study'],
   ['backsplash soot study'],
@@ -242,6 +242,21 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     context.drawImage(assets.ceramic, x, y + 2, width, height);
     context.restore();
   }
+  const splinters = [
+    { x: 503, y: 303, width: 4, height: 2, angle: -.22 },
+    { x: 585, y: 304, width: 3, height: 2, angle: .38 },
+    { x: 593, y: 309, width: 4, height: 2, angle: -.34 },
+  ];
+  if (terminal && visible.has('ceramic splinter contacts')) {
+    context.save();
+    context.fillStyle = 'rgba(26, 19, 15, .27)';
+    for (const chip of splinters) {
+      context.beginPath();
+      context.ellipse(chip.x + 1, chip.y + 1.7, chip.width * .55, .7, chip.angle, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.restore();
+  }
   if (terminal && visible.has('floor ceramic contact')) {
     const { x, y, width, height } = KITCHEN_TIER1_FLOOR_CERAMIC_STUDY.bounds;
     context.save();
@@ -282,6 +297,26 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   if (terminal && visible.has('ceramic debris')) {
     const { x, y, width, height } = KITCHEN_TIER1_CERAMIC.bounds;
     context.drawImage(assets.ceramic, x, y, width, height);
+  }
+  if (terminal && visible.has('ceramic splinters')) {
+    context.save();
+    context.fillStyle = '#d9d1bd';
+    context.strokeStyle = 'rgba(91, 74, 59, .46)';
+    context.lineWidth = .45;
+    for (const chip of splinters) {
+      context.save();
+      context.translate(chip.x, chip.y);
+      context.rotate(chip.angle);
+      context.beginPath();
+      context.moveTo(0, 0);
+      context.lineTo(chip.width, .35);
+      context.lineTo(chip.width * .57, chip.height);
+      context.closePath();
+      context.fill();
+      context.stroke();
+      context.restore();
+    }
+    context.restore();
   }
   if (terminal && visible.has('floor ceramic study')) {
     const { x, y, width, height } = KITCHEN_TIER1_FLOOR_CERAMIC_STUDY.bounds;

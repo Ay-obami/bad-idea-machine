@@ -21,11 +21,11 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetSurface('intact', true)).toBe('master');
   });
 
-  it('uses an exposed face only in the stationary stressed pose', () => {
+  it('keeps the plate seated in cabinet previews until a supported face exists', () => {
     expect(kitchenCabinetHeroFace('intact')).toBe('photographed');
-    expect(kitchenCabinetHeroFace('hinge-stressed')).toBe('tilted');
+    expect(kitchenCabinetHeroFace('hinge-stressed')).toBe('photographed');
     expect(kitchenCabinetHeroFace('backing-diagnostic')).toBe('none');
-    expect(kitchenCabinetHeroFace('hinge-dropped')).toBe('tilted');
+    expect(kitchenCabinetHeroFace('hinge-dropped')).toBe('photographed');
   });
 
   it('keeps the photographed door at rest and limits the drop to the static preview', () => {

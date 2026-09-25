@@ -60,7 +60,9 @@ export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boole
 
 export function kitchenCabinetHeroFace(mode: KitchenCabinetMode): 'photographed' | 'tilted' | 'none' {
   if (mode === 'backing-diagnostic' || mode === 'tier1-terminal') return 'none';
-  return mode === 'hinge-stressed' || mode === 'hinge-dropped' ? 'tilted' : 'photographed';
+  // The proposed exposed face visibly hovered above the photographed stack.
+  // Keep the approved resting plate seated until a supported pose is authored.
+  return 'photographed';
 }
 
 export function validateKitchenCabinetArchitecture(): readonly string[] {

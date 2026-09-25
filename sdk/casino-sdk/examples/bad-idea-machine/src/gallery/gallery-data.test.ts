@@ -4,11 +4,11 @@ import { describe, expect, it } from 'vitest';
 import { GalleryScreen } from './GalleryScreen';
 
 describe('room selection', () => {
-  it('offers only two intact-room choices instead of selectable destruction outcomes', () => {
+  it('offers only the intact Kitchen choice instead of Garage or destruction outcomes', () => {
     const html = renderToStaticMarkup(createElement(GalleryScreen, { onChoose: () => {} }));
-    expect(html.match(/<button\b/g)).toHaveLength(2);
+    expect(html.match(/<button\b/g)).toHaveLength(1);
     expect(html).toContain('Choose Kitchen');
-    expect(html).toContain('Choose Garage');
+    expect(html).not.toContain('Choose Garage');
     expect(html).not.toContain('100.00');
     expect(html).not.toContain('LEGENDARY CHAOS');
   });

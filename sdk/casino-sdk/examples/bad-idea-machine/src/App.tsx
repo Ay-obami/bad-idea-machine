@@ -63,12 +63,7 @@ function browserRandomness(): Hex {
 }
 
 function initialEnvironment(): EnvironmentId {
-  if (typeof window === 'undefined') return 'kitchen';
-  try {
-    return window.localStorage.getItem(ENVIRONMENT_STORAGE_KEY) === 'garage' ? 'garage' : 'kitchen';
-  } catch {
-    return 'kitchen';
-  }
+  return 'kitchen';
 }
 
 function inferTierFromPayout(wager: bigint, payout: bigint, riskMode: RiskMode): OutcomeTier | null {
@@ -83,7 +78,7 @@ export function App({ onBackToGallery }: AppProps = {}) {
   const standalone = useMemo(() => typeof window !== 'undefined' && window.self === window.top, []);
 
   const [riskMode, setRiskMode] = useState<RiskMode>(1);
-  const [environment, setEnvironment] = useState<EnvironmentId>(initialEnvironment);
+  const [environment] = useState<EnvironmentId>(initialEnvironment);
   const [wagerInput, setWagerInput] = useState('10.00');
   const [round, setRound] = useState<Round | null>(null);
   const [demoBalance, setDemoBalance] = useState(DEMO_STARTING_BALANCE);
@@ -329,11 +324,6 @@ export function App({ onBackToGallery }: AppProps = {}) {
     setReceiptOpen(false);
   };
 
-  const handleEnvironmentChange = (next: EnvironmentId) => {
-    clearFinishedPresentation();
-    setEnvironment(next);
-  };
-
   const handleRiskModeChange = (next: RiskMode) => {
     clearFinishedPresentation();
     setRiskMode(next);
@@ -420,7 +410,7 @@ export function App({ onBackToGallery }: AppProps = {}) {
       riskMode={riskMode}
       onRiskModeChange={handleRiskModeChange}
       environment={environment}
-      onEnvironmentChange={handleEnvironmentChange}
+      onEnvironmentChange={() => {}}
       wagerInput={wagerInput}
       onWagerInputChange={setWagerInput}
       balanceText={balanceText}

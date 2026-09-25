@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -37,7 +37,6 @@ const assetUrls = {
   toaster: KITCHEN_TOASTER_TRUTH.atlasUrl,
   towel: KITCHEN_TOWEL_TRUTH.atlasUrl,
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
-  plateTilt: KITCHEN_PLATE_TILT.atlasUrl,
   ceramic: KITCHEN_TIER1_CERAMIC.url,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
@@ -166,11 +165,6 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     if (!visible.has(layer)) return;
     const face = kitchenCabinetHeroFace(cabinetMode);
     if (face === 'none') return;
-    if (face === 'tilted') {
-      const tiltFrame = layer === 'hero plate' ? KITCHEN_PLATE_TILT.frames.face : KITCHEN_PLATE_TILT.frames.contact;
-      drawCrop('plateTilt', tiltFrame, KITCHEN_PLATE_TILT.placement.x, KITCHEN_PLATE_TILT.placement.y);
-      return;
-    }
     const [x, y] = at(plates.logicalBounds, placement);
     drawCrop('plates', frame, x, y);
   };

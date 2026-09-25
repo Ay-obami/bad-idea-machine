@@ -2,7 +2,6 @@ import { PAYTABLES, maxMultiplierX, type RiskMode } from '../lib/badIdea';
 import type { EnvironmentId } from '../scene/types';
 import '../styles/cinematic-controls.css';
 import { Paytable } from './Paytable';
-import { EnvironmentSelector } from './EnvironmentSelector';
 
 const MODES: Array<{ mode: RiskMode; label: string }> = [
   { mode: 0, label: 'CONTROLLED' },
@@ -33,8 +32,6 @@ type Props = {
 export function ControlPanel({
   riskMode,
   onRiskModeChange,
-  environment,
-  onEnvironmentChange,
   wagerInput,
   onWagerInputChange,
   balanceText,
@@ -114,8 +111,6 @@ export function ControlPanel({
 
       <Paytable riskMode={riskMode} />
 
-      <EnvironmentSelector value={environment} onChange={onEnvironmentChange} disabled={controlsLocked} />
-
       <button
         className={`do-not-press do-not-press--${riskMode} cinematic-launch`}
         type="button"
@@ -124,7 +119,7 @@ export function ControlPanel({
       >
         <span className="cinematic-launch__icon" aria-hidden>◈</span>
         <span>{ctaLabel}</span>
-        <small>{environment === 'kitchen' ? 'SAME BUTTON. DIFFERENT DISASTER.' : 'POWER TOOLS HAVE BEEN UNSUPERVISED'}</small>
+        <small>KITCHEN MELTDOWN</small>
       </button>
 
       <div className="control-panel__reason" role="status">

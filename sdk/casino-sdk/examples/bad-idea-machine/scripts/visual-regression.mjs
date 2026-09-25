@@ -31,11 +31,11 @@ async function assertImageLoaded(locator, expectedPath) {
 
 async function verifyGallery(page, viewportName) {
   await page.goto(baseUrl, { waitUntil: 'networkidle' });
-  await page.getByRole('heading', { name: 'Choose your chaos.' }).waitFor();
+  await page.getByRole('heading', { name: 'Kitchen Meltdown.' }).waitFor();
   const choices = page.locator('.room-choice');
-  if (await choices.count() !== 2) throw new Error('Room selector must contain exactly two choices');
-  if (await page.getByRole('button').count() !== 2) throw new Error('Room selector contains extra actions');
-  for (const environment of ['kitchen', 'garage']) {
+  if (await choices.count() !== 1) throw new Error('Room selector must contain exactly one Kitchen entry');
+  if (await page.getByRole('button').count() !== 1) throw new Error('Room selector contains extra actions');
+  for (const environment of ['kitchen']) {
     const room = page.locator(`.gallery-room[data-environment="${environment}"]`);
     await assertImageLoaded(room.locator('img'), `/rooms/${environment}/gallery/before.webp`);
   }
@@ -44,7 +44,7 @@ async function verifyGallery(page, viewportName) {
     throw new Error('Obsolete outcomes or unavailable actions remain in room selector');
   }
   await page.locator('.game-rules summary').click();
-  await page.getByText('The room changes the scene, never the odds.', { exact: false }).waitFor();
+  await page.getByText('The scene does not change the odds.', { exact: false }).waitFor();
   await page.locator('.game-rules summary').click();
   const boxes = await choices.evaluateAll(nodes => nodes.map(node => {
     const box = node.getBoundingClientRect();
@@ -54,12 +54,7 @@ async function verifyGallery(page, viewportName) {
   if (boxes.some(box => box.x < 0 || box.right > width + 1 || box.height < 44)) {
     throw new Error('Room choice overflows or is not touchable');
   }
-  if (viewportName === 'desktop' && Math.abs(boxes[0].y - boxes[1].y) > 2) {
-    throw new Error('Desktop room choices should be side by side');
-  }
-  if (viewportName === 'mobile' && boxes[1].y <= boxes[0].y) {
-    throw new Error('Mobile room choices should stack');
-  }
+
 }
 
 async function verifyRiskDisclosure(page) {
@@ -214,7 +209,6 @@ try {
   await verifyGallery(desktop, 'desktop');
   await desktop.screenshot({ path: `${outputDir}/gallery-desktop.png`, fullPage: true });
   await verifyPlay(desktop, 'kitchen');
-  await verifyPlay(desktop, 'garage');
 
   const mobile = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
   watchBrowserErrors(mobile, errors, 'mobile: ');

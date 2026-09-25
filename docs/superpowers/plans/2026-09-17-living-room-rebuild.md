@@ -2,20 +2,20 @@
 
 > For agentic workers: use superpowers:executing-plans to implement this plan inline, checkpoint by checkpoint. Do not dispatch subagents without explicit user authorization. Track work with the checkboxes below.
 
-**Goal:** Deliver two believable rooms that come alive and sustain causal destruction, with truthful and recoverable casino gameplay.
+**Goal:** Deliver one believable Kitchen that comes alive and sustains causal destruction, with truthful and recoverable casino gameplay. Garage Mayhem is cancelled for this release because the remaining time is insufficient.
 
 **Architecture:** Separate React navigation/controls, durable round lifecycle, and deterministic room presentation. Reconstruct the reference room into coherent controllable layers within one logical coordinate system. Prove the rendering approach with a kitchen interaction before building both complete rooms.
 
 **Tech stack:** Existing Node 22+, React, TypeScript, Vite, viem, Chain SDK/Solidity, Vitest, browser verification, Web Audio. Rendering additions require demonstrated need at checkpoint 2.
 
-**Spec:** `docs/superpowers/specs/2026-09-17-living-room-rebuild-design.md` (read before execution).
+**Spec:** `docs/superpowers/specs/2026-09-17-living-room-rebuild-design.md` supplies the original requirements; this Kitchen-only scope revision supersedes its Garage requirements and its two-choice selector.
 
 **Status:** Approved by the user; checkpoint 0 is documentation only. No checkpoint is complete until its evidence is recorded.
 
 ## Global constraints and drift prevention
 
-- R1–R8 in the spec are mandatory. The user's latest room/animation corrections override previous visual plans.
-- Exactly two intact-room choices. No outcome gallery in the opening screen.
+- Applicable Kitchen and economic requirements R1–R8 in the spec are mandatory. The user's latest room/animation corrections override previous visual plans.
+- Exactly one intact Kitchen entry. No Garage entry or outcome gallery in the opening screen.
 - One coherent room coordinate system. No static room plus unrelated floating props. No aftermath-image replacement presented as destruction.
 - Existing paytables, SDK, and payout authority stay intact except separately justified correctness fixes.
 - Never call a visual checkpoint complete based solely on element counts, screenshots existing, or unit tests passing.
@@ -29,24 +29,23 @@
 | Checkpoint | Deliverable | Status | Deploy instruction |
 |---|---|---|---|
 | 0 | This plan + design | Approved | No deployment: documentation only |
-| 1 | Two-room selector and truthful controls | Code verified; visual review pending | Preview checkpoint 1 source/build; legacy animation remains explicitly incomplete |
+| 1 | Kitchen entry and truthful controls | Kitchen-only revision code pending verification | Preview Kitchen entry and controls |
 | 2 | Convincing kitchen visual proof | Pending | Preview checkpoint 2; inspect idle and contact sequence before expanding art |
 | 3 | Complete kitchen destruction | Pending | Preview checkpoint 3; play repeated kitchen demo rounds |
-| 4 | Complete garage destruction | Pending | Preview checkpoint 4; inspect both rooms and navigation |
-| 5 | Recovery, fairness, accessibility, and controls | Pending | Preview checkpoint 5; hosted flows also require the local simulator |
-| 6 | Verified release candidate | Pending | Production candidate only after all acceptance gates pass |
+| 4 | Recovery, fairness, accessibility, and controls | Pending | Preview checkpoint 4; hosted flows also require the local simulator |
+| 5 | Verified release candidate | Pending | Production candidate only after all acceptance gates pass |
 
 ## File ownership and interfaces
 
 Paths in the task lists below are relative to `sdk/casino-sdk/examples/bad-idea-machine/` unless they begin with `sdk/`, `.github/`, or `docs/`.
 
-- `src/main.tsx`, `src/gallery/GalleryScreen.tsx`: two-room navigation only.
-- `src/App.tsx`: assembly of round controller, selected room, and screens; migrate lifecycle logic into `src/lib/round-controller.ts` and `src/lib/round-storage.ts` at checkpoint 5.
+- `src/main.tsx`, `src/gallery/GalleryScreen.tsx`: Kitchen entry only.
+- `src/App.tsx`: assembly of round controller, selected room, and screens; migrate lifecycle logic into `src/lib/round-controller.ts` and `src/lib/round-storage.ts` at checkpoint 4.
 - `src/lib/badIdea.ts`: economic table/codec helpers; authoritative money remains in the contract.
 - `src/components/ControlPanel.tsx`, new `src/components/Paytable.tsx`: truthful selected-mode wager information.
 - New `src/scene/room-model.ts`, `room-timeline.ts`, `room-state.ts`: shared geometry, causal event scheduling, persistent destruction state.
 - `src/play/RoomStage.tsx`, `RoomObject.tsx`, `src/components/EnvironmentStage.tsx`, `SceneVfx.tsx`: renderer and orchestration, replacing inconsistent old prop/timer behavior.
-- `src/environments/{kitchen,garage}/manifest.ts`, `public/rooms/{kitchen,garage}/`: coherent layered scene assets and geometry.
+- `src/environments/kitchen/manifest.ts`, `public/rooms/kitchen/`: coherent layered Kitchen assets and geometry.
 - `src/lib/audio.ts`: cancellable spatial/material audio and master mute.
 - `src/components/FairnessReceipt.tsx`, `src/lib/useCasinoHost.ts`: explicit verification and connection outcomes.
 
@@ -72,15 +71,15 @@ export function compileRoomTimeline(events: readonly RoomEvent[]): readonly (Roo
 
 The detailed rendering manifest must also carry authored rest transforms, pivots, depth/occlusion and asset sources; define those against inspected/generated assets during checkpoint 2, before starting either complete room. This is a deliberate feasibility checkpoint, not a claim that existing images are production-ready.
 
-## Checkpoint 1 — Honest, simple entry and betting interface
+## Checkpoint 1 — Honest Kitchen entry and betting interface
 
 Files: modify `src/gallery/{GalleryScreen,EnvironmentRow,OutcomePreviewCard}.tsx`, `src/gallery/gallery-data.ts`, `src/components/ControlPanel.tsx`, `src/play/GameScreen.tsx`, `src/styles/reference-gallery.css`, `src/styles/reference-play.css`; create `src/components/Paytable.tsx`. Update `src/gallery/gallery-data.test.ts`. Add lockfile in `sdk/casino-sdk/` and use `npm ci` in verification workflows once proven.
 
-- [x] Replace the 12-card destruction gallery with one intact Kitchen choice and one intact Garage choice; both choices enter the correct room.
+- [x] Replace the 12-card destruction gallery with one intact Kitchen entry. Garage is removed from the active entry and this release scope.
 - [x] Remove unimplemented wallet/leaderboard/navigation controls. Provide useful rules/paytable access; describe hosted wallet requirements without inventing a standalone wallet flow.
 - [x] Derive mode disclosures from `PAYTABLES`: loss probability, total-return multipliers, maximum return. Remove 100x marketing. Explain rounding and demo identity.
 - [x] Fix narrow balance and room controls; provide accessible selected state and expandable disclosure semantics.
-- [x] Replace the incorrect gallery-label test with a two-room invariant and paytable-derived bounds. Example economic guard using existing helpers:
+- [x] Replace the incorrect gallery-label test with a Kitchen-only invariant and paytable-derived bounds. Example economic guard using existing helpers:
 
 ```ts
 expect([0, 1, 2].map(mode => maxMultiplierX(mode as RiskMode))).toEqual([8, 12, 16]);
@@ -89,7 +88,7 @@ expect([0, 1, 2].map(mode => maxMultiplierX(mode as RiskMode))).toEqual([8, 12, 
 - [ ] Inspect desktop 1366x768 and 1440x1000, mobile 390x844 and 360x800: room choice obvious, no horizontal overflow, no truncated money, key controls comfortably touchable.
 - [x] Run unit/type/build checks. Commit the checkpoint and append deployment handoff.
 
-Acceptance: exactly two room choices; no impossible payouts; selectable risks have visible numeric meaning; all visible controls work. Existing graphics remain a recorded unfinished item.
+Acceptance: exactly one Kitchen entry; no impossible payouts; selectable risks have visible numeric meaning; all visible controls work. Existing graphics remain a recorded unfinished item.
 
 ## Checkpoint 2 — Visual feasibility and quality gate
 
@@ -124,24 +123,11 @@ Files: kitchen manifest/assets; `src/scene/scene-script.ts`, new room model/time
 - [ ] Reset the complete room deterministically for the next round. Preserve the last damage state until that reset.
 - [ ] Synchronize audio to contact events with appropriate materials and spatial origin. Eliminate full-frame image jumps as the destruction mechanism.
 - [ ] Exercise all five tiers with deterministic fixtures plus repeated normal demo play. Compare before/contact/after imagery and review the motion, not only element movement.
-- [ ] Commit and record the exact kitchen preview deployment plus remaining garage work.
+- [ ] Commit and record the exact kitchen preview deployment and remaining Kitchen work.
 
 Acceptance: full kitchen round is visually coherent through idle, arming, destruction, result and reset; no early multiplier leak; no scene-to-result discontinuity.
 
-## Checkpoint 4 — Complete Garage Mayhem
-
-Files: garage manifest/assets and scene definitions; shared renderer only where required.
-
-- [ ] Construct garage artwork using the proven layer/pivot/occlusion approach, with supported tools, believable shelves and lighting.
-- [ ] Author tool/fastening failure -> shelf/chain response -> tire contact -> persistent toolbox/surface damage. Provide at least three coherent variants.
-- [ ] Verify every moving object belongs to the room; remove unmotivated props and ensure collision geometry matches visible artwork.
-- [ ] Add garage-specific material sounds, five tier result fixtures, scene reset and room navigation checks.
-- [ ] Verify room selection never enters economic gameData and cannot change any quote/probability/payout.
-- [ ] Review both rooms on desktop/mobile, commit, and record the two-room preview deployment.
-
-Acceptance: Garage meets Kitchen's quality bar and has a distinct believable sequence; shared engine stays coherent instead of acquiring another competing presentation layer.
-
-## Checkpoint 5 — Reliable rounds, verification and accessibility
+## Checkpoint 4 — Reliable rounds, verification and accessibility
 
 Files: `src/App.tsx`, new `src/lib/round-controller.ts`, `round-storage.ts`, `src/lib/useCasinoHost.ts`, `src/components/FairnessReceipt.tsx`, `src/lib/audio.ts`, `src/play/GameScreen.tsx`, preload and view-state modules. Add lifecycle and audio behavior tests alongside those modules.
 
@@ -156,7 +142,7 @@ Files: `src/App.tsx`, new `src/lib/round-controller.ts`, `round-storage.ts`, `sr
 
 Acceptance: no lost receipt from ordinary navigation; no unexplained infinite waits; no false verification success; replay/retry cannot debit or credit a round twice; sound and motion preferences govern the complete presentation.
 
-## Checkpoint 6 — Release evidence and deployment handoff
+## Checkpoint 5 — Release evidence and deployment handoff
 
 Files: `.github/workflows/{bootstrap-sdk,publish-static,visual-smoke}.yml`, `sdk/casino-sdk/package.json` and lockfile, `scripts/{verify-build,visual-regression,simulate-flows}.mjs`, room/audio URL helpers, `README.md`, `ELIGIBILITY.md`, `SUBMISSION.md`, `vercel.json` if its commands require adjustment.
 
@@ -165,7 +151,7 @@ Files: `.github/workflows/{bootstrap-sdk,publish-static,visual-smoke}.yml`, `sdk
 - [ ] Check console errors, slow/missing asset recovery, reduced motion, mute during loads, duplicate interactions, and subpath hosting. Resolve root-relative room/audio URLs using the configured base.
 - [ ] Use tracked lockfiles and fail if expected test scripts are missing. Ensure publishing cannot race ahead of required checks; avoid automatically triggering a deployment during development.
 - [ ] Measure selected-room startup and animation on desktop/mobile conditions. Initial targets: useful selector within 2 seconds on a 10 Mbps/100 ms cold-load profile, smooth desktop animation near 60 fps and mobile at least 30 fps where measurable. Label unavailable device/performance measurements honestly; do not claim physical-device results from emulation.
-- [ ] Preserve existing bundle guardrails unless measured art requirements justify a documented adjustment. Do not preload both full rooms or full videos to mask design problems.
+- [ ] Preserve existing bundle guardrails unless measured art requirements justify a documented adjustment. Do not preload multiple full rooms or full videos to mask design problems.
 - [ ] Update documentation to the actual implementation: causal 2.5D destruction, explicit final reveal beat, real asset technology, exact current math, actual test coverage and deployment requirements. Remove obsolete path/feature claims.
 - [ ] Run the final command checklist and record results before marking release ready.
 
@@ -206,14 +192,14 @@ Current source-based Vercel settings, to recheck at each handoff: repository roo
 
 | Requirement / review finding | Checkpoints |
 |---|---|
-| R1 graphic quality, cramped layout, coordinate mismatch | 1, 2, 3, 4, 6 |
-| R2 two room choices; dead links; impossible payout gallery | 1 |
-| R3 picture comes alive; R4 causal persistent destruction | 2, 3, 4 |
-| R5 Chain compatibility and cosmetic room choice | 1, 3, 4, 5, 6 |
-| R6 actual odds, final-reveal claims, honest proof states, rounding | 1, 3, 5, 6 |
-| R7 recovery, demo continuity, asset failures, mute/reduced motion | 5, 6 |
+| R1 graphic quality, cramped layout, coordinate mismatch | 1, 2, 3, 5 |
+| R2 Kitchen entry; dead links; impossible payout gallery | 1 |
+| R3 picture comes alive; R4 causal persistent destruction | 2, 3 |
+| R5 Chain compatibility and cosmetic room presentation | 1, 3, 4, 5 |
+| R6 actual odds, final-reveal claims, honest proof states, rounding | 1, 3, 4, 5 |
+| R7 recovery, demo continuity, asset failures, mute/reduced motion | 4, 5 |
 | R8 checkpoint discipline and user Vercel deployment | Every checkpoint |
-| Weak tests, absent lockfile, deployment race, subpath assets, stale docs | 1, 6 |
+| Weak tests, absent lockfile, deployment race, subpath assets, stale docs | 1, 5 |
 
 ## Execution record
 
@@ -226,9 +212,13 @@ Current source-based Vercel settings, to recheck at each handoff: repository roo
 - Two intact-room selections now replace the destruction gallery; removed its unused outcome-card component and dead wallet/leaderboard controls. Native expandable rules explain demo play and room-independent odds.
 - Added a paytable derived from existing economic tables, risk-button loss/max-return disclosures, stake-inclusive return and rounding explanations, correct standalone randomness labeling, accessible selection states, and clearer balance/controls layout.
 - Five regression assertions were observed failing against the old UI before implementation; all five passed after the changes. Full suite: 59 tests in 13 files passed, with TypeScript/build/bundle/room/audio checks passing. `npm ci --no-audit --no-fund` completed using the tracked lockfile. Build tool reports only an environment npm proxy-option warning.
-- Updated the old browser smoke test for two room choices, real risk disclosure, and mobile rules interaction. Syntax validated; browser execution and visual inspection are NOT claimed.
+- Updated the original browser smoke test for the original two-room selector, real risk disclosure, and mobile rules interaction. This is historical evidence from before the Kitchen-only scope revision.
 - Visual-review blocker: the available browser rejected `http://127.0.0.1:3100` with `net::ERR_BLOCKED_BY_CLIENT`. The local Vite preview serves successfully on 127.0.0.1. No alternate network route or deployment was attempted.
-- Plan adjustment: updated obsolete browser assertions now so checkpoint 1 does not leave CI expecting twelve removed cards. Full visual baseline comparisons remain checkpoint 6.
+- Plan adjustment at that time: updated obsolete browser assertions so checkpoint 1 did not leave CI expecting twelve removed cards. Full visual baseline comparisons now belong to checkpoint 5.
 - Preview handoff: deploy the packaged static build or this branch's exact source commit. Source uses repository root, install `cd sdk/casino-sdk && npm ci`, existing root `vercel.json` build/output settings. Built-static package contains `index.html` at its root plus manifest CORS headers; it needs no build step. No contract deployment required.
-- User review: at 1366x768/1440x1000 and 390x844/360x800, confirm exactly two room choices; both enter their room; rules and Odds & payouts open; risk changes show 45%/65%/80% lose-stake probabilities and 8x/12x/16x maxima; balance/controls do not clip; play a demo round.
+- Original user review request: two room choices at desktop and mobile sizes. Superseded by the Kitchen-only gate: one Kitchen entry, working rules and Odds & payouts, no clipping, and a demo round.
 - Status: checkpoint 1 code and nonvisual checks verified; acceptance remains partial until the rendered walkthrough passes. Existing graphics and floating-prop animation are explicitly unfinished; checkpoint 2 is the kitchen visual proof, not another interface redesign. No Vercel deployment or deployment-triggering branch push performed.
+
+### Kitchen-only scope revision
+
+Garage Mayhem is removed from all remaining checkpoints and release criteria due to the time available. The gallery now offers Kitchen alone and a saved Garage selection opens Kitchen. Existing dormant Garage source is historical code; it is not an implementation promise or a release gate. The approved Kitchen master and stationary layer proofs remain the current visual baseline. The proposed tilted hero plate failed the cabinet contact review and is withdrawn: the approved photographed hero plate remains seated in hinge previews until a supported pose is authored. No animation is authorized by this revision.

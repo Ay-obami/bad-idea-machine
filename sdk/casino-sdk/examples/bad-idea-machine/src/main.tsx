@@ -19,16 +19,6 @@ import './styles.css';
 
 const ENVIRONMENT_STORAGE_KEY = 'bad-idea-machine:environment';
 
-const KitchenLayeredStaticProof = lazy(async () => {
-  const module = await import('./play/KitchenLayeredStaticProof');
-  return { default: module.KitchenLayeredStaticProof };
-});
-
-const KitchenAftermathStaticProof = lazy(async () => {
-  const module = await import('./play/KitchenAftermathStaticProof');
-  return { default: module.KitchenAftermathStaticProof };
-});
-
 const KitchenObjectTruthProof = lazy(async () => {
   const module = await import('./play/KitchenObjectTruthProof');
   return { default: module.KitchenObjectTruthProof };
@@ -90,7 +80,7 @@ const scene = typeof window !== 'undefined'
   : null;
 
 function RootView() {
-  if (scene === 'kitchen-local-intact') {
+  if (scene === 'kitchen-local-intact' || scene === 'kitchen-layered-static') {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
         <KitchenLocalIntactProof />
@@ -98,18 +88,10 @@ function RootView() {
     );
   }
 
-  if (scene === 'kitchen-layered-static') {
-    return (
-      <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
-        <KitchenLayeredStaticProof />
-      </Suspense>
-    );
-  }
-
   if (scene === 'kitchen-aftermath-static') {
     return (
       <Suspense fallback={<main style={{ minHeight: '100vh', background: '#071014' }} />}>
-        <KitchenAftermathStaticProof />
+        <KitchenLocalIntactProof initialMode="tier1-terminal" />
       </Suspense>
     );
   }

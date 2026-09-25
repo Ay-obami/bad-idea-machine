@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_CABINET_SHELF_FASCIA, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_PLATE_TILT, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -12,7 +12,7 @@ import {
 type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall shadow'
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
-  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door' | 'shelf fascia';
+  | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -21,7 +21,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['towel', 'towel shadow'],
   ['hero plate', 'hero plate shadow', 'plate stack', 'stack shadow'],
   ['kettle', 'kettle shadow', 'kettle reflection'],
-  ['cabinet door', 'shelf fascia'],
+  ['cabinet door'],
 ];
 const allLayers = layerGroups.flat();
 const assetUrls = {
@@ -102,34 +102,6 @@ function cabinetDoorLayers(cabinet: HTMLImageElement, master: HTMLImageElement) 
   return { door: doorCanvas, support: source };
 }
 
-function cabinetShelfLayers(cabinetSupport: HTMLCanvasElement) {
-  const { bounds: cabinet } = KITCHEN_CABINET_ARCHITECTURE;
-  const { bounds: fascia, backingSampleOffsetY } = KITCHEN_CABINET_SHELF_FASCIA;
-  const context = cabinetSupport.getContext('2d', { willReadFrequently: true });
-  if (!context) throw new Error('Could not inspect photographed shelf');
-  const original = context.getImageData(0, 0, cabinet.width, cabinet.height);
-  const fragment = context.createImageData(cabinet.width, cabinet.height);
-  const backing = context.createImageData(cabinet.width, cabinet.height);
-  backing.data.set(original.data);
-  for (let y = fascia.y; y < fascia.y + fascia.height; y++) {
-    for (let x = fascia.x; x < fascia.x + fascia.width; x++) {
-      const destination = ((y - cabinet.y) * cabinet.width + x - cabinet.x) * 4;
-      const sample = ((y + backingSampleOffsetY - cabinet.y) * cabinet.width + x - cabinet.x) * 4;
-      fragment.data.set(original.data.subarray(destination, destination + 4), destination);
-      backing.data.set(original.data.subarray(sample, sample + 4), destination);
-    }
-  }
-  const fasciaCanvas = document.createElement('canvas');
-  fasciaCanvas.width = cabinet.width;
-  fasciaCanvas.height = cabinet.height;
-  fasciaCanvas.getContext('2d')?.putImageData(fragment, 0, 0);
-  const supportCanvas = document.createElement('canvas');
-  supportCanvas.width = cabinet.width;
-  supportCanvas.height = cabinet.height;
-  supportCanvas.getContext('2d')?.putImageData(backing, 0, 0);
-  return { fascia: fasciaCanvas, support: supportCanvas };
-}
-
 function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLImageElement>, visible: ReadonlySet<Layer>, reference: boolean, cabinetMode: KitchenCabinetMode) {
   context.clearRect(0, 0, 1000, 600);
   context.drawImage(assets.master, 0, 0);
@@ -144,9 +116,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
   context.drawImage(assets[cabinetSurface], cabinet.x, cabinet.y);
   if (cabinetVisible) {
     const separated = cabinetDoorLayers(assets.cabinet, assets.master);
-    const shelf = cabinetShelfLayers(separated.support);
-    context.drawImage(shelf.support, cabinet.x, cabinet.y);
-    if (visible.has('shelf fascia')) context.drawImage(shelf.fascia, cabinet.x, cabinet.y);
+    context.drawImage(separated.support, cabinet.x, cabinet.y);
     if (visible.has('cabinet door')) {
       if (kitchenCabinetDoorPose(cabinetMode) === 'dropped') {
         const { bounds: door, freeEdgeDrop } = KITCHEN_CABINET_DOOR;
@@ -339,7 +309,7 @@ export function KitchenLocalIntactProof() {
         </button>)}
       </section>)}
       <p style={{ color: '#b5c3c5', marginTop: 18, lineHeight: 1.5 }}>
-        This is a stationary assembly check. The photographed cabinet, shelf surface, and independently controllable shelf fascia stay in their approved positions. The door, hero plate, and remaining stack show proposed static states. The loose-fascia damage trial failed visual review and is not presented as a game frame. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion or terminal frame is approved here.
+        This is a stationary assembly check. The photographed cabinet and clean shelf stay in their approved positions while the independent door, hero plate, remaining stack, and their contact shadows can be inspected. The shelf-fascia extraction and loose-shelf trial failed visual review and are withdrawn. Hiding the door exposes an inferred cabinet-face support sampled from the neighboring approved photograph; this remains a diagnostic. Isolating the backing removes the entire cabinet only to inspect layer ownership; its rectangle is not accepted damage art. No motion or terminal frame is approved here.
       </p>
     </div>
   </main>;

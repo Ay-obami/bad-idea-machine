@@ -34,13 +34,6 @@ export const KITCHEN_CABINET_DOOR = {
   source: 'approved-master-cabinet-pixels',
 } as const;
 
-/** Photographed upper-shelf front strip; retained for intact separation only. */
-export const KITCHEN_CABINET_SHELF_FASCIA = {
-  bounds: { x: 629, y: 40, width: 55, height: 12 },
-  backingSampleOffsetY: 17,
-  source: 'approved-master-cabinet-pixels',
-} as const;
-
 /** The remaining photographed stack slides on its shelf in the hanging-door preview. */
 export const KITCHEN_CABINET_STACK_SLIDE = { x: 5, y: 1 } as const;
 
@@ -100,12 +93,6 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       door.hiddenSupportSample.y !== door.bounds.y ||
       door.hiddenSupportSample.height !== door.bounds.height) {
     errors.push('door-hidden support must sample the adjacent approved cabinet face');
-  }
-  const shelf = KITCHEN_CABINET_SHELF_FASCIA;
-  if (shelf.bounds.x < zone.bounds.x || shelf.bounds.y < zone.bounds.y ||
-      shelf.bounds.x + shelf.bounds.width > door.bounds.x ||
-      shelf.bounds.y + shelf.bounds.height + shelf.backingSampleOffsetY > zone.bounds.y + zone.bounds.height) {
-    errors.push('shelf front strip or its backing sample lies outside the photographed cabinet');
   }
   if (zone.backingStatus !== 'proposed') errors.push('unphotographed cabinet backing cannot be accepted as master art');
   return errors;

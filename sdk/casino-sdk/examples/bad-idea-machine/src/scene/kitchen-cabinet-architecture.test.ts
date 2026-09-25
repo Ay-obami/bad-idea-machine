@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_CABINET_SHELF_FASCIA, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -42,10 +42,5 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetStackOffset('intact')).toEqual({ x: 0, y: 0 });
     expect(kitchenCabinetStackOffset('hinge-stressed')).toEqual({ x: 0, y: 0 });
     expect(kitchenCabinetStackOffset('hinge-dropped')).toEqual({ x: 5, y: 1 });
-  });
-
-  it('keeps the photographed shelf front independent at its approved position', () => {
-    expect(KITCHEN_CABINET_SHELF_FASCIA.source).toBe('approved-master-cabinet-pixels');
-    expect(KITCHEN_CABINET_SHELF_FASCIA.bounds).toEqual({ x: 629, y: 40, width: 55, height: 12 });
   });
 });

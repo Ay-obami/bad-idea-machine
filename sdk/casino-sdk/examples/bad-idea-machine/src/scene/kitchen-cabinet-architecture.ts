@@ -40,7 +40,7 @@ export const KITCHEN_CABINET_STACK_SLIDE = { x: 5, y: 1 } as const;
 /** Supplemental ceramic cutout; the approved room master is never replaced. */
 export const KITCHEN_TIER1_CERAMIC = {
   url: '/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp',
-  bounds: { x: 530, y: 299, width: 68, height: 40 },
+  bounds: { x: 510, y: 299, width: 68, height: 40 },
   status: 'stationary-proposal',
 } as const;
 

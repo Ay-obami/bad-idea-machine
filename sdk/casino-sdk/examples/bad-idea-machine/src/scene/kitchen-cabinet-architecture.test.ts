@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -51,5 +51,12 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetDoorPose('tier1-terminal')).toBe('dropped');
     expect(kitchenCabinetStackOffset('tier1-terminal')).toEqual({ x: 5, y: 1 });
     expect(kitchenCabinetSurface('tier1-terminal', false)).toBe('cabinet');
+  });
+
+  it('places the nudged pan and landed toast on their photographed support surfaces', () => {
+    expect(KITCHEN_TIER1_PROP_POSE.pan).toEqual({ x: 6, y: 2 });
+    expect(KITCHEN_TIER1_PROP_POSE.panContact).toEqual({ x: 6, y: 1 });
+    expect(KITCHEN_TIER1_PROP_POSE.toast).toEqual({ x: 716, y: 290 });
+    expect(KITCHEN_TIER1_PROP_POSE.toastContact).toEqual({ x: 717, y: 306 });
   });
 });

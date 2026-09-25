@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, kitchenCabinetDoorPose, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -169,7 +169,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     drawCrop('plates', frame, x, y);
   };
 
-  if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
+  const terminal = cabinetMode === 'tier1-terminal';
+  const panOffset = terminal ? KITCHEN_TIER1_PROP_POSE.pan : { x: 0, y: 0 };
+  const panContactOffset = terminal ? KITCHEN_TIER1_PROP_POSE.panContact : { x: 0, y: 0 };
+  if (visible.has('pan shadow')) context.drawImage(assets.panShadow, KITCHEN_PAN_TRUTH.logicalBounds.x + panContactOffset.x, KITCHEN_PAN_TRUTH.logicalBounds.y + panContactOffset.y);
   const toasterLayers = kitchenToasterTruthLayers(
     visible.has('toaster'), visible.has('toaster cord'), visible.has('toaster wall shadow'),
     visible.has('toaster contact shadow'), visible.has('toaster reflection'),
@@ -180,7 +183,8 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     const placement = toaster.restPlacement[id];
     drawCrop('toaster', frame, toaster.logicalBounds.x + placement.x, toaster.logicalBounds.y + placement.y);
   }
-  drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
+  if (terminal) drawLayer('toast shadow', 'toast', toast.frames.shadow, KITCHEN_TIER1_PROP_POSE.toastContact.x, KITCHEN_TIER1_PROP_POSE.toastContact.y);
+  else drawPlaced('toast shadow', 'toast', toast, toast.frames.shadow, toast.restPlacement.shadow);
   drawPlaced('towel shadow', 'towel', towel, towel.frames.shadow, towel.restPlacement.shadow);
   if (cabinetVisible) {
     drawPlaced('stack shadow', 'plates', plates, plates.frames.stackShadow, {
@@ -201,9 +205,10 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
     context.restore();
   }
 
-  if (visible.has('pan')) context.drawImage(assets.panBody, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
+  if (visible.has('pan')) context.drawImage(assets.panBody, KITCHEN_PAN_TRUTH.logicalBounds.x + panOffset.x, KITCHEN_PAN_TRUTH.logicalBounds.y + panOffset.y);
   drawPlaced('other toast', 'toast', toast, toast.frames.remainingBody, toast.restPlacement.remainingBody);
-  drawPlaced('hero toast', 'toast', toast, toast.frames.body, toast.restPlacement.body);
+  if (terminal) drawLayer('hero toast', 'toast', toast.frames.body, KITCHEN_TIER1_PROP_POSE.toast.x, KITCHEN_TIER1_PROP_POSE.toast.y);
+  else drawPlaced('hero toast', 'toast', toast, toast.frames.body, toast.restPlacement.body);
   drawPlaced('towel', 'towel', towel, towel.frames.body, towel.restPlacement.body);
   if (cabinetVisible) {
     drawPlaced('plate stack', 'plates', plates, plates.frames.stackBody, {

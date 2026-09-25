@@ -44,6 +44,14 @@ export const KITCHEN_TIER1_CERAMIC = {
   status: 'stationary-proposal',
 } as const;
 
+/** Stationary Tier 1 prop placements relative to their clean local supports. */
+export const KITCHEN_TIER1_PROP_POSE = {
+  pan: { x: 6, y: 2 },
+  panContact: { x: 6, y: 1 },
+  toast: { x: 716, y: 290 },
+  toastContact: { x: 717, y: 306 },
+} as const;
+
 export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
   return mode === 'hinge-dropped' || mode === 'tier1-terminal' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
 }

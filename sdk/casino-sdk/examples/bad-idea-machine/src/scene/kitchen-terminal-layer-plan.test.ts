@@ -49,7 +49,7 @@ describe('kitchen terminal layer plan', () => {
     }
   });
 
-  it('gives ceramic, cabinet and floor debris separate persistent families', () => {
+  it('keeps visible debris families separate and omits absent cabinet debris', () => {
     for (const tier of [0, 1, 2, 3, 4] as const) {
       const debrisIds = new Set(
         kitchenTerminalLayersForTier(tier).debris.map(layer => layer.ownerId),
@@ -61,7 +61,7 @@ describe('kitchen terminal layer plan', () => {
     }
   });
 
-  it('keeps fire, smoke and power treatment outside architecture images', () => {
+  it('keeps active fire, smoke and power treatment outside architecture images', () => {
     for (const tier of [0, 1, 2, 3, 4] as const) {
       const hazards = kitchenTerminalLayersForTier(tier).hazards;
       const profile = KITCHEN_DESTRUCTION_BLUEPRINT.tiers[tier].hazards;

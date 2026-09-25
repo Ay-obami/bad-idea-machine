@@ -48,8 +48,10 @@ describe('cabinet surface selection', () => {
     expect(KITCHEN_TIER1_CERAMIC.url).toBe('/rooms/kitchen/rebuild/truth/tier1-ceramic-debris.webp');
     expect(KITCHEN_TIER1_CERAMIC.bounds).toEqual({ x: 510, y: 299, width: 68, height: 40 });
     expect(kitchenCabinetHeroFace('tier1-terminal')).toBe('none');
-    expect(kitchenCabinetDoorPose('tier1-terminal')).toBe('dropped');
-    expect(kitchenCabinetStackOffset('tier1-terminal')).toEqual({ x: 5, y: 1 });
+    expect(kitchenCabinetDoorPose('tier1-terminal')).toBe('rest');
+    expect(kitchenCabinetStackOffset('tier1-terminal')).toEqual({ x: 0, y: 0 });
+    expect(kitchenCabinetDoorPose('tier2-study')).toBe('dropped');
+    expect(kitchenCabinetStackOffset('tier2-study')).toEqual({ x: 5, y: 1 });
     expect(kitchenCabinetSurface('tier1-terminal', false)).toBe('cabinet');
   });
 

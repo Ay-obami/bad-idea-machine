@@ -80,12 +80,12 @@ export function kitchenCabinetHasTerminalProps(mode: KitchenCabinetMode): boolea
 }
 
 export function kitchenCabinetStackOffset(mode: KitchenCabinetMode): Readonly<{ x: number; y: number }> {
-  return mode === 'hinge-dropped' || kitchenCabinetHasTerminalProps(mode) ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
+  return mode === 'hinge-dropped' || mode === 'tier2-study' ? KITCHEN_CABINET_STACK_SLIDE : { x: 0, y: 0 };
 }
 
 export function kitchenCabinetDoorPose(mode: KitchenCabinetMode): 'rest' | 'dropped' | 'none' {
   if (mode === 'backing-diagnostic') return 'none';
-  return mode === 'hinge-dropped' || kitchenCabinetHasTerminalProps(mode) ? 'dropped' : 'rest';
+  return mode === 'hinge-dropped' || mode === 'tier2-study' ? 'dropped' : 'rest';
 }
 
 export function kitchenCabinetSurface(mode: KitchenCabinetMode, reference: boolean): 'master' | 'cabinet' | 'backing' {

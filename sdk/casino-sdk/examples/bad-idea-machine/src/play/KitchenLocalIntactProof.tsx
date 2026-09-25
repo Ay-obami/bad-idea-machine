@@ -244,7 +244,7 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
       y: plates.restPlacement.stackBody.y + stackOffset.y,
     });
     drawHeroPlate('hero plate', plates.frames.heroBody, plates.restPlacement.heroBody);
-    if (cabinetMode === 'hinge-stressed' || cabinetMode === 'hinge-dropped') {
+    if (cabinetMode === 'hinge-stressed' || cabinetMode === 'hinge-dropped' || cabinetMode === 'tier1-terminal') {
       // Local hinge stress, with the approved door and carcass still in place.
       context.save();
       context.lineCap = 'round';

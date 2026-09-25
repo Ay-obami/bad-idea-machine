@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { KITCHEN_DESTRUCTION_BLUEPRINT } from './kitchen-destruction-blueprint';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, KITCHEN_TIER2_SOOT_STUDY, kitchenCabinetDoorPose, kitchenCabinetHasTerminalProps, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, KITCHEN_TIER2_SOOT_STUDY, KITCHEN_TIER2_GREASE_STUDY, kitchenCabinetDoorPose, kitchenCabinetHasTerminalProps, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, validateKitchenCabinetArchitecture } from './kitchen-cabinet-architecture';
 
 describe('approved open-cabinet architecture extraction', () => {
   it('registers exact local geometry and keeps the unseen backing proposed', () => {
@@ -65,5 +65,7 @@ describe('cabinet surface selection', () => {
     expect(kitchenCabinetHeroFace('tier2-study')).toBe('none');
     expect(KITCHEN_TIER2_SOOT_STUDY.url).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
     expect(KITCHEN_TIER2_SOOT_STUDY.bounds.y + KITCHEN_TIER2_SOOT_STUDY.bounds.height).toBeLessThanOrEqual(315);
+    expect(KITCHEN_TIER2_GREASE_STUDY.url).toMatch(/^\/rooms\/kitchen\/rebuild\/truth\//);
+    expect(KITCHEN_TIER2_GREASE_STUDY.bounds.y).toBeGreaterThanOrEqual(286);
   });
 });

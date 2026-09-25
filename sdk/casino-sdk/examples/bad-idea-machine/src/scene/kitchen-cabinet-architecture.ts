@@ -60,6 +60,14 @@ export const KITCHEN_TIER2_SOOT_STUDY = {
   status: 'visual-study',
 } as const;
 
+/** Separate stove-plane residue under props and their independent contacts. */
+export const KITCHEN_TIER2_GREASE_STUDY = {
+  url: '/rooms/kitchen/rebuild/truth/tier2-grease-study.webp',
+  bounds: { x: 445, y: 286, width: 120, height: 55 },
+  opacity: .65,
+  status: 'visual-study',
+} as const;
+
 export function kitchenCabinetHasTerminalProps(mode: KitchenCabinetMode): boolean {
   return mode === 'tier1-terminal' || mode === 'tier2-study';
 }
@@ -121,6 +129,15 @@ export function validateKitchenCabinetArchitecture(): readonly string[] {
       soot.bounds.x + soot.bounds.width > backsplash.bounds.x + backsplash.bounds.width ||
       soot.bounds.y + soot.bounds.height > backsplash.bounds.y + backsplash.bounds.height) {
     errors.push('Tier 2 soot study must be repository-local and confined to the backsplash');
+  }
+  const grease = KITCHEN_TIER2_GREASE_STUDY;
+  const stove = KITCHEN_DESTRUCTION_BLUEPRINT.zones.find(item => item.id === 'stove-range');
+  if (!grease.url.startsWith('/rooms/kitchen/rebuild/truth/') ||
+      /creativeclaw|^https?:\/\//i.test(grease.url) || !stove ||
+      grease.bounds.x < stove.bounds.x || grease.bounds.y < stove.bounds.y ||
+      grease.bounds.x + grease.bounds.width > stove.bounds.x + stove.bounds.width ||
+      grease.bounds.y + grease.bounds.height > stove.bounds.y + stove.bounds.height) {
+    errors.push('Tier 2 grease study must be repository-local and confined to the stove');
   }
   const door = KITCHEN_CABINET_DOOR;
   if (door.bounds.x < zone.bounds.x || door.bounds.y < zone.bounds.y ||

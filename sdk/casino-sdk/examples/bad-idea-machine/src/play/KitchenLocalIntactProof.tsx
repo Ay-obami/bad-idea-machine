@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { KITCHEN_APPROVED_MASTER } from '../scene/kitchen-master';
-import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, KITCHEN_TIER2_SOOT_STUDY, kitchenCabinetDoorPose, kitchenCabinetHasTerminalProps, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
+import { KITCHEN_CABINET_ARCHITECTURE, KITCHEN_CABINET_DOOR, KITCHEN_TIER1_CERAMIC, KITCHEN_TIER1_PROP_POSE, KITCHEN_TIER2_SOOT_STUDY, KITCHEN_TIER2_GREASE_STUDY, kitchenCabinetDoorPose, kitchenCabinetHasTerminalProps, kitchenCabinetHeroFace, kitchenCabinetStackOffset, kitchenCabinetSurface, type KitchenCabinetMode } from '../scene/kitchen-cabinet-architecture';
 import {
   KITCHEN_PAN_TRUTH, KITCHEN_TOAST_TRUTH, KITCHEN_TOWEL_TRUTH,
   KITCHEN_PLATE_TRUTH, KITCHEN_KETTLE_TRUTH, KITCHEN_TOASTER_TRUTH,
@@ -13,7 +13,7 @@ type Layer = 'pan' | 'pan shadow' | 'toaster' | 'toaster cord' | 'toaster wall s
   | 'toaster contact shadow' | 'toaster reflection' | 'hero toast' | 'other toast' | 'toast shadow'
   | 'towel' | 'towel shadow' | 'hero plate' | 'hero plate shadow'
   | 'plate stack' | 'stack shadow' | 'kettle' | 'kettle shadow' | 'kettle reflection' | 'cabinet door'
-  | 'ceramic debris' | 'ceramic debris contact' | 'backsplash soot study';
+  | 'ceramic debris' | 'ceramic debris contact' | 'backsplash soot study' | 'stove grease study';
 
 const layerGroups: readonly (readonly Layer[])[] = [
   ['pan', 'pan shadow'],
@@ -25,6 +25,7 @@ const layerGroups: readonly (readonly Layer[])[] = [
   ['cabinet door'],
   ['ceramic debris', 'ceramic debris contact'],
   ['backsplash soot study'],
+  ['stove grease study'],
 ];
 const allLayers = layerGroups.flat();
 const assetUrls = {
@@ -40,6 +41,7 @@ const assetUrls = {
   plates: KITCHEN_PLATE_TRUTH.atlasUrl,
   ceramic: KITCHEN_TIER1_CERAMIC.url,
   soot: KITCHEN_TIER2_SOOT_STUDY.url,
+  grease: KITCHEN_TIER2_GREASE_STUDY.url,
   kettle: KITCHEN_KETTLE_TRUTH.atlasUrl,
 } as const;
 type Asset = keyof typeof assetUrls;
@@ -159,6 +161,13 @@ function drawRoom(context: CanvasRenderingContext2D, assets: Record<Asset, HTMLI
 
   // Replace the photographed objects with their clean local supports first.
   context.drawImage(assets.panSupport, KITCHEN_PAN_TRUTH.logicalBounds.x, KITCHEN_PAN_TRUTH.logicalBounds.y);
+  if (cabinetMode === 'tier2-study' && visible.has('stove grease study')) {
+    const { x, y, width, height } = KITCHEN_TIER2_GREASE_STUDY.bounds;
+    context.save();
+    context.globalAlpha = KITCHEN_TIER2_GREASE_STUDY.opacity;
+    context.drawImage(assets.grease, x, y, width, height);
+    context.restore();
+  }
   drawCrop('toaster', toaster.frames.support, toaster.logicalBounds.x, toaster.logicalBounds.y);
   drawCrop('towel', towel.frames.support, towel.logicalBounds.x, towel.logicalBounds.y);
   if (cabinetVisible) drawCrop('plates', plates.frames.support, plates.logicalBounds.x, plates.logicalBounds.y);
@@ -334,11 +343,11 @@ export function KitchenLocalIntactProof({ initialMode = 'intact' }: { initialMod
         </button>
       </div>
       {layerGroups.map((group, index) => <section key={group[0]} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 10 }}>
-        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris', 'Backsplash'][index]}</strong>
+        <strong style={{ width: 92, fontSize: 12 }}>{['Pan', 'Toaster', 'Toast', 'Towel', 'Plates', 'Kettle', 'Cabinet', 'Debris', 'Backsplash', 'Stove'][index]}</strong>
         {group.map(layer => { const disabled = ((index === 4 || index === 6) && !cabinetVisible) ||
           ((layer === 'hero plate' || layer === 'hero plate shadow') && kitchenCabinetHasTerminalProps(cabinetMode)) ||
           (index === 7 && !kitchenCabinetHasTerminalProps(cabinetMode)) ||
-          (index === 8 && cabinetMode !== 'tier2-study');
+          ((index === 8 || index === 9) && cabinetMode !== 'tier2-study');
           const absent = kitchenCabinetHasTerminalProps(cabinetMode) && (layer === 'hero plate' || layer === 'hero plate shadow');
           return <button key={layer} type="button" aria-pressed={absent ? false : visible.has(layer)} disabled={disabled} onClick={() => toggle(layer)}
           style={{ ...controlStyle, opacity: disabled ? .5 : 1, border: `1px solid ${!absent && visible.has(layer) ? '#7ce2a5' : '#8b4c48'}` }}>

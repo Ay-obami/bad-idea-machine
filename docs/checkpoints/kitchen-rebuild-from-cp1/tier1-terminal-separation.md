@@ -31,3 +31,7 @@ The first deployed pan/toast review at `566c9d1` shows the settled toast on the 
 The production `de1682a` stationary review showed the landed toast on the right counter with its own contact, ceramic fragments close to the pan handle, and the pan supported by the grate. Hiding the toast body and contact restored the clean counter. This accepts those bounded prop placements only; the remaining terminal architecture, floor debris, and Tier 1 state coverage still require authoring and visual review.
 
 The `500724e` floor ceramic study and the smaller `f59f959` correction failed live visual review: the generated fragments read too bright and pasted on, with the cluster crossing the wood/rug boundary. Both study commits were reverted. No floor ceramic is accepted, and the separate floor debris slot remains open.
+
+## Wood-floor fragment study
+
+The next isolated floor sprite is body-only ceramic with no baked shadow. An image edit used the approved master solely for warm material and lighting reference; the master file itself remains authoritative and unchanged. The asset is displayed at (750, 547), 90×47, over exposed wood to the right of the rug. Its contact is derived from the body alpha as a separately switchable dark blur at a one-pixel drop. This placement avoids the earlier rug/wood crossing and remains an **unaccepted visual study** until a deployed room and hide/show review. The temporary rebuild budget is 17 files / 460,000 bytes; other budget ceilings are unchanged.

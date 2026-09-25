@@ -44,6 +44,13 @@ export const KITCHEN_TIER1_CERAMIC = {
   status: 'stationary-proposal',
 } as const;
 
+/** Body-only floor study on the exposed wood to the right of the rug. */
+export const KITCHEN_TIER1_FLOOR_CERAMIC_STUDY = {
+  url: '/rooms/kitchen/rebuild/truth/tier1-floor-ceramic-study.webp',
+  bounds: { x: 750, y: 547, width: 90, height: 47 },
+  status: 'visual-study',
+} as const;
+
 /** Stationary Tier 1 prop placements relative to their clean local supports. */
 export const KITCHEN_TIER1_PROP_POSE = {
   pan: { x: 6, y: 2 },
